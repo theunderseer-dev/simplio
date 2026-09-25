@@ -37,3 +37,4 @@ plugins {
 
 include(":desktopApp")
 include(":shared")
+include(":feature:attendance")
