@@ -8,7 +8,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                // Production dependencies will be added only when required.
+                implementation(libs.kotlinx.datetime)
             }
         }
 
