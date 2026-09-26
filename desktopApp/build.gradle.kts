@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 dependencies {
@@ -24,5 +26,12 @@ compose.desktop {
             packageName = "com.theundeerseer.simplio"
             packageVersion = "1.0.0"
         }
+    }
+}
+
+ktlint {
+    filter {
+        exclude("**/build/**")
+        exclude("**/generated/**")
     }
 }

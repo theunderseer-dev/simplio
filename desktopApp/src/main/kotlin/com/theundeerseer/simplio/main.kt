@@ -3,11 +3,12 @@ package com.theundeerseer.simplio
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Simplio",
-    ) {
-        App()
+fun main() =
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Simplio",
+        ) {
+            // Features will be composed here.
+        }
     }
-}

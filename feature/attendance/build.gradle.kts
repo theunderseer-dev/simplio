@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 kotlin {
@@ -17,5 +19,12 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+    }
+}
+
+ktlint {
+    filter {
+        exclude("**/build/**")
+        exclude("**/generated/**")
     }
 }
