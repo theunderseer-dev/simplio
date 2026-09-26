@@ -52,4 +52,44 @@ class MarkStudentPresentUseCaseTest {
         )
         assertEquals(2, updatedStudentPackage.usedClasses)
     }
+
+    @Test
+    fun `marking a student as present on the same date does not duplicate attendance`() {
+        // Given
+        // Anna has an active 5-class package
+        // And
+        // she has already attended one class
+        val studentName = "Anna Smith"
+        val packageType =
+            PackageType(
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+        val firstAttendance = LocalDate(2026, 9, 25)
+        val studentPackage =
+            StudentPackage(
+                student = Student(studentName),
+                packageType = packageType,
+                startedOn = firstAttendance,
+                attendanceDates = setOf(firstAttendance),
+            )
+
+        // When
+        // I mark Anna present on the same date again
+        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        val updatedStudentPackage =
+            markStudentPresentUseCase(
+                studentPackage = studentPackage,
+                attendanceDate = firstAttendance,
+            )
+
+        // Then
+        // the attendance date is not duplicated
+        // And
+        // used classes remain at 1
+        assertEquals(setOf(firstAttendance), updatedStudentPackage.attendanceDates)
+        assertEquals(1, updatedStudentPackage.usedClasses)
+    }
 }
