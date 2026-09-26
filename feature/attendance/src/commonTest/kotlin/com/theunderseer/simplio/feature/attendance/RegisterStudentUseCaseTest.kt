@@ -2,12 +2,11 @@ package com.theunderseer.simplio.feature.attendance
 
 import com.theunderseer.simplio.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.RegistrationDetails
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class RegisterStudentTest {
+class RegisterStudentUseCaseTest {
     @Test
     fun `registering a student with a package records first attendance automatically`() {
         // Given
@@ -26,7 +25,7 @@ class RegisterStudentTest {
 
         // When
         // Anna Smith is registered with that package
-        val result: RegistrationDetails =
+        val result =
             registerStudentUseCase(
                 fullName = studentName,
                 packageType = packageType,
@@ -37,19 +36,19 @@ class RegisterStudentTest {
         // Anna is registered
         assertEquals(studentName, result.student.fullName)
         // package starts today
-        assertEquals(today, result.studentPackage.startedOn)
+        assertEquals(today, result.startedOn)
         // attendance contains today
-        assertEquals(setOf(today), result.studentPackage.attendanceDates)
+        assertEquals(setOf(today), result.attendanceDates)
         // used classes = 1 of 5
-        assertEquals(1, result.studentPackage.usedClasses)
+        assertEquals(1, result.usedClasses)
         // package type is the one selected
-        assertEquals(packageType, result.studentPackage.packageType)
+        assertEquals(packageType, result.packageType)
         // total classes = 5
-        assertEquals(5, result.studentPackage.packageType.totalClasses)
+        assertEquals(5, result.packageType.totalClasses)
         // package expires in 6 weeks
         assertEquals(
             LocalDate(2026, 11, 6),
-            result.studentPackage.expiresOn,
+            result.expiresOn,
         )
     }
 }
