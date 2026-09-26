@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 data class StudentPackage(
+    val student: Student,
     val packageType: PackageType,
     val startedOn: LocalDate,
     val attendanceDates: Set<LocalDate> = setOf(startedOn),
