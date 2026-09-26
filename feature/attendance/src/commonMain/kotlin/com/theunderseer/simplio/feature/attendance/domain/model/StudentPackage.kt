@@ -18,4 +18,7 @@ data class StudentPackage(
             startedOn.plus(
                 DatePeriod(days = packageType.validityWeeks * 7),
             )
+
+    val isCompleted: Boolean
+        get() = usedClasses >= packageType.totalClasses
 }

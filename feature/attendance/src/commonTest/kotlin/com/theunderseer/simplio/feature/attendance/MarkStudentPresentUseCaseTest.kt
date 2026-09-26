@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class MarkStudentPresentUseCaseTest {
     @Test
@@ -91,5 +92,67 @@ class MarkStudentPresentUseCaseTest {
         // used classes remain at 1
         assertEquals(setOf(firstAttendance), updatedStudentPackage.attendanceDates)
         assertEquals(1, updatedStudentPackage.usedClasses)
+    }
+
+    @Test
+    fun `marking the final attendance marks the package as completed`() {
+        // Given
+        // Anna has a 5-class package
+        // And
+        // she has already used 4 classes
+        val studentName = "Anna Smith"
+        val packageType =
+            PackageType(
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+        val studentPackage =
+            StudentPackage(
+                student = Student(studentName),
+                packageType = packageType,
+                startedOn = LocalDate(2026, 9, 20),
+                attendanceDates =
+                    setOf(
+                        LocalDate(2026, 9, 20),
+                        LocalDate(2026, 9, 22),
+                        LocalDate(2026, 9, 24),
+                        LocalDate(2026, 9, 26),
+                    ),
+            )
+
+        val finalAttendanceDate = LocalDate(2026, 9, 28)
+
+        // When
+        // I mark Anna present on a new date
+        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        val updatedStudentPackage =
+            markStudentPresentUseCase(
+                studentPackage = studentPackage,
+                attendanceDate = finalAttendanceDate,
+            )
+
+        // Then
+        // the new attendance date is recorded
+        assertEquals(
+            setOf(
+                LocalDate(2026, 9, 20),
+                LocalDate(2026, 9, 22),
+                LocalDate(2026, 9, 24),
+                LocalDate(2026, 9, 26),
+                finalAttendanceDate,
+            ),
+            updatedStudentPackage.attendanceDates,
+        )
+        // And
+        // used classes become 5 of 5
+        assertEquals(5, updatedStudentPackage.usedClasses)
+        // And
+        // the package is marked as completed
+        assertTrue(updatedStudentPackage.isCompleted)
+        // And
+        // Anna remains associated with the package history
+        assertEquals(studentName, updatedStudentPackage.student.fullName)
     }
 }
