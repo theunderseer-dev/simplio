@@ -5,7 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 data class StudentPackage(
-    val student: Student,
+    val studentId: Int,
     val packageType: PackageType,
     val startedOn: LocalDate,
     val attendanceDates: Set<LocalDate> = setOf(startedOn),
@@ -23,4 +23,6 @@ data class StudentPackage(
         get() = usedClasses >= packageType.totalClasses
 
     fun isExpiredOn(attendanceDate: LocalDate): Boolean = attendanceDate > expiresOn
+
+    fun isActiveOn(attendanceDate: LocalDate): Boolean = !isExpiredOn(attendanceDate) && !isCompleted
 }
