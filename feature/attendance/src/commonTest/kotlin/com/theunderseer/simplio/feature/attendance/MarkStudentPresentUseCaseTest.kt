@@ -3,7 +3,6 @@ package com.theunderseer.simplio.feature.attendance
 import com.theunderseer.simplio.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.attendance.domain.usecase.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -13,24 +12,25 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class MarkStudentPresentUseCaseTest {
+    private val studentId = 1
+    private val packageType =
+        PackageType(
+            name = "5-class package",
+            totalClasses = 5,
+            validityWeeks = 6,
+            price = 1700,
+        )
+
     @Test
     fun `marking a student as present adds the date to attendance`() {
         // Given
         // Anna has an active 5-class package
         // And
         // she has already attended one class
-        val studentName = "Anna Smith"
-        val packageType =
-            PackageType(
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
         val firstAttendance = LocalDate(2026, 9, 25)
         val studentPackage =
             StudentPackage(
-                student = Student(studentName),
+                studentId = studentId,
                 packageType = packageType,
                 startedOn = firstAttendance,
                 attendanceDates = setOf(firstAttendance),
@@ -38,8 +38,8 @@ class MarkStudentPresentUseCaseTest {
 
         // When
         // I mark Anna present on a new date
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
         val nextAttendanceDate = LocalDate(2026, 9, 27)
+        val markStudentPresentUseCase = MarkStudentPresentUseCase()
         val result =
             markStudentPresentUseCase(
                 studentPackage = studentPackage,
@@ -47,15 +47,15 @@ class MarkStudentPresentUseCaseTest {
             )
 
         // Then
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
         // the new attendance date is recorded
-        // And
-        // used classes increase from 1 to 2
-        assertIs<MarkStudentPresentResult.Success>(result)
         assertEquals(
             setOf(firstAttendance, nextAttendanceDate),
-            result.studentPackage.attendanceDates,
+            success.studentPackage.attendanceDates,
         )
-        assertEquals(2, result.studentPackage.usedClasses)
+        // And
+        // used classes increase from 1 to 2
+        assertEquals(2, success.studentPackage.usedClasses)
     }
 
     @Test
@@ -64,18 +64,10 @@ class MarkStudentPresentUseCaseTest {
         // Anna has an active 5-class package
         // And
         // she has already attended one class
-        val studentName = "Anna Smith"
-        val packageType =
-            PackageType(
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
         val firstAttendance = LocalDate(2026, 9, 25)
         val studentPackage =
             StudentPackage(
-                student = Student(studentName),
+                studentId = studentId,
                 packageType = packageType,
                 startedOn = firstAttendance,
                 attendanceDates = setOf(firstAttendance),
@@ -91,12 +83,12 @@ class MarkStudentPresentUseCaseTest {
             )
 
         // Then
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
         // the attendance date is not duplicated
+        assertEquals(setOf(firstAttendance), success.studentPackage.attendanceDates)
         // And
         // used classes remain at 1
-        assertIs<MarkStudentPresentResult.Success>(result)
-        assertEquals(setOf(firstAttendance), result.studentPackage.attendanceDates)
-        assertEquals(1, result.studentPackage.usedClasses)
+        assertEquals(1, success.studentPackage.usedClasses)
     }
 
     @Test
@@ -105,17 +97,9 @@ class MarkStudentPresentUseCaseTest {
         // Anna has a 5-class package
         // And
         // she has already used 4 classes
-        val studentName = "Anna Smith"
-        val packageType =
-            PackageType(
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
         val studentPackage =
             StudentPackage(
-                student = Student(studentName),
+                studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 9, 20),
                 attendanceDates =
@@ -139,8 +123,8 @@ class MarkStudentPresentUseCaseTest {
             )
 
         // Then
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
         // the new attendance date is recorded
-        assertIs<MarkStudentPresentResult.Success>(result)
         assertEquals(
             setOf(
                 LocalDate(2026, 9, 20),
@@ -149,17 +133,17 @@ class MarkStudentPresentUseCaseTest {
                 LocalDate(2026, 9, 26),
                 finalAttendanceDate,
             ),
-            result.studentPackage.attendanceDates,
+            success.studentPackage.attendanceDates,
         )
         // And
         // used classes become 5 of 5
-        assertEquals(5, result.studentPackage.usedClasses)
+        assertEquals(5, success.studentPackage.usedClasses)
         // And
         // the package is marked as completed
-        assertTrue(result.studentPackage.isCompleted)
+        assertTrue(success.studentPackage.isCompleted)
         // And
         // Anna remains associated with the package history
-        assertEquals(studentName, result.studentPackage.student.fullName)
+        assertEquals(studentId, success.studentPackage.studentId)
     }
 
     @Test
@@ -168,17 +152,9 @@ class MarkStudentPresentUseCaseTest {
         // Anna has a completed 5-class package
         // And
         // all 5 classes have already been used
-        val packageType =
-            PackageType(
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val studentPackage =
             StudentPackage(
-                student = Student("Anna Smith"),
+                studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 9, 20),
                 attendanceDates =
@@ -203,16 +179,17 @@ class MarkStudentPresentUseCaseTest {
             )
 
         // Then
-        // the package is already completed
-        assertIs<MarkStudentPresentResult.PackageCompleted>(result)
+        // the operation reports that the package is completed
+        val completedResult = assertIs<MarkStudentPresentResult.PackageCompleted>(result)
+        // And
         // the attendance must not be added
-        assertFalse(result.studentPackage.attendanceDates.contains(nextAttendanceDate))
+        assertFalse(completedResult.studentPackage.attendanceDates.contains(nextAttendanceDate))
         // And
         // used classes must remain 5
-        assertEquals(5, result.studentPackage.usedClasses)
+        assertEquals(5, completedResult.studentPackage.usedClasses)
         // And
         // the operation must report that the package is completed
-        assertTrue(result.studentPackage.isCompleted)
+        assertTrue(completedResult.studentPackage.isCompleted)
     }
 
     @Test
@@ -223,17 +200,9 @@ class MarkStudentPresentUseCaseTest {
         // the package still has unused classes
         // And
         // the package has expired
-        val packageType =
-            PackageType(
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val studentPackage =
             StudentPackage(
-                student = Student("Anna Smith"),
+                studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 8, 1),
                 attendanceDates =
@@ -256,11 +225,11 @@ class MarkStudentPresentUseCaseTest {
 
         // Then
         // the package is already expired
-        assertIs<MarkStudentPresentResult.PackageExpired>(result)
+        val expiredResult = assertIs<MarkStudentPresentResult.PackageExpired>(result)
         // the attendance must not be added
-        assertFalse(result.studentPackage.attendanceDates.contains(attendanceDate))
+        assertFalse(expiredResult.studentPackage.attendanceDates.contains(attendanceDate))
         // And
         // used classes must remain unchanged
-        assertEquals(2, result.studentPackage.usedClasses)
+        assertEquals(2, expiredResult.studentPackage.usedClasses)
     }
 }
