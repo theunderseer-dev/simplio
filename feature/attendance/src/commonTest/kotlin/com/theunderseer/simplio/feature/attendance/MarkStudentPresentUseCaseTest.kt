@@ -203,8 +203,9 @@ class MarkStudentPresentUseCaseTest {
             )
 
         // Then
-        // the attendance must not be added
+        // the package is already completed
         assertIs<MarkStudentPresentResult.PackageCompleted>(result)
+        // the attendance must not be added
         assertFalse(result.studentPackage.attendanceDates.contains(nextAttendanceDate))
         // And
         // used classes must remain 5
@@ -212,5 +213,54 @@ class MarkStudentPresentUseCaseTest {
         // And
         // the operation must report that the package is completed
         assertTrue(result.studentPackage.isCompleted)
+    }
+
+    @Test
+    fun `marking attendance on an expired package is rejected`() {
+        // Given
+        // Anna has a 5-class package
+        // And
+        // the package still has unused classes
+        // And
+        // the package has expired
+        val packageType =
+            PackageType(
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+
+        val studentPackage =
+            StudentPackage(
+                student = Student("Anna Smith"),
+                packageType = packageType,
+                startedOn = LocalDate(2026, 8, 1),
+                attendanceDates =
+                    setOf(
+                        LocalDate(2026, 8, 1),
+                        LocalDate(2026, 8, 8),
+                    ),
+            )
+
+        val attendanceDate = LocalDate(2026, 9, 20)
+
+        // When
+        // I try to mark Anna present on a later date
+        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        val result =
+            markStudentPresentUseCase(
+                studentPackage = studentPackage,
+                attendanceDate = attendanceDate,
+            )
+
+        // Then
+        // the package is already expired
+        assertIs<MarkStudentPresentResult.PackageExpired>(result)
+        // the attendance must not be added
+        assertFalse(result.studentPackage.attendanceDates.contains(attendanceDate))
+        // And
+        // used classes must remain unchanged
+        assertEquals(2, result.studentPackage.usedClasses)
     }
 }
