@@ -12,6 +12,9 @@ class MarkStudentPresentUseCase {
         if (studentPackage.isCompleted) {
             return MarkStudentPresentResult.PackageCompleted(studentPackage = studentPackage)
         }
+        if (studentPackage.isExpiredOn(attendanceDate)) {
+            return MarkStudentPresentResult.PackageExpired(studentPackage = studentPackage)
+        }
         val updatedAttendanceDates = studentPackage.attendanceDates + attendanceDate
         return MarkStudentPresentResult.Success(
             studentPackage = studentPackage.copy(attendanceDates = updatedAttendanceDates),

@@ -21,4 +21,6 @@ data class StudentPackage(
 
     val isCompleted: Boolean
         get() = usedClasses >= packageType.totalClasses
+
+    fun isExpiredOn(attendanceDate: LocalDate): Boolean = attendanceDate > expiresOn
 }
