@@ -1,10 +1,11 @@
 package com.theunderseer.simplio.feature.attendance
 
-import com.theunderseer.simplio.attendance.domain.usecase.MarkStudentPresentUseCase
-import com.theunderseer.simplio.attendance.domain.usecase.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
+import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
+import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import kotlinx.datetime.LocalDate
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -21,84 +22,119 @@ class MarkStudentPresentUseCaseTest {
             price = 1700,
         )
 
+    private lateinit var repository: FakeStudentPackageRepository
+    private lateinit var markStudentPresent: MarkStudentPresentUseCase
+
+    @BeforeTest
+    fun setUp() {
+        repository = FakeStudentPackageRepository()
+        markStudentPresent = MarkStudentPresentUseCase(repository = repository)
+    }
+
     @Test
     fun `marking a student as present adds the date to attendance`() {
         // Given
-        // Anna has an active 5-class package
+        // student has an active 5-class package
         // And
-        // she has already attended one class
+        // he has already attended one class
         val firstAttendance = LocalDate(2026, 9, 25)
         val studentPackage =
-            StudentPackage(
+            repository.seed(
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = firstAttendance,
-                attendanceDates = setOf(firstAttendance),
             )
 
         // When
-        // I mark Anna present on a new date
+        // I mark student present on a new date
         val nextAttendanceDate = LocalDate(2026, 9, 27)
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+
         val result =
-            markStudentPresentUseCase(
-                studentPackage = studentPackage,
+            markStudentPresent(
+                studentId = studentId,
                 attendanceDate = nextAttendanceDate,
             )
 
         // Then
+        // the operation is successful
         val success = assertIs<MarkStudentPresentResult.Success>(result)
+
+        // And
+        // the same package is updated, not replaced
+        assertEquals(
+            studentPackage.id,
+            success.studentPackage.id,
+        )
+
+        // And
         // the new attendance date is recorded
         assertEquals(
             setOf(firstAttendance, nextAttendanceDate),
             success.studentPackage.attendanceDates,
         )
+
         // And
         // used classes increase from 1 to 2
         assertEquals(2, success.studentPackage.usedClasses)
+
+        // And
+        // the updated package is persisted
+        assertEquals(
+            success.studentPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
     }
 
     @Test
     fun `marking a student as present on the same date does not duplicate attendance`() {
         // Given
-        // Anna has an active 5-class package
+        // student has an active 5-class package
         // And
-        // she has already attended one class
+        // he has already attended one class
         val firstAttendance = LocalDate(2026, 9, 25)
-        val studentPackage =
-            StudentPackage(
-                studentId = studentId,
-                packageType = packageType,
-                startedOn = firstAttendance,
-                attendanceDates = setOf(firstAttendance),
-            )
+
+        repository.seed(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = firstAttendance,
+        )
 
         // When
-        // I mark Anna present on the same date again
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        // I mark the student present on the same date again
         val result =
-            markStudentPresentUseCase(
-                studentPackage = studentPackage,
+            markStudentPresent(
+                studentId = studentId,
                 attendanceDate = firstAttendance,
             )
 
         // Then
+        // the operation is successful
         val success = assertIs<MarkStudentPresentResult.Success>(result)
+
+        // And
         // the attendance date is not duplicated
-        assertEquals(setOf(firstAttendance), success.studentPackage.attendanceDates)
+        assertEquals(
+            setOf(firstAttendance),
+            success.studentPackage.attendanceDates,
+        )
+
         // And
         // used classes remain at 1
         assertEquals(1, success.studentPackage.usedClasses)
+
+        // And
+        // no persistence update is required
+        assertTrue(repository.updatedPackages.isEmpty())
     }
 
     @Test
     fun `marking the final attendance marks the package as completed`() {
         // Given
-        // Anna has a 5-class package
+        // student has a 5-class package
         // And
-        // she has already used 4 classes
+        // he has already used 4 classes
         val studentPackage =
-            StudentPackage(
+            repository.seed(
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 9, 20),
@@ -114,16 +150,18 @@ class MarkStudentPresentUseCaseTest {
         val finalAttendanceDate = LocalDate(2026, 9, 28)
 
         // When
-        // I mark Anna present on a new date
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        // I mark the student present on a new date
         val result =
-            markStudentPresentUseCase(
-                studentPackage = studentPackage,
+            markStudentPresent(
+                studentId = studentId,
                 attendanceDate = finalAttendanceDate,
             )
 
         // Then
+        // the operation is successful
         val success = assertIs<MarkStudentPresentResult.Success>(result)
+
+        // And
         // the new attendance date is recorded
         assertEquals(
             setOf(
@@ -135,25 +173,38 @@ class MarkStudentPresentUseCaseTest {
             ),
             success.studentPackage.attendanceDates,
         )
+
         // And
         // used classes become 5 of 5
         assertEquals(5, success.studentPackage.usedClasses)
+
         // And
         // the package is marked as completed
         assertTrue(success.studentPackage.isCompleted)
+
         // And
-        // Anna remains associated with the package history
-        assertEquals(studentId, success.studentPackage.studentId)
+        // same package was updated, not replaced
+        assertEquals(
+            studentPackage.id,
+            success.studentPackage.id,
+        )
+
+        // And
+        // completed state is persisted
+        assertEquals(
+            success.studentPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
     }
 
     @Test
     fun `marking attendance on a completed package is rejected`() {
         // Given
-        // Anna has a completed 5-class package
+        // student has a completed 5-class package
         // And
         // all 5 classes have already been used
         val studentPackage =
-            StudentPackage(
+            repository.seed(
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 9, 20),
@@ -170,38 +221,43 @@ class MarkStudentPresentUseCaseTest {
         val nextAttendanceDate = LocalDate(2026, 9, 30)
 
         // When
-        // I try to mark Anna present on another date
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        // I try to mark the student present on another date
         val result =
-            markStudentPresentUseCase(
-                studentPackage = studentPackage,
+            markStudentPresent(
+                studentId = studentId,
                 attendanceDate = nextAttendanceDate,
             )
 
         // Then
         // the operation reports that the package is completed
         val completedResult = assertIs<MarkStudentPresentResult.PackageCompleted>(result)
+
+        // And
+        // the original package is returned
+        assertEquals(
+            studentPackage,
+            completedResult.studentPackage,
+        )
+
         // And
         // the attendance must not be added
         assertFalse(completedResult.studentPackage.attendanceDates.contains(nextAttendanceDate))
+
         // And
-        // used classes must remain 5
-        assertEquals(5, completedResult.studentPackage.usedClasses)
-        // And
-        // the operation must report that the package is completed
-        assertTrue(completedResult.studentPackage.isCompleted)
+        // rejected attendance is not persisted
+        assertTrue(repository.updatedPackages.isEmpty())
     }
 
     @Test
     fun `marking attendance on an expired package is rejected`() {
         // Given
-        // Anna has a 5-class package
+        // student has a 5-class package
         // And
         // the package still has unused classes
         // And
         // the package has expired
         val studentPackage =
-            StudentPackage(
+            repository.seed(
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 8, 1),
@@ -215,21 +271,51 @@ class MarkStudentPresentUseCaseTest {
         val attendanceDate = LocalDate(2026, 9, 20)
 
         // When
-        // I try to mark Anna present on a later date
-        val markStudentPresentUseCase = MarkStudentPresentUseCase()
+        // I try to mark the student present on a later date
         val result =
-            markStudentPresentUseCase(
-                studentPackage = studentPackage,
+            markStudentPresent(
+                studentId = studentId,
                 attendanceDate = attendanceDate,
             )
 
         // Then
         // the package is already expired
         val expiredResult = assertIs<MarkStudentPresentResult.PackageExpired>(result)
+
+        // And
+        // the original package is returned
+        assertEquals(
+            studentPackage,
+            expiredResult.studentPackage,
+        )
+
+        // And
         // the attendance must not be added
         assertFalse(expiredResult.studentPackage.attendanceDates.contains(attendanceDate))
+
         // And
-        // used classes must remain unchanged
-        assertEquals(2, expiredResult.studentPackage.usedClasses)
+        // rejected attendance is not persisted
+        assertTrue(repository.updatedPackages.isEmpty())
+    }
+
+    @Test
+    fun `marking attendance without a student package is rejected`() {
+        // Given
+        // student has no package at all
+        // When
+        // I try to mark student present on a date without any package
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = LocalDate(2026, 9, 29),
+            )
+
+        // Then
+        // the operation reports that no package was found for the student
+        assertIs<MarkStudentPresentResult.PackageNotFound>(result)
+
+        // And
+        // rejected attendance is not persisted
+        assertTrue(repository.updatedPackages.isEmpty())
     }
 }

@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.attendance.domain.usecase.result
+package com.theunderseer.simplio.feature.attendance.domain.result
 
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 
@@ -14,4 +14,6 @@ sealed interface MarkStudentPresentResult {
     data class PackageExpired(
         val studentPackage: StudentPackage,
     ) : MarkStudentPresentResult
+
+    data object PackageNotFound : MarkStudentPresentResult
 }

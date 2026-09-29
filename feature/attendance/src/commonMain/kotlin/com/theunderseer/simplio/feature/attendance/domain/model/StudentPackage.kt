@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 
 data class StudentPackage(
+    val id: Int,
     val studentId: Int,
     val packageType: PackageType,
     val startedOn: LocalDate,
