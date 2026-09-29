@@ -10,12 +10,12 @@ class RegisterStudentUseCase(
     private val studentRepository: StudentRepository,
     private val studentPackageRepository: StudentPackageRepository,
 ) {
-    operator fun invoke(
+    suspend operator fun invoke(
         fullName: String,
         packageType: PackageType,
         registeredOn: LocalDate,
     ): RegisteredStudent {
-        val student = studentRepository.newStudent(fullName = fullName)
+        val student = studentRepository.create(fullName = fullName)
 
         val studentPackage =
             studentPackageRepository.create(

@@ -8,7 +8,7 @@ class FakeStudentRepository : StudentRepository {
     val students: List<Student>
         field = mutableListOf<Student>()
 
-    override fun newStudent(fullName: String): Student {
+    override fun create(fullName: String): Student {
         val student =
             Student(
                 id = nextId++,

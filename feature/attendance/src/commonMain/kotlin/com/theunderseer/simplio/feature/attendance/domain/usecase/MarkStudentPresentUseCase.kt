@@ -7,7 +7,7 @@ import kotlinx.datetime.LocalDate
 class MarkStudentPresentUseCase(
     private val repository: StudentPackageRepository,
 ) {
-    operator fun invoke(
+    suspend operator fun invoke(
         studentId: Int,
         attendanceDate: LocalDate,
     ): MarkStudentPresentResult {
