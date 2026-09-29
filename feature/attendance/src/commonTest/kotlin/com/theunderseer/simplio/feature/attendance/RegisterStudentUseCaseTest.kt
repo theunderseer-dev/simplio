@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance
 
-import com.theunderseer.simplio.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import kotlinx.datetime.LocalDate
@@ -12,10 +12,12 @@ class RegisterStudentUseCaseTest {
     @Test
     fun `registering a student with a package records first attendance automatically`() {
         // Given
+        // a new student is about to be registered
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
         val studentName = "Anna Smith"
 
+        // And
         // a 5-class package is available
         val packageType =
             PackageType(
@@ -24,41 +26,62 @@ class RegisterStudentUseCaseTest {
                 validityWeeks = 6,
                 price = 1700,
             )
-        // and registration is happening today
+
+        // And
+        // registration is happening on a specific date
         val registeredOn = LocalDate(2026, 9, 25)
-        val registerStudentUseCase =
+        val registerStudent =
             RegisterStudentUseCase(
                 studentRepository,
                 studentPackageRepository,
             )
 
         // When
-        // Anna Smith is registered with that package
+        // the student is registering with the chosen package
         val result =
-            registerStudentUseCase(
+            registerStudent(
                 fullName = studentName,
                 packageType = packageType,
                 registeredOn = registeredOn,
             )
 
         // Then
-        // Anna is registered
+        // the registered student has the expected name
         assertEquals(studentName, result.student.fullName)
-        // And the package is associated with her
+
+        // And
+        // the package belongs to the registered student
         assertEquals(
             result.student.id,
             result.studentPackage.studentId,
         )
-        // And package type is the one selected
+
+        // And
+        // the selected package type is assigned
         assertEquals(packageType, result.studentPackage.packageType)
-        // And package starts today
+
+        // And
+        // the package starts on the registration date
         assertEquals(registeredOn, result.studentPackage.startedOn)
-        // And attendance contains registration date
+
+        // And
+        // the first attendance is recorded automatically
         assertEquals(setOf(registeredOn), result.studentPackage.attendanceDates)
-        // And the student is stored in the repository
+
+        // And
+        // the student is persisted
         assertEquals(
             result.student,
             studentRepository.students.single(),
+        )
+
+        // And
+        // the package is persisted
+        assertEquals(
+            result.studentPackage,
+            studentPackageRepository.getLatestPackageForStudent(
+                result.student.id,
+            ),
         )
     }
 }

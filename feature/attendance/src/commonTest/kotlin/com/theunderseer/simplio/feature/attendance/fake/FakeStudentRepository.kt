@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.fake
 
-import com.theunderseer.simplio.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
+import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 
 class FakeStudentRepository : StudentRepository {
     private var nextId = 1

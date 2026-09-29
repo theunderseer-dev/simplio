@@ -1,14 +1,14 @@
 package com.theunderseer.simplio.feature.attendance
 
-import com.theunderseer.simplio.attendance.domain.usecase.RenewStudentPackageUseCase
-import com.theunderseer.simplio.attendance.domain.usecase.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RenewStudentPackageUseCaseTest {
@@ -17,6 +17,7 @@ class RenewStudentPackageUseCaseTest {
         // Given
         // an existing student
         val studentId = 1
+        val repository = FakeStudentPackageRepository()
 
         // And
         // a previous package is completed
@@ -29,7 +30,7 @@ class RenewStudentPackageUseCaseTest {
             )
 
         val previousPackage =
-            StudentPackage(
+            repository.seed(
                 studentId = studentId,
                 packageType = previousPackageType,
                 startedOn = LocalDate(2026, 8, 1),
@@ -43,11 +44,6 @@ class RenewStudentPackageUseCaseTest {
                     ),
             )
 
-        val repository =
-            FakeStudentPackageRepository(
-                initialPackages = listOf(previousPackage),
-            )
-
         val newPackageType =
             PackageType(
                 name = "4-class package",
@@ -58,43 +54,70 @@ class RenewStudentPackageUseCaseTest {
 
         val renewedOn = LocalDate(2026, 9, 28)
 
-        val renewStudentPackageUseCase = RenewStudentPackageUseCase(repository = repository)
+        val renewStudentPackage = RenewStudentPackageUseCase(repository = repository)
 
         // When
-        // I renew student with a new package on the renewal date
+        // I renew the student with a new package on the renewal date
         val result =
-            renewStudentPackageUseCase(
+            renewStudentPackage(
                 studentId = studentId,
                 packageType = newPackageType,
                 renewedOn = renewedOn,
             )
 
         // Then
-        // a new StudentPackage is created for student
+        // a new student package is created for student
         val success = assertIs<RenewStudentPackageResult.Success>(result)
-        val renewedPackage = success.studentPackage
 
         // And
-        // the renewed package is created for a proper student and package type
+        // a new package entity is created
+        val renewedPackage = success.studentPackage
+        assertNotEquals(previousPackage.id, renewedPackage.id)
+
+        // And
+        // it belongs to the same student
         assertEquals(studentId, renewedPackage.studentId)
+
+        // And
+        // it uses the selected package type
         assertEquals(newPackageType, renewedPackage.packageType)
+
         // And
-        // the renewed package starts on the renewal date
+        // it starts on the renewal date
         assertEquals(renewedOn, renewedPackage.startedOn)
+
         // And
-        // the first attendance is recorded on the renewal date
+        // the first attendance is recorded automatically
         assertEquals(setOf(renewedOn), renewedPackage.attendanceDates)
+
         // And
         // used classes are 1 of 4
         assertEquals(1, renewedPackage.usedClasses)
 
         // And
-        // previous package remains unchanged
-        assertEquals(5, previousPackage.usedClasses)
-        assertTrue(previousPackage.isCompleted)
+        // the previous package remains persisted unchanged
+        val persistedPreviousPackage =
+            repository.packages.single {
+                it.id == previousPackage.id
+            }
+
+        assertEquals(
+            previousPackage,
+            persistedPreviousPackage,
+        )
 
         // And
-        // new package was persisted
+        // the new package is persisted separately
+        assertTrue(
+            repository.packages.contains(renewedPackage),
+        )
+
+        // And
+        // both packages remain in the repository
+        assertEquals(2, repository.packages.size)
+
+        // And
+        // the new package is the latest one for the student
         assertEquals(
             renewedPackage,
             repository.getLatestPackageForStudent(studentId),
