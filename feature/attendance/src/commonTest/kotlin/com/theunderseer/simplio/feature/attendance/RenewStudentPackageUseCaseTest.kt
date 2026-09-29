@@ -123,4 +123,84 @@ class RenewStudentPackageUseCaseTest {
             repository.getLatestPackageForStudent(studentId),
         )
     }
+
+    @Test
+    fun `renewing package is rejected when current package is still active`() {
+        // Given
+        // an existing student
+        val studentId = 1
+        val repository = FakeStudentPackageRepository()
+
+        // And
+        // the student has an active package with unused classes
+        val currentPackageType =
+            PackageType(
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+
+        val currentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = currentPackageType,
+                startedOn = LocalDate(2026, 9, 1),
+                attendanceDates =
+                    setOf(
+                        LocalDate(2026, 9, 1),
+                        LocalDate(2026, 9, 8),
+                    ),
+            )
+
+        val newPackageType =
+            PackageType(
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        val renewedOn = LocalDate(2026, 9, 28)
+
+        val renewStudentPackage =
+            RenewStudentPackageUseCase(
+                repository = repository,
+            )
+
+        // When
+        // I try to renew the student with a new package
+        val result =
+            renewStudentPackage(
+                studentId = studentId,
+                packageType = newPackageType,
+                renewedOn = renewedOn,
+            )
+
+        // Then
+        // the operation reports that an active package already exists
+        val activePackageResult =
+            assertIs<RenewStudentPackageResult.ActivePackageExists>(result)
+
+        // And
+        // the current active package is returned unchanged
+        assertEquals(
+            currentPackage,
+            activePackageResult.studentPackage,
+        )
+
+        // And
+        // no new package is created
+        assertEquals(
+            1,
+            repository.packages.size,
+        )
+
+        // And
+        // the current package remains the latest package
+        assertEquals(
+            currentPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+    }
 }
