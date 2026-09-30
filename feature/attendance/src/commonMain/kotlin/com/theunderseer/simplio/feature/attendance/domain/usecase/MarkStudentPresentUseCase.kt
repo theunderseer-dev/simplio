@@ -38,7 +38,7 @@ class MarkStudentPresentUseCase(
                 attendanceDates = studentPackage.attendanceDates + attendanceDate,
             )
 
-        repository.update(updatedPackage)
+        repository.recordAttendance(updatedPackage.id, attendanceDate)
 
         return MarkStudentPresentResult.Success(
             studentPackage = updatedPackage,

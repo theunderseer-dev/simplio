@@ -24,6 +24,7 @@ class RegisterStudentUseCaseTest {
             // a 5-class package is available
             val packageType =
                 PackageType(
+                    id = 1,
                     name = "5-class package",
                     totalClasses = 5,
                     validityWeeks = 6,
@@ -33,11 +34,12 @@ class RegisterStudentUseCaseTest {
             // And
             // registration is happening on a specific date
             val registeredOn = LocalDate(2026, 9, 25)
+            val transactionRunner = FakeTransactionRunner()
             val registerStudent =
                 RegisterStudentUseCase(
                     studentRepository,
                     studentPackageRepository,
-                    FakeTransactionRunner(),
+                    transactionRunner,
                 )
 
             // When
@@ -87,5 +89,9 @@ class RegisterStudentUseCaseTest {
                     result.student.id,
                 ),
             )
+
+            // And
+            // the transaction is run
+            assertEquals(1, transactionRunner.runCount)
         }
 }
