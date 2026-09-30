@@ -1,10 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
+import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import kotlinx.datetime.LocalDate
 
 class RegisterStudentUseCase(
