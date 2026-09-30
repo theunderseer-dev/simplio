@@ -3,11 +3,10 @@ package com.theunderseer.simplio.feature.attendance.data.local.entity
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
-import kotlinx.datetime.LocalDate
 
 @Entity(
     tableName = "attendance",
-    primaryKeys = ["packageId", "attendedOn"],
+    primaryKeys = ["packageId", "attendedOnEpochDay"],
     foreignKeys = [
         ForeignKey(
             entity = StudentPackageEntity::class,
@@ -22,5 +21,5 @@ import kotlinx.datetime.LocalDate
 )
 data class AttendanceEntity(
     val packageId: Int,
-    val attendedOn: LocalDate,
+    val attendedOnEpochDay: Long,
 )

@@ -4,7 +4,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import kotlinx.datetime.LocalDate
 
 @Entity(
     tableName = "student_packages",
@@ -36,5 +35,5 @@ data class StudentPackageEntity(
     val totalClasses: Int,
     val validityWeeks: Int,
     val price: Int,
-    val startedOn: LocalDate,
+    val startedOnEpochDay: Long,
 )
