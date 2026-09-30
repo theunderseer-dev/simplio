@@ -19,7 +19,7 @@ class FakeStudentPackageRepository(
 
     private var nextId = (initialPackages.maxOfOrNull { it.id } ?: 0) + 1
 
-    override fun create(
+    override suspend fun create(
         studentId: Int,
         packageType: PackageType,
         startedOn: LocalDate,
@@ -44,12 +44,12 @@ class FakeStudentPackageRepository(
             attendanceDates = attendanceDates,
         )
 
-    override fun getLatestPackageForStudent(studentId: Int): StudentPackage? =
+    override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? =
         storedPackages
             .filter { it.studentId == studentId }
             .maxByOrNull { it.startedOn }
 
-    override fun update(studentPackage: StudentPackage) {
+    override suspend fun update(studentPackage: StudentPackage) {
         val index = storedPackages.indexOfFirst { it.id == studentPackage.id }
 
         require(index >= 0) {
