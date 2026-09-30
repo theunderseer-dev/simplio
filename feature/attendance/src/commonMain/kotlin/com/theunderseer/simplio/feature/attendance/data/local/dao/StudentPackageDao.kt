@@ -8,7 +8,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
 @Dao
 interface StudentPackageDao {
     @Insert
-    suspend fun insertPackage(studentPackage: StudentPackageEntity): Long
+    suspend fun insert(studentPackage: StudentPackageEntity): Long
 
     @Query(
         """
