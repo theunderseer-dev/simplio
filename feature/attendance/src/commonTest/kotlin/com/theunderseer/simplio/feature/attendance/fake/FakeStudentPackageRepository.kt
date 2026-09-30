@@ -9,13 +9,14 @@ class FakeStudentPackageRepository(
     initialPackages: List<StudentPackage> = emptyList(),
 ) : StudentPackageRepository {
     private val storedPackages = mutableListOf<StudentPackage>()
-    private val storedUpdatedPackages = mutableListOf<StudentPackage>()
+    private val storedRecordedAttendances =
+        mutableListOf<RecordedAttendance>()
 
     val packages: List<StudentPackage>
         get() = storedPackages
 
-    val updatedPackages: List<StudentPackage>
-        get() = storedUpdatedPackages
+    val recordedAttendances: List<RecordedAttendance>
+        get() = storedRecordedAttendances
 
     private var nextId = (initialPackages.maxOfOrNull { it.id } ?: 0) + 1
 
@@ -49,15 +50,32 @@ class FakeStudentPackageRepository(
             .filter { it.studentId == studentId }
             .maxByOrNull { it.startedOn }
 
-    override suspend fun update(studentPackage: StudentPackage) {
-        val index = storedPackages.indexOfFirst { it.id == studentPackage.id }
+    override suspend fun recordAttendance(
+        packageId: Int,
+        attendedOn: LocalDate,
+    ) {
+        val index =
+            storedPackages.indexOfFirst {
+                it.id == packageId
+            }
 
         require(index >= 0) {
-            "Student package with id ${studentPackage.id} not found"
+            "Student package with id $packageId not found"
         }
 
-        storedPackages[index] = studentPackage
-        storedUpdatedPackages += studentPackage
+        val currentPackage = storedPackages[index]
+
+        storedPackages[index] =
+            currentPackage.copy(
+                attendanceDates =
+                    currentPackage.attendanceDates + attendedOn,
+            )
+
+        storedRecordedAttendances +=
+            RecordedAttendance(
+                packageId = packageId,
+                attendedOn = attendedOn,
+            )
     }
 
     private fun addPackage(
@@ -80,3 +98,8 @@ class FakeStudentPackageRepository(
         return studentPackage
     }
 }
+
+data class RecordedAttendance(
+    val packageId: Int,
+    val attendedOn: LocalDate,
+)

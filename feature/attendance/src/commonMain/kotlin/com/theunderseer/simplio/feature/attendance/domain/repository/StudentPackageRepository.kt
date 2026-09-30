@@ -13,5 +13,8 @@ interface StudentPackageRepository {
 
     suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage?
 
-    suspend fun update(studentPackage: StudentPackage)
+    suspend fun recordAttendance(
+        packageId: Int,
+        attendedOn: LocalDate,
+    )
 }

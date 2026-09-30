@@ -4,6 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.fake.RecordedAttendance
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
@@ -17,6 +18,7 @@ class MarkStudentPresentUseCaseTest {
     private val studentId = 1
     private val packageType =
         PackageType(
+            id = 1,
             name = "5-class package",
             totalClasses = 5,
             validityWeeks = 6,
@@ -85,6 +87,18 @@ class MarkStudentPresentUseCaseTest {
                 success.studentPackage,
                 repository.getLatestPackageForStudent(studentId),
             )
+
+            // And
+            // the attendance persistence operation is recorded
+            assertEquals(
+                listOf(
+                    RecordedAttendance(
+                        packageId = studentPackage.id,
+                        attendedOn = nextAttendanceDate,
+                    ),
+                ),
+                repository.recordedAttendances,
+            )
         }
 
     @Test
@@ -127,7 +141,7 @@ class MarkStudentPresentUseCaseTest {
 
             // And
             // no persistence update is required
-            assertTrue(repository.updatedPackages.isEmpty())
+            assertTrue(repository.recordedAttendances.isEmpty())
         }
 
     @Test
@@ -199,6 +213,18 @@ class MarkStudentPresentUseCaseTest {
                 success.studentPackage,
                 repository.getLatestPackageForStudent(studentId),
             )
+
+            // And
+            // the final attendance persistence operation is recorded
+            assertEquals(
+                listOf(
+                    RecordedAttendance(
+                        packageId = studentPackage.id,
+                        attendedOn = finalAttendanceDate,
+                    ),
+                ),
+                repository.recordedAttendances,
+            )
         }
 
     @Test
@@ -246,11 +272,11 @@ class MarkStudentPresentUseCaseTest {
 
             // And
             // the attendance must not be added
-            assertFalse(completedResult.studentPackage.attendanceDates.contains(nextAttendanceDate))
+            assertFalse(nextAttendanceDate in completedResult.studentPackage.attendanceDates)
 
             // And
             // rejected attendance is not persisted
-            assertTrue(repository.updatedPackages.isEmpty())
+            assertTrue(repository.recordedAttendances.isEmpty())
         }
 
     @Test
@@ -297,11 +323,11 @@ class MarkStudentPresentUseCaseTest {
 
             // And
             // the attendance must not be added
-            assertFalse(expiredResult.studentPackage.attendanceDates.contains(attendanceDate))
+            assertFalse(attendanceDate in expiredResult.studentPackage.attendanceDates)
 
             // And
             // rejected attendance is not persisted
-            assertTrue(repository.updatedPackages.isEmpty())
+            assertTrue(repository.recordedAttendances.isEmpty())
         }
 
     @Test
@@ -323,6 +349,6 @@ class MarkStudentPresentUseCaseTest {
 
             // And
             // rejected attendance is not persisted
-            assertTrue(repository.updatedPackages.isEmpty())
+            assertTrue(repository.recordedAttendances.isEmpty())
         }
 }
