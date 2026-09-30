@@ -1,0 +1,32 @@
+package com.theunderseer.simplio.feature.attendance.data.local.mapper
+
+import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import kotlinx.datetime.LocalDate
+
+fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPackage =
+    StudentPackage(
+        id = id,
+        studentId = studentId,
+        packageType =
+            PackageType(
+                id = packageTypeId,
+                name = packageName,
+                totalClasses = totalClasses,
+                validityWeeks = validityWeeks,
+                price = price,
+            ),
+        startedOn =
+            LocalDate.fromEpochDays(
+                startedOnEpochDay,
+            ),
+        attendanceDates =
+            attendance
+                .map {
+                    LocalDate.fromEpochDays(
+                        it.attendedOnEpochDay,
+                    )
+                }.toSet(),
+    )
