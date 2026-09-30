@@ -4,6 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fake.RecordedAttendance
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -15,6 +16,9 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class MarkStudentPresentUseCaseTest {
+    private lateinit var repository: FakeStudentPackageRepository
+    private lateinit var markStudentPresent: MarkStudentPresentUseCase
+    private lateinit var transactionRunner: FakeTransactionRunner
     private val studentId = 1
     private val packageType =
         PackageType(
@@ -25,13 +29,15 @@ class MarkStudentPresentUseCaseTest {
             price = 1700,
         )
 
-    private lateinit var repository: FakeStudentPackageRepository
-    private lateinit var markStudentPresent: MarkStudentPresentUseCase
-
     @BeforeTest
     fun setUp() {
         repository = FakeStudentPackageRepository()
-        markStudentPresent = MarkStudentPresentUseCase(repository = repository)
+        transactionRunner = FakeTransactionRunner()
+        markStudentPresent =
+            MarkStudentPresentUseCase(
+                repository = repository,
+                transactionRunner = transactionRunner,
+            )
     }
 
     @Test
@@ -350,5 +356,28 @@ class MarkStudentPresentUseCaseTest {
             // And
             // rejected attendance is not persisted
             assertTrue(repository.recordedAttendances.isEmpty())
+        }
+
+    @Test
+    fun `attendance marking executes within a single transaction`() =
+        runTest {
+            // Given
+            repository.seed(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = LocalDate(2026, 9, 25),
+            )
+
+            // When
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = LocalDate(2026, 9, 27),
+            )
+
+            // Then
+            assertEquals(
+                1,
+                transactionRunner.runCount,
+            )
         }
 }
