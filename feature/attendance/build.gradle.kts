@@ -37,8 +37,11 @@ room {
 }
 
 ktlint {
+    val separator = File.separator
+
     filter {
-        exclude("**/build/**")
-        exclude("**/generated/**")
+        exclude { element ->
+            element.file.path.contains("${separator}build${separator}generated$separator")
+        }
     }
 }
