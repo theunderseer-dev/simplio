@@ -18,4 +18,7 @@ interface StudentDao {
     """,
     )
     suspend fun getById(id: Int): StudentEntity?
+
+    @Query("SELECT COUNT(*) FROM students")
+    suspend fun count(): Int
 }
