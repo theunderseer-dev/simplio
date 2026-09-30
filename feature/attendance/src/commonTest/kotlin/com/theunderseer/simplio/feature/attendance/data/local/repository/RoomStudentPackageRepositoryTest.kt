@@ -548,4 +548,86 @@ class RoomStudentPackageRepositoryTest {
             // Then
             assertNull(studentPackage)
         }
+
+    @Test
+    fun `recorded attendance is returned when package is read again`() =
+        runTest {
+            // Given
+            val studentId =
+                database
+                    .studentDao()
+                    .insert(
+                        StudentEntity(
+                            fullName = "Anna Smith",
+                        ),
+                    ).toInt()
+
+            val packageTypeId =
+                database
+                    .packageTypeDao()
+                    .insert(
+                        PackageTypeEntity(
+                            name = "5-class package",
+                            totalClasses = 5,
+                            validityWeeks = 6,
+                            price = 1700,
+                        ),
+                    ).toInt()
+
+            val startedOn = LocalDate(2026, 9, 25)
+
+            val packageId =
+                database
+                    .studentPackageDao()
+                    .insert(
+                        StudentPackageEntity(
+                            studentId = studentId,
+                            packageTypeId = packageTypeId,
+                            packageName = "5-class package",
+                            totalClasses = 5,
+                            validityWeeks = 6,
+                            price = 1700,
+                            startedOnEpochDay = startedOn.toEpochDays(),
+                        ),
+                    ).toInt()
+
+            database.attendanceDao().insert(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = startedOn.toEpochDays(),
+                ),
+            )
+
+            val attendanceDate = LocalDate(2026, 9, 27)
+
+            // When
+            repository.recordAttendance(
+                packageId = packageId,
+                attendedOn = attendanceDate,
+            )
+
+            val reloadedPackage =
+                assertNotNull(
+                    repository.getLatestPackageForStudent(studentId),
+                )
+
+            // Then
+            assertEquals(
+                packageId,
+                reloadedPackage.id,
+            )
+
+            assertEquals(
+                setOf(
+                    startedOn,
+                    attendanceDate,
+                ),
+                reloadedPackage.attendanceDates,
+            )
+
+            assertEquals(
+                2,
+                reloadedPackage.usedClasses,
+            )
+        }
 }
