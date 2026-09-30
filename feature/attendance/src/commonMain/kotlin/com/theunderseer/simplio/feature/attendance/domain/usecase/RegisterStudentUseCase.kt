@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -9,21 +10,23 @@ import kotlinx.datetime.LocalDate
 class RegisterStudentUseCase(
     private val studentRepository: StudentRepository,
     private val studentPackageRepository: StudentPackageRepository,
+    private val transactionRunner: TransactionRunner,
 ) {
     suspend operator fun invoke(
         fullName: String,
         packageType: PackageType,
         registeredOn: LocalDate,
-    ): RegisteredStudent {
-        val student = studentRepository.create(fullName = fullName)
+    ): RegisteredStudent =
+        transactionRunner.run {
+            val student = studentRepository.create(fullName = fullName)
 
-        val studentPackage =
-            studentPackageRepository.create(
-                studentId = student.id,
-                packageType = packageType,
-                startedOn = registeredOn,
-            )
+            val studentPackage =
+                studentPackageRepository.create(
+                    studentId = student.id,
+                    packageType = packageType,
+                    startedOn = registeredOn,
+                )
 
-        return RegisteredStudent(student = student, studentPackage = studentPackage)
-    }
+            RegisteredStudent(student = student, studentPackage = studentPackage)
+        }
 }

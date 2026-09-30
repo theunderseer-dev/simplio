@@ -4,6 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -36,6 +37,7 @@ class RegisterStudentUseCaseTest {
                 RegisterStudentUseCase(
                     studentRepository,
                     studentPackageRepository,
+                    FakeTransactionRunner(),
                 )
 
             // When
