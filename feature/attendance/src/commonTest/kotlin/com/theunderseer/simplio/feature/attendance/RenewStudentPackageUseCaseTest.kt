@@ -4,6 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -58,7 +59,12 @@ class RenewStudentPackageUseCaseTest {
 
             val renewedOn = LocalDate(2026, 8, 30)
 
-            val renewStudentPackage = RenewStudentPackageUseCase(repository = repository)
+            val transactionRunner = FakeTransactionRunner()
+            val renewStudentPackage =
+                RenewStudentPackageUseCase(
+                    repository = repository,
+                    transactionRunner = transactionRunner,
+                )
 
             // When
             // I renew the student with a new package on the renewal date
@@ -126,6 +132,10 @@ class RenewStudentPackageUseCaseTest {
                 renewedPackage,
                 repository.getLatestPackageForStudent(studentId),
             )
+
+            // And
+            // the transaction is run
+            assertEquals(1, transactionRunner.runCount)
         }
 
     @Test
@@ -169,10 +179,12 @@ class RenewStudentPackageUseCaseTest {
                 )
 
             val renewedOn = LocalDate(2026, 9, 28)
+            val transactionRunner = FakeTransactionRunner()
 
             val renewStudentPackage =
                 RenewStudentPackageUseCase(
                     repository = repository,
+                    transactionRunner = transactionRunner,
                 )
 
             // When
@@ -209,6 +221,10 @@ class RenewStudentPackageUseCaseTest {
                 currentPackage,
                 repository.getLatestPackageForStudent(studentId),
             )
+
+            // And
+            // the transaction is run
+            assertEquals(1, transactionRunner.runCount)
         }
 
     @Test
@@ -252,10 +268,12 @@ class RenewStudentPackageUseCaseTest {
                 )
 
             val renewedOn = LocalDate(2026, 9, 28)
+            val transactionRunner = FakeTransactionRunner()
 
             val renewStudentPackage =
                 RenewStudentPackageUseCase(
                     repository = repository,
+                    transactionRunner = transactionRunner,
                 )
 
             // When
@@ -333,5 +351,9 @@ class RenewStudentPackageUseCaseTest {
                 renewedPackage,
                 repository.getLatestPackageForStudent(studentId),
             )
+
+            // And
+            // the transaction is run
+            assertEquals(1, transactionRunner.runCount)
         }
 }
