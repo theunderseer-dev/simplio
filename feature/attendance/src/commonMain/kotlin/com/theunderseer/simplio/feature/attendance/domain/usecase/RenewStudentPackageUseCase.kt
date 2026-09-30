@@ -8,7 +8,7 @@ import kotlinx.datetime.LocalDate
 class RenewStudentPackageUseCase(
     private val repository: StudentPackageRepository,
 ) {
-    operator fun invoke(
+    suspend operator fun invoke(
         studentId: Int,
         packageType: PackageType,
         renewedOn: LocalDate,
