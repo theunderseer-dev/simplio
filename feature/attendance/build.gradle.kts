@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.androidx.room)
 }
 
 kotlin {
@@ -12,6 +14,8 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.androidx.room.runtime)
+                implementation(libs.androidx.sqlite.bundled)
             }
         }
 
@@ -22,6 +26,14 @@ kotlin {
             }
         }
     }
+}
+
+dependencies {
+    add("kspDesktop", libs.androidx.room.compiler)
+}
+
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 ktlint {
