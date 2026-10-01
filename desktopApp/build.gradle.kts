@@ -1,29 +1,55 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    alias(libs.plugins.kotlinJvm)
+    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
 }
 
-dependencies {
-    implementation(project(":shared"))
+kotlin {
+    jvm("desktop")
 
-    implementation(compose.desktop.currentOs)
-    implementation(libs.kotlinx.coroutinesSwing)
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(project(":shared"))
+            }
+        }
 
-    implementation(libs.compose.uiToolingPreview)
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+            }
+        }
+
+        val desktopMain by getting {
+            dependencies {
+                implementation(project(":feature:attendance"))
+
+                implementation(compose.desktop.currentOs)
+                implementation(libs.kotlinx.coroutinesSwing)
+                implementation(libs.compose.uiToolingPreview)
+            }
+        }
+
+        val desktopTest by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.kotlinx.datetime)
+            }
+        }
+    }
 }
 
 compose.desktop {
     application {
-        mainClass = "com.theundeerseer.simplio.MainKt"
+        mainClass = "com.theunderseer.simplio.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.theundeerseer.simplio"
+            targetFormats(TargetFormat.Dmg)
+            packageName = "com.theunderseer.simplio"
             packageVersion = "1.0.0"
         }
     }

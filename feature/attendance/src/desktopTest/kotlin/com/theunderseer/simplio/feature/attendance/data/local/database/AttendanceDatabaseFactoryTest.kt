@@ -1,9 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.data.local.database
 
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import java.nio.file.Files
-import kotlin.io.path.deleteIfExists
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -13,14 +14,17 @@ class AttendanceDatabaseFactoryTest {
     fun `database persists data after close and reopen`() =
         runTest {
             // Given
-            val databasePath =
-                Files
-                    .createTempFile(
+            val tempDirectory =
+                withContext(Dispatchers.IO) {
+                    Files.createTempDirectory(
                         "simplio-attendance-",
-                        ".db",
                     )
+                }
 
-            databasePath.deleteIfExists()
+            val databasePath =
+                tempDirectory.resolve(
+                    "attendance.db",
+                )
 
             try {
                 val database =
@@ -29,15 +33,17 @@ class AttendanceDatabaseFactoryTest {
                     )
 
                 val studentId =
-                    database
-                        .studentDao()
-                        .insert(
-                            StudentEntity(
-                                fullName = "Anna Smith",
-                            ),
-                        ).toInt()
-
-                database.close()
+                    try {
+                        database
+                            .studentDao()
+                            .insert(
+                                StudentEntity(
+                                    fullName = "Anna Smith",
+                                ),
+                            ).toInt()
+                    } finally {
+                        database.close()
+                    }
 
                 // When
                 val reopenedDatabase =
@@ -45,22 +51,28 @@ class AttendanceDatabaseFactoryTest {
                         path = databasePath.toString(),
                     )
 
-                // Then
-                val persistedStudent =
-                    assertNotNull(
-                        reopenedDatabase
-                            .studentDao()
-                            .getById(studentId),
+                try {
+                    // Then
+                    val persistedStudent =
+                        assertNotNull(
+                            reopenedDatabase
+                                .studentDao()
+                                .getById(studentId),
+                        )
+
+                    assertEquals(
+                        "Anna Smith",
+                        persistedStudent.fullName,
                     )
-
-                assertEquals(
-                    "Anna Smith",
-                    persistedStudent.fullName,
-                )
-
-                reopenedDatabase.close()
+                } finally {
+                    reopenedDatabase.close()
+                }
             } finally {
-                databasePath.deleteIfExists()
+                withContext(Dispatchers.IO) {
+                    tempDirectory
+                        .toFile()
+                        .deleteRecursively()
+                }
             }
         }
 }
