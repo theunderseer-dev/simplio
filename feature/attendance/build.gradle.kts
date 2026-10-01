@@ -13,8 +13,9 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                api(libs.androidx.room.runtime)
+
                 implementation(libs.kotlinx.datetime)
-                implementation(libs.androidx.room.runtime)
                 implementation(libs.androidx.sqlite.bundled)
             }
         }
