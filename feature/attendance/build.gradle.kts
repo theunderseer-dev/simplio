@@ -17,6 +17,7 @@ kotlin {
 
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.androidx.sqlite.bundled)
+                implementation(libs.androidx.lifecycle.viewmodel.compose)
             }
         }
 
