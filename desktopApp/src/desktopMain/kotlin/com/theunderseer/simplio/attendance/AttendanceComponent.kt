@@ -9,6 +9,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
@@ -20,6 +21,7 @@ class AttendanceComponent(
     val registerStudent: RegisterStudentUseCase,
     val renewStudentPackage: RenewStudentPackageUseCase,
     val markStudentPresent: MarkStudentPresentUseCase,
+    val getAttendance: GetAttendanceUseCase,
     private val packageTypeSeeder: PackageTypeSeeder,
 ) : AutoCloseable {
     suspend fun initialize() {
@@ -58,6 +60,12 @@ fun createAttendanceComponent(userHome: Path): AttendanceComponent {
             packageTypeDao = database.packageTypeDao(),
         )
 
+    val getAttendance =
+        GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
     val transactionRunner =
         RoomTransactionRunner(
             database = database,
@@ -94,6 +102,7 @@ fun createAttendanceComponent(userHome: Path): AttendanceComponent {
         registerStudent = registerStudent,
         renewStudentPackage = renewStudentPackage,
         markStudentPresent = markStudentPresent,
+        getAttendance = getAttendance,
         packageTypeSeeder = packageTypeSeeder,
     )
 }

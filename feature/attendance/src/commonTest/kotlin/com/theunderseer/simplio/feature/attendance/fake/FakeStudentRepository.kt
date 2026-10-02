@@ -19,4 +19,11 @@ class FakeStudentRepository : StudentRepository {
 
         return student
     }
+
+    override suspend fun getAll(): List<Student> = students.toList()
+
+    fun seed(student: Student): Student {
+        students += student
+        return student
+    }
 }

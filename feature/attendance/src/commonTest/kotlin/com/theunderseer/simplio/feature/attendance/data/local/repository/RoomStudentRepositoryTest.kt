@@ -67,4 +67,31 @@ class RoomStudentRepositoryTest {
                 persistedStudent.fullName,
             )
         }
+
+    @Test
+    fun `getAll returns persisted students`() =
+        runTest {
+            // Given
+            val anna =
+                repository.create(
+                    fullName = "Anna Smith",
+                )
+
+            val bob =
+                repository.create(
+                    fullName = "Bob Lee",
+                )
+
+            // When
+            val students = repository.getAll()
+
+            // Then
+            assertEquals(
+                listOf(
+                    anna,
+                    bob,
+                ),
+                students,
+            )
+        }
 }
