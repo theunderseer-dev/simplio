@@ -201,7 +201,7 @@ class RegisterStudentUseCaseIntegrationTest {
                 )
 
             val studentRepository =
-                object : StudentRepository {
+                object : StudentRepository by roomStudentRepository {
                     override suspend fun create(fullName: String): Student {
                         val student =
                             roomStudentRepository.create(

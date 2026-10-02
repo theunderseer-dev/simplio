@@ -22,4 +22,9 @@ class RoomStudentRepository(
             .copy(id = id.toInt())
             .toDomain()
     }
+
+    override suspend fun getAll(): List<Student> =
+        studentDao
+            .getAll()
+            .map { it.toDomain() }
 }

@@ -370,6 +370,51 @@ class AttendanceComponentTest {
             }
         }
 
+    @Test
+    fun `attendance component exposes persisted attendance state`() =
+        runTest {
+            withAttendanceComponent { component ->
+                // Given
+                val packageTypeId =
+                    component.database
+                        .packageTypeDao()
+                        .insert(
+                            PackageTypeEntity(
+                                name = "5-class package",
+                                totalClasses = 5,
+                                validityWeeks = 6,
+                                price = 1700,
+                            ),
+                        ).toInt()
+
+                val packageType =
+                    PackageType(
+                        id = packageTypeId,
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    )
+
+                val registeredStudent =
+                    component.registerStudent(
+                        fullName = "Anna Smith",
+                        packageType = packageType,
+                        registeredOn = LocalDate(2026, 10, 2),
+                    )
+
+                // When
+                val attendance =
+                    component.getAttendance()
+
+                // Then
+                assertEquals(
+                    listOf(registeredStudent),
+                    attendance.entries,
+                )
+            }
+        }
+
     private suspend fun withAttendanceComponent(block: suspend (AttendanceComponent) -> Unit) {
         val userHome =
             withContext(Dispatchers.IO) {

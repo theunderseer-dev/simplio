@@ -10,6 +10,9 @@ interface StudentDao {
     @Insert
     suspend fun insert(student: StudentEntity): Long
 
+    @Query("SELECT * FROM students ORDER BY id")
+    suspend fun getAll(): List<StudentEntity>
+
     @Query(
         """
     SELECT *
