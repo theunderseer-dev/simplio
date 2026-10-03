@@ -43,202 +43,184 @@ class RoomStudentPackageRepositoryTest {
     }
 
     @Test
-    fun `creating package persists package and first attendance`() =
-        runTest {
-            // Given
-            // an existing student
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
+    fun `creating package persists package and first attendance`() = runTest {
+        // Given
+        // an existing student
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
 
-            // And
-            // an existing package type
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
+        // And
+        // an existing package type
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
 
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
-
-            val startedOn = LocalDate(2026, 9, 30)
-
-            // When
-            val studentPackage =
-                repository.create(
-                    studentId = studentId,
-                    packageType = packageType,
-                    startedOn = startedOn,
-                )
-
-            // Then
-            // a generated package identity is returned
-            assertTrue(studentPackage.id > 0)
-
-            // And
-            // the package belongs to the student
-            assertEquals(
-                studentId,
-                studentPackage.studentId,
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
             )
 
-            // And
-            // the purchased package terms are preserved
-            assertEquals(
-                packageType,
-                studentPackage.packageType,
+        val startedOn = LocalDate(2026, 9, 30)
+
+        // When
+        val studentPackage =
+            repository.create(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = startedOn,
             )
 
-            // And
-            // the package starts on the selected date
-            assertEquals(
-                startedOn,
-                studentPackage.startedOn,
-            )
+        // Then
+        // a generated package identity is returned
+        assertTrue(studentPackage.id > 0)
 
-            // And
-            // the first attendance is recorded automatically
-            assertEquals(
-                setOf(startedOn),
-                studentPackage.attendanceDates,
-            )
+        // And
+        // the package belongs to the student
+        assertEquals(
+            studentId,
+            studentPackage.studentId,
+        )
 
-            // And
-            // the package row is persisted in Room
-            val persistedPackage =
-                assertNotNull(
-                    database
-                        .studentPackageDao()
-                        .getLatestForStudent(studentId),
-                )
+        // And
+        // the purchased package terms are preserved
+        assertEquals(
+            packageType,
+            studentPackage.packageType,
+        )
 
-            assertEquals(
-                studentPackage.id,
-                persistedPackage.id,
-            )
+        // And
+        // the package starts on the selected date
+        assertEquals(
+            startedOn,
+            studentPackage.startedOn,
+        )
 
-            assertEquals(
-                packageType.id,
-                persistedPackage.packageTypeId,
-            )
+        // And
+        // the first attendance is recorded automatically
+        assertEquals(
+            setOf(startedOn),
+            studentPackage.attendanceDates,
+        )
 
-            assertEquals(
-                packageType.name,
-                persistedPackage.packageName,
-            )
-
-            assertEquals(
-                packageType.totalClasses,
-                persistedPackage.totalClasses,
-            )
-
-            assertEquals(
-                packageType.validityWeeks,
-                persistedPackage.validityWeeks,
-            )
-
-            assertEquals(
-                packageType.price,
-                persistedPackage.price,
-            )
-
-            assertEquals(
-                startedOn.toEpochDays(),
-                persistedPackage.startedOnEpochDay,
-            )
-
-            // And
-            // the first attendance row is persisted separately
-            val persistedAttendance =
-                database
-                    .attendanceDao()
-                    .getForPackage(studentPackage.id)
-
-            assertEquals(
-                1,
-                persistedAttendance.size,
-            )
-
-            val attendance = persistedAttendance.single()
-
-            assertEquals(
-                studentPackage.id,
-                attendance.packageId,
-            )
-
-            assertEquals(
-                startedOn.toEpochDays(),
-                attendance.attendedOnEpochDay,
-            )
-        }
-
-    @Test
-    fun `getting latest package reconstructs package with attendance history`() =
-        runTest {
-            // Given
-            // an existing student
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
-
-            // And
-            // the current package type has updated terms
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 5,
-                            price = 2000,
-                        ),
-                    ).toInt()
-
-            // And
-            // the student has a newer package with historical purchase terms
-            val latestStartedOn = LocalDate(2026, 9, 1)
-
-            val latestPackageId =
+        // And
+        // the package row is persisted in Room
+        val persistedPackage =
+            assertNotNull(
                 database
                     .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
-                            studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                            startedOnEpochDay = latestStartedOn.toEpochDays(),
-                        ),
-                    ).toInt()
+                    .getLatestForStudent(studentId),
+            )
 
-            // And
-            // an older package was persisted later
+        assertEquals(
+            studentPackage.id,
+            persistedPackage.id,
+        )
+
+        assertEquals(
+            packageType.id,
+            persistedPackage.packageTypeId,
+        )
+
+        assertEquals(
+            packageType.name,
+            persistedPackage.packageName,
+        )
+
+        assertEquals(
+            packageType.totalClasses,
+            persistedPackage.totalClasses,
+        )
+
+        assertEquals(
+            packageType.validityWeeks,
+            persistedPackage.validityWeeks,
+        )
+
+        assertEquals(
+            packageType.price,
+            persistedPackage.price,
+        )
+
+        assertEquals(
+            startedOn.toEpochDays(),
+            persistedPackage.startedOnEpochDay,
+        )
+
+        // And
+        // the first attendance row is persisted separately
+        val persistedAttendance =
+            database
+                .attendanceDao()
+                .getForPackage(studentPackage.id)
+
+        assertEquals(
+            1,
+            persistedAttendance.size,
+        )
+
+        val attendance = persistedAttendance.single()
+
+        assertEquals(
+            studentPackage.id,
+            attendance.packageId,
+        )
+
+        assertEquals(
+            startedOn.toEpochDays(),
+            attendance.attendedOnEpochDay,
+        )
+    }
+
+    @Test
+    fun `getting latest package reconstructs package with attendance history`() = runTest {
+        // Given
+        // an existing student
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
+
+        // And
+        // the current package type has updated terms
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 5,
+                        price = 2000,
+                    ),
+                ).toInt()
+
+        // And
+        // the student has a newer package with historical purchase terms
+        val latestStartedOn = LocalDate(2026, 9, 1)
+
+        val latestPackageId =
             database
                 .studentPackageDao()
                 .insert(
@@ -249,385 +231,397 @@ class RoomStudentPackageRepositoryTest {
                         totalClasses = 5,
                         validityWeeks = 6,
                         price = 1700,
-                        startedOnEpochDay =
-                            LocalDate(2026, 7, 1).toEpochDays(),
+                        startedOnEpochDay = latestStartedOn.toEpochDays(),
                     ),
-                )
+                ).toInt()
 
-            // And
-            // the latest package has attendance history
-            val secondAttendance = LocalDate(2026, 9, 8)
-            val thirdAttendance = LocalDate(2026, 9, 15)
-
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = latestPackageId,
-                    attendedOnEpochDay = latestStartedOn.toEpochDays(),
-                ),
-            )
-
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = latestPackageId,
-                    attendedOnEpochDay = secondAttendance.toEpochDays(),
-                ),
-            )
-
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = latestPackageId,
-                    attendedOnEpochDay = thirdAttendance.toEpochDays(),
-                ),
-            )
-
-            // When
-            val studentPackage =
-                repository.getLatestPackageForStudent(
+        // And
+        // an older package was persisted later
+        database
+            .studentPackageDao()
+            .insert(
+                StudentPackageEntity(
                     studentId = studentId,
-                )
-
-            // Then
-            // the latest package is returned
-            val latestPackage =
-                assertNotNull(studentPackage)
-
-            assertEquals(
-                latestPackageId,
-                latestPackage.id,
-            )
-
-            assertEquals(
-                studentId,
-                latestPackage.studentId,
-            )
-
-            // And
-            // the historical package snapshot is restored
-            assertEquals(
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
+                    packageTypeId = packageTypeId,
+                    packageName = "5-class package",
                     totalClasses = 5,
                     validityWeeks = 6,
                     price = 1700,
+                    startedOnEpochDay =
+                    LocalDate(2026, 7, 1).toEpochDays(),
                 ),
-                latestPackage.packageType,
             )
 
-            // And
-            // the package start date is restored
-            assertEquals(
+        // And
+        // the latest package has attendance history
+        val secondAttendance = LocalDate(2026, 9, 8)
+        val thirdAttendance = LocalDate(2026, 9, 15)
+
+        database.attendanceDao().insert(
+            AttendanceEntity(
+                packageId = latestPackageId,
+                attendedOnEpochDay = latestStartedOn.toEpochDays(),
+            ),
+        )
+
+        database.attendanceDao().insert(
+            AttendanceEntity(
+                packageId = latestPackageId,
+                attendedOnEpochDay = secondAttendance.toEpochDays(),
+            ),
+        )
+
+        database.attendanceDao().insert(
+            AttendanceEntity(
+                packageId = latestPackageId,
+                attendedOnEpochDay = thirdAttendance.toEpochDays(),
+            ),
+        )
+
+        // When
+        val studentPackage =
+            repository.getLatestPackageForStudent(
+                studentId = studentId,
+            )
+
+        // Then
+        // the latest package is returned
+        val latestPackage =
+            assertNotNull(studentPackage)
+
+        assertEquals(
+            latestPackageId,
+            latestPackage.id,
+        )
+
+        assertEquals(
+            studentId,
+            latestPackage.studentId,
+        )
+
+        // And
+        // the historical package snapshot is restored
+        assertEquals(
+            PackageType(
+                id = packageTypeId,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            ),
+            latestPackage.packageType,
+        )
+
+        // And
+        // the package start date is restored
+        assertEquals(
+            latestStartedOn,
+            latestPackage.startedOn,
+        )
+
+        // And
+        // all attendance dates are reconstructed
+        assertEquals(
+            setOf(
                 latestStartedOn,
-                latestPackage.startedOn,
-            )
+                secondAttendance,
+                thirdAttendance,
+            ),
+            latestPackage.attendanceDates,
+        )
 
-            // And
-            // all attendance dates are reconstructed
-            assertEquals(
-                setOf(
-                    latestStartedOn,
-                    secondAttendance,
-                    thirdAttendance,
-                ),
-                latestPackage.attendanceDates,
-            )
-
-            // And
-            // used classes reflect the reconstructed attendance history
-            assertEquals(
-                3,
-                latestPackage.usedClasses,
-            )
-        }
+        // And
+        // used classes reflect the reconstructed attendance history
+        assertEquals(
+            3,
+            latestPackage.usedClasses,
+        )
+    }
 
     @Test
-    fun `recording attendance persists attendance for package`() =
-        runTest {
-            // Given
-            // an existing student
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
+    fun `recording attendance persists attendance for package`() = runTest {
+        // Given
+        // an existing student
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
 
-            // And
-            // an existing package type
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
+        // And
+        // an existing package type
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
 
-            // And
-            // an existing student package
-            val startedOn = LocalDate(2026, 9, 1)
+        // And
+        // an existing student package
+        val startedOn = LocalDate(2026, 9, 1)
 
-            val packageId =
-                database
-                    .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
-                            studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                            startedOnEpochDay = startedOn.toEpochDays(),
-                        ),
-                    ).toInt()
+        val packageId =
+            database
+                .studentPackageDao()
+                .insert(
+                    StudentPackageEntity(
+                        studentId = studentId,
+                        packageTypeId = packageTypeId,
+                        packageName = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                        startedOnEpochDay = startedOn.toEpochDays(),
+                    ),
+                ).toInt()
 
-            // And
-            // its initial attendance already exists
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = packageId,
-                    attendedOnEpochDay = startedOn.toEpochDays(),
-                ),
-            )
-
-            val attendedOn = LocalDate(2026, 9, 8)
-
-            // When
-            repository.recordAttendance(
+        // And
+        // its initial attendance already exists
+        database.attendanceDao().insert(
+            AttendanceEntity(
                 packageId = packageId,
-                attendedOn = attendedOn,
-            )
+                attendedOnEpochDay = startedOn.toEpochDays(),
+            ),
+        )
 
-            // Then
-            // the new attendance is persisted
-            val persistedAttendance =
-                database
-                    .attendanceDao()
-                    .getForPackage(packageId)
+        val attendedOn = LocalDate(2026, 9, 8)
 
-            assertEquals(
-                2,
-                persistedAttendance.size,
-            )
+        // When
+        repository.recordAttendance(
+            packageId = packageId,
+            attendedOn = attendedOn,
+        )
 
-            assertEquals(
-                setOf(
-                    startedOn.toEpochDays(),
-                    attendedOn.toEpochDays(),
-                ),
-                persistedAttendance
-                    .map { it.attendedOnEpochDay }
-                    .toSet(),
-            )
+        // Then
+        // the new attendance is persisted
+        val persistedAttendance =
+            database
+                .attendanceDao()
+                .getForPackage(packageId)
 
-            // And
-            // all attendance rows belong to the same package
-            assertEquals(
-                setOf(packageId),
-                persistedAttendance
-                    .map { it.packageId }
-                    .toSet(),
-            )
-        }
+        assertEquals(
+            2,
+            persistedAttendance.size,
+        )
 
-    @Test
-    fun `recording duplicate attendance does not create another attendance row`() =
-        runTest {
-            // Given
-            // an existing student
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
-
-            // And
-            // an existing package type
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            // And
-            // an existing student package
-            val startedOn = LocalDate(2026, 9, 1)
-
-            val packageId =
-                database
-                    .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
-                            studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                            startedOnEpochDay = startedOn.toEpochDays(),
-                        ),
-                    ).toInt()
-
-            val attendedOn = LocalDate(2026, 9, 8)
-
-            // And
-            // the attendance already exists
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = packageId,
-                    attendedOnEpochDay = attendedOn.toEpochDays(),
-                ),
-            )
-
-            // When
-            repository.recordAttendance(
-                packageId = packageId,
-                attendedOn = attendedOn,
-            )
-
-            // Then
-            // no duplicate attendance row is created
-            val persistedAttendance =
-                database
-                    .attendanceDao()
-                    .getForPackage(packageId)
-
-            assertEquals(
-                1,
-                persistedAttendance.size,
-            )
-
-            val attendance = persistedAttendance.single()
-
-            assertEquals(
-                packageId,
-                attendance.packageId,
-            )
-
-            assertEquals(
+        assertEquals(
+            setOf(
+                startedOn.toEpochDays(),
                 attendedOn.toEpochDays(),
-                attendance.attendedOnEpochDay,
-            )
-        }
+            ),
+            persistedAttendance
+                .map { it.attendedOnEpochDay }
+                .toSet(),
+        )
+
+        // And
+        // all attendance rows belong to the same package
+        assertEquals(
+            setOf(packageId),
+            persistedAttendance
+                .map { it.packageId }
+                .toSet(),
+        )
+    }
 
     @Test
-    fun `getting latest package returns null when student has no packages`() =
-        runTest {
-            // Given
-            // an existing student with no packages
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
+    fun `recording duplicate attendance does not create another attendance row`() = runTest {
+        // Given
+        // an existing student
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
 
-            // When
-            val studentPackage =
-                repository.getLatestPackageForStudent(
-                    studentId = studentId,
-                )
+        // And
+        // an existing package type
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
 
-            // Then
-            assertNull(studentPackage)
-        }
+        // And
+        // an existing student package
+        val startedOn = LocalDate(2026, 9, 1)
 
-    @Test
-    fun `recorded attendance is returned when package is read again`() =
-        runTest {
-            // Given
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
+        val packageId =
+            database
+                .studentPackageDao()
+                .insert(
+                    StudentPackageEntity(
+                        studentId = studentId,
+                        packageTypeId = packageTypeId,
+                        packageName = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                        startedOnEpochDay = startedOn.toEpochDays(),
+                    ),
+                ).toInt()
 
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
+        val attendedOn = LocalDate(2026, 9, 8)
 
-            val startedOn = LocalDate(2026, 9, 25)
-
-            val packageId =
-                database
-                    .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
-                            studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                            startedOnEpochDay = startedOn.toEpochDays(),
-                        ),
-                    ).toInt()
-
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = packageId,
-                    attendedOnEpochDay = startedOn.toEpochDays(),
-                ),
-            )
-
-            val attendanceDate = LocalDate(2026, 9, 27)
-
-            // When
-            repository.recordAttendance(
+        // And
+        // the attendance already exists
+        database.attendanceDao().insert(
+            AttendanceEntity(
                 packageId = packageId,
-                attendedOn = attendanceDate,
+                attendedOnEpochDay = attendedOn.toEpochDays(),
+            ),
+        )
+
+        // When
+        repository.recordAttendance(
+            packageId = packageId,
+            attendedOn = attendedOn,
+        )
+
+        // Then
+        // no duplicate attendance row is created
+        val persistedAttendance =
+            database
+                .attendanceDao()
+                .getForPackage(packageId)
+
+        assertEquals(
+            1,
+            persistedAttendance.size,
+        )
+
+        val attendance = persistedAttendance.single()
+
+        assertEquals(
+            packageId,
+            attendance.packageId,
+        )
+
+        assertEquals(
+            attendedOn.toEpochDays(),
+            attendance.attendedOnEpochDay,
+        )
+    }
+
+    @Test
+    fun `getting latest package returns null when student has no packages`() = runTest {
+        // Given
+        // an existing student with no packages
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
+
+        // When
+        val studentPackage =
+            repository.getLatestPackageForStudent(
+                studentId = studentId,
             )
 
-            val reloadedPackage =
-                assertNotNull(
-                    repository.getLatestPackageForStudent(studentId),
-                )
+        // Then
+        assertNull(studentPackage)
+    }
 
-            // Then
-            assertEquals(
-                packageId,
-                reloadedPackage.id,
+    @Test
+    fun `recorded attendance is returned when package is read again`() = runTest {
+        // Given
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
+
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
+
+        val startedOn = LocalDate(2026, 9, 25)
+
+        val packageId =
+            database
+                .studentPackageDao()
+                .insert(
+                    StudentPackageEntity(
+                        studentId = studentId,
+                        packageTypeId = packageTypeId,
+                        packageName = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                        startedOnEpochDay = startedOn.toEpochDays(),
+                    ),
+                ).toInt()
+
+        database.attendanceDao().insert(
+            AttendanceEntity(
+                packageId = packageId,
+                attendedOnEpochDay = startedOn.toEpochDays(),
+            ),
+        )
+
+        val attendanceDate = LocalDate(2026, 9, 27)
+
+        // When
+        repository.recordAttendance(
+            packageId = packageId,
+            attendedOn = attendanceDate,
+        )
+
+        val reloadedPackage =
+            assertNotNull(
+                repository.getLatestPackageForStudent(studentId),
             )
 
-            assertEquals(
-                setOf(
-                    startedOn,
-                    attendanceDate,
-                ),
-                reloadedPackage.attendanceDates,
-            )
+        // Then
+        assertEquals(
+            packageId,
+            reloadedPackage.id,
+        )
 
-            assertEquals(
-                2,
-                reloadedPackage.usedClasses,
-            )
-        }
+        assertEquals(
+            setOf(
+                startedOn,
+                attendanceDate,
+            ),
+            reloadedPackage.attendanceDates,
+        )
+
+        assertEquals(
+            2,
+            reloadedPackage.usedClasses,
+        )
+    }
 }

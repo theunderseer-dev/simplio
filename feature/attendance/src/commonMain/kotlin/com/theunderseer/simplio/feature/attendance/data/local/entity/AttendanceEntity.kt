@@ -19,7 +19,4 @@ import androidx.room.Index
         Index("packageId"),
     ],
 )
-data class AttendanceEntity(
-    val packageId: Int,
-    val attendedOnEpochDay: Long,
-)
+data class AttendanceEntity(val packageId: Int, val attendedOnEpochDay: Long)

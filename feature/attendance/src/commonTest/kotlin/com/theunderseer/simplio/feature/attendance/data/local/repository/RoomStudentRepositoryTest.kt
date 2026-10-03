@@ -35,63 +35,61 @@ class RoomStudentRepositoryTest {
     }
 
     @Test
-    fun `creating student persists student with generated identity`() =
-        runTest {
-            // Given
-            val fullName = "Anna Smith"
+    fun `creating student persists student with generated identity`() = runTest {
+        // Given
+        val fullName = "Anna Smith"
 
-            // When
-            val student =
-                repository.create(
-                    fullName = fullName,
-                )
-
-            // Then
-            assertTrue(student.id > 0)
-            assertEquals(fullName, student.fullName)
-
-            // And
-            // the student is persisted in Room
-            val persistedStudent =
-                assertNotNull(
-                    database.studentDao().getById(student.id),
-                )
-
-            assertEquals(
-                student.id,
-                persistedStudent.id,
+        // When
+        val student =
+            repository.create(
+                fullName = fullName,
             )
 
-            assertEquals(
-                fullName,
-                persistedStudent.fullName,
+        // Then
+        assertTrue(student.id > 0)
+        assertEquals(fullName, student.fullName)
+
+        // And
+        // the student is persisted in Room
+        val persistedStudent =
+            assertNotNull(
+                database.studentDao().getById(student.id),
             )
-        }
+
+        assertEquals(
+            student.id,
+            persistedStudent.id,
+        )
+
+        assertEquals(
+            fullName,
+            persistedStudent.fullName,
+        )
+    }
 
     @Test
-    fun `getAll returns persisted students`() =
-        runTest {
-            // Given
-            val anna =
-                repository.create(
-                    fullName = "Anna Smith",
-                )
-
-            val bob =
-                repository.create(
-                    fullName = "Bob Lee",
-                )
-
-            // When
-            val students = repository.getAll()
-
-            // Then
-            assertEquals(
-                listOf(
-                    anna,
-                    bob,
-                ),
-                students,
+    fun `getAll returns persisted students`() = runTest {
+        // Given
+        val anna =
+            repository.create(
+                fullName = "Anna Smith",
             )
-        }
+
+        val bob =
+            repository.create(
+                fullName = "Bob Lee",
+            )
+
+        // When
+        val students = repository.getAll()
+
+        // Then
+        assertEquals(
+            listOf(
+                anna,
+                bob,
+            ),
+            students,
+        )
+    }
 }

@@ -6,9 +6,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 
-class RoomStudentRepository(
-    private val studentDao: StudentDao,
-) : StudentRepository {
+class RoomStudentRepository(private val studentDao: StudentDao) : StudentRepository {
     override suspend fun create(fullName: String): Student {
         val entity =
             StudentEntity(
@@ -23,8 +21,7 @@ class RoomStudentRepository(
             .toDomain()
     }
 
-    override suspend fun getAll(): List<Student> =
-        studentDao
-            .getAll()
-            .map { it.toDomain() }
+    override suspend fun getAll(): List<Student> = studentDao
+        .getAll()
+        .map { it.toDomain() }
 }

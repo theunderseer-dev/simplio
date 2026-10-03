@@ -16,17 +16,16 @@ class RegisterStudentUseCase(
         fullName: String,
         packageType: PackageType,
         registeredOn: LocalDate,
-    ): RegisteredStudent =
-        transactionRunner.run {
-            val student = studentRepository.create(fullName = fullName)
+    ): RegisteredStudent = transactionRunner.run {
+        val student = studentRepository.create(fullName = fullName)
 
-            val studentPackage =
-                studentPackageRepository.create(
-                    studentId = student.id,
-                    packageType = packageType,
-                    startedOn = registeredOn,
-                )
+        val studentPackage =
+            studentPackageRepository.create(
+                studentId = student.id,
+                packageType = packageType,
+                startedOn = registeredOn,
+            )
 
-            RegisteredStudent(student = student, studentPackage = studentPackage)
-        }
+        RegisteredStudent(student = student, studentPackage = studentPackage)
+    }
 }

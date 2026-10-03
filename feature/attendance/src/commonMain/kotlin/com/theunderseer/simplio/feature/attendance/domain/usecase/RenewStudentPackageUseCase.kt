@@ -14,25 +14,24 @@ class RenewStudentPackageUseCase(
         studentId: Int,
         packageType: PackageType,
         renewedOn: LocalDate,
-    ): RenewStudentPackageResult =
-        transactionRunner.run {
-            val latestPackage = repository.getLatestPackageForStudent(studentId)
+    ): RenewStudentPackageResult = transactionRunner.run {
+        val latestPackage = repository.getLatestPackageForStudent(studentId)
 
-            if (latestPackage != null &&
-                latestPackage.isActiveOn(renewedOn)
-            ) {
-                return@run RenewStudentPackageResult.ActivePackageExists(
-                    studentPackage = latestPackage,
-                )
-            }
-
-            val newStudentPackage =
-                repository.create(
-                    studentId = studentId,
-                    packageType = packageType,
-                    startedOn = renewedOn,
-                )
-
-            RenewStudentPackageResult.Success(studentPackage = newStudentPackage)
+        if (latestPackage != null &&
+            latestPackage.isActiveOn(renewedOn)
+        ) {
+            return@run RenewStudentPackageResult.ActivePackageExists(
+                studentPackage = latestPackage,
+            )
         }
+
+        val newStudentPackage =
+            repository.create(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = renewedOn,
+            )
+
+        RenewStudentPackageResult.Success(studentPackage = newStudentPackage)
+    }
 }

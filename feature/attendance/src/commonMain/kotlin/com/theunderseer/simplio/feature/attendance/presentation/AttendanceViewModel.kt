@@ -9,9 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
-class AttendanceViewModel(
-    private val getAttendance: GetAttendanceUseCase,
-) : ViewModel() {
+class AttendanceViewModel(private val getAttendance: GetAttendanceUseCase) : ViewModel() {
     private val _uiState =
         MutableStateFlow<AttendanceUiState>(
             AttendanceUiState.Loading,
@@ -37,8 +35,8 @@ class AttendanceViewModel(
                 _uiState.value =
                     AttendanceUiState.Error(
                         message =
-                            exception.message
-                                ?: "Failed to load attendance",
+                        exception.message
+                            ?: "Failed to load attendance",
                     )
             }
         }

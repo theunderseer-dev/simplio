@@ -35,18 +35,18 @@ class RegisterStudentUseCaseIntegrationTest {
         registerStudent =
             RegisterStudentUseCase(
                 studentRepository =
-                    RoomStudentRepository(
-                        studentDao = database.studentDao(),
-                    ),
+                RoomStudentRepository(
+                    studentDao = database.studentDao(),
+                ),
                 studentPackageRepository =
-                    RoomStudentPackageRepository(
-                        studentPackageDao = database.studentPackageDao(),
-                        attendanceDao = database.attendanceDao(),
-                    ),
+                RoomStudentPackageRepository(
+                    studentPackageDao = database.studentPackageDao(),
+                    attendanceDao = database.attendanceDao(),
+                ),
                 transactionRunner =
-                    RoomTransactionRunner(
-                        database = database,
-                    ),
+                RoomTransactionRunner(
+                    database = database,
+                ),
             )
     }
 
@@ -56,196 +56,194 @@ class RegisterStudentUseCaseIntegrationTest {
     }
 
     @Test
-    fun `registering student persists student package and first attendance`() =
-        runTest {
-            // Given
-            val packageTypeId =
+    fun `registering student persists student package and first attendance`() = runTest {
+        // Given
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
+
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+
+        val registeredOn = LocalDate(2026, 9, 30)
+
+        // When
+        val registeredStudent =
+            registerStudent(
+                fullName = "Anna Smith",
+                packageType = packageType,
+                registeredOn = registeredOn,
+            )
+
+        // Then
+        assertTrue(registeredStudent.student.id > 0)
+
+        assertEquals(
+            "Anna Smith",
+            registeredStudent.student.fullName,
+        )
+
+        val persistedStudent =
+            assertNotNull(
                 database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
-
-            val registeredOn = LocalDate(2026, 9, 30)
-
-            // When
-            val registeredStudent =
-                registerStudent(
-                    fullName = "Anna Smith",
-                    packageType = packageType,
-                    registeredOn = registeredOn,
-                )
-
-            // Then
-            assertTrue(registeredStudent.student.id > 0)
-
-            assertEquals(
-                "Anna Smith",
-                registeredStudent.student.fullName,
+                    .studentDao()
+                    .getById(registeredStudent.student.id),
             )
 
-            val persistedStudent =
-                assertNotNull(
-                    database
-                        .studentDao()
-                        .getById(registeredStudent.student.id),
-                )
+        assertEquals(
+            "Anna Smith",
+            persistedStudent.fullName,
+        )
 
-            assertEquals(
-                "Anna Smith",
-                persistedStudent.fullName,
-            )
-
-            // And
-            // the package is persisted for the created student
-            val persistedPackage =
-                assertNotNull(
-                    database
-                        .studentPackageDao()
-                        .getLatestForStudent(
-                            registeredStudent.student.id,
-                        ),
-                )
-
-            assertEquals(
-                registeredStudent.studentPackage.id,
-                persistedPackage.id,
-            )
-
-            assertEquals(
-                registeredStudent.student.id,
-                persistedPackage.studentId,
-            )
-
-            assertEquals(
-                packageType.id,
-                persistedPackage.packageTypeId,
-            )
-
-            assertEquals(
-                registeredOn.toEpochDays(),
-                persistedPackage.startedOnEpochDay,
-            )
-
-            // And
-            // the first attendance is persisted
-            val attendance =
+        // And
+        // the package is persisted for the created student
+        val persistedPackage =
+            assertNotNull(
                 database
-                    .attendanceDao()
-                    .getForPackage(persistedPackage.id)
-
-            assertEquals(
-                1,
-                attendance.size,
+                    .studentPackageDao()
+                    .getLatestForStudent(
+                        registeredStudent.student.id,
+                    ),
             )
 
-            assertEquals(
-                setOf(registeredOn),
-                registeredStudent.studentPackage.attendanceDates,
-            )
+        assertEquals(
+            registeredStudent.studentPackage.id,
+            persistedPackage.id,
+        )
 
-            val persistedAttendance =
-                attendance.single()
+        assertEquals(
+            registeredStudent.student.id,
+            persistedPackage.studentId,
+        )
 
-            assertEquals(
-                persistedPackage.id,
-                persistedAttendance.packageId,
-            )
+        assertEquals(
+            packageType.id,
+            persistedPackage.packageTypeId,
+        )
 
-            assertEquals(
-                registeredOn.toEpochDays(),
-                persistedAttendance.attendedOnEpochDay,
-            )
-        }
+        assertEquals(
+            registeredOn.toEpochDays(),
+            persistedPackage.startedOnEpochDay,
+        )
+
+        // And
+        // the first attendance is persisted
+        val attendance =
+            database
+                .attendanceDao()
+                .getForPackage(persistedPackage.id)
+
+        assertEquals(
+            1,
+            attendance.size,
+        )
+
+        assertEquals(
+            setOf(registeredOn),
+            registeredStudent.studentPackage.attendanceDates,
+        )
+
+        val persistedAttendance =
+            attendance.single()
+
+        assertEquals(
+            persistedPackage.id,
+            persistedAttendance.packageId,
+        )
+
+        assertEquals(
+            registeredOn.toEpochDays(),
+            persistedAttendance.attendedOnEpochDay,
+        )
+    }
 
     @Test
-    fun `failed registration rolls back created student`() =
-        runTest {
-            // Given
-            // a package type that does not exist in Room
-            val packageType =
-                PackageType(
-                    id = 999,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
-
-            val registeredOn = LocalDate(2026, 9, 30)
-
-            assertEquals(
-                0,
-                database.studentDao().count(),
+    fun `failed registration rolls back created student`() = runTest {
+        // Given
+        // a package type that does not exist in Room
+        val packageType =
+            PackageType(
+                id = 999,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
             )
 
-            var studentWasCreated = false
+        val registeredOn = LocalDate(2026, 9, 30)
 
-            val roomStudentRepository =
-                RoomStudentRepository(
-                    studentDao = database.studentDao(),
-                )
+        assertEquals(
+            0,
+            database.studentDao().count(),
+        )
 
-            val studentRepository =
-                object : StudentRepository by roomStudentRepository {
-                    override suspend fun create(fullName: String): Student {
-                        val student =
-                            roomStudentRepository.create(
-                                fullName = fullName,
-                            )
+        var studentWasCreated = false
 
-                        studentWasCreated = true
+        val roomStudentRepository =
+            RoomStudentRepository(
+                studentDao = database.studentDao(),
+            )
 
-                        return student
-                    }
+        val studentRepository =
+            object : StudentRepository by roomStudentRepository {
+                override suspend fun create(fullName: String): Student {
+                    val student =
+                        roomStudentRepository.create(
+                            fullName = fullName,
+                        )
+
+                    studentWasCreated = true
+
+                    return student
                 }
-
-            val failingRegisterStudent =
-                RegisterStudentUseCase(
-                    studentRepository = studentRepository,
-                    studentPackageRepository =
-                        RoomStudentPackageRepository(
-                            studentPackageDao = database.studentPackageDao(),
-                            attendanceDao = database.attendanceDao(),
-                        ),
-                    transactionRunner =
-                        RoomTransactionRunner(
-                            database = database,
-                        ),
-                )
-
-            // When
-            assertFails {
-                failingRegisterStudent(
-                    fullName = "Anna Smith",
-                    packageType = packageType,
-                    registeredOn = registeredOn,
-                )
             }
 
-            // Then
-            // student creation completed before the later failure
-            assertTrue(studentWasCreated)
+        val failingRegisterStudent =
+            RegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository =
+                RoomStudentPackageRepository(
+                    studentPackageDao = database.studentPackageDao(),
+                    attendanceDao = database.attendanceDao(),
+                ),
+                transactionRunner =
+                RoomTransactionRunner(
+                    database = database,
+                ),
+            )
 
-            // And
-            // the transaction rolled the created student back
-            assertEquals(
-                0,
-                database.studentDao().count(),
+        // When
+        assertFails {
+            failingRegisterStudent(
+                fullName = "Anna Smith",
+                packageType = packageType,
+                registeredOn = registeredOn,
             )
         }
+
+        // Then
+        // student creation completed before the later failure
+        assertTrue(studentWasCreated)
+
+        // And
+        // the transaction rolled the created student back
+        assertEquals(
+            0,
+            database.studentDao().count(),
+        )
+    }
 }

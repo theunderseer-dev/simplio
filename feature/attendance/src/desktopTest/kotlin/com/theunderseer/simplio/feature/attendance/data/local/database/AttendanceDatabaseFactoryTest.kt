@@ -11,68 +11,67 @@ import kotlin.test.assertNotNull
 
 class AttendanceDatabaseFactoryTest {
     @Test
-    fun `database persists data after close and reopen`() =
-        runTest {
-            // Given
-            val tempDirectory =
-                withContext(Dispatchers.IO) {
-                    Files.createTempDirectory(
-                        "simplio-attendance-",
-                    )
+    fun `database persists data after close and reopen`() = runTest {
+        // Given
+        val tempDirectory =
+            withContext(Dispatchers.IO) {
+                Files.createTempDirectory(
+                    "simplio-attendance-",
+                )
+            }
+
+        val databasePath =
+            tempDirectory.resolve(
+                "attendance.db",
+            )
+
+        try {
+            val database =
+                createAttendanceDatabase(
+                    path = databasePath.toString(),
+                )
+
+            val studentId =
+                try {
+                    database
+                        .studentDao()
+                        .insert(
+                            StudentEntity(
+                                fullName = "Anna Smith",
+                            ),
+                        ).toInt()
+                } finally {
+                    database.close()
                 }
 
-            val databasePath =
-                tempDirectory.resolve(
-                    "attendance.db",
+            // When
+            val reopenedDatabase =
+                createAttendanceDatabase(
+                    path = databasePath.toString(),
                 )
 
             try {
-                val database =
-                    createAttendanceDatabase(
-                        path = databasePath.toString(),
-                    )
-
-                val studentId =
-                    try {
-                        database
+                // Then
+                val persistedStudent =
+                    assertNotNull(
+                        reopenedDatabase
                             .studentDao()
-                            .insert(
-                                StudentEntity(
-                                    fullName = "Anna Smith",
-                                ),
-                            ).toInt()
-                    } finally {
-                        database.close()
-                    }
-
-                // When
-                val reopenedDatabase =
-                    createAttendanceDatabase(
-                        path = databasePath.toString(),
+                            .getById(studentId),
                     )
 
-                try {
-                    // Then
-                    val persistedStudent =
-                        assertNotNull(
-                            reopenedDatabase
-                                .studentDao()
-                                .getById(studentId),
-                        )
-
-                    assertEquals(
-                        "Anna Smith",
-                        persistedStudent.fullName,
-                    )
-                } finally {
-                    reopenedDatabase.close()
-                }
+                assertEquals(
+                    "Anna Smith",
+                    persistedStudent.fullName,
+                )
             } finally {
-                withContext(Dispatchers.IO) {
-                    tempDirectory
-                        .toFile()
-                        .deleteRecursively()
-                }
+                reopenedDatabase.close()
+            }
+        } finally {
+            withContext(Dispatchers.IO) {
+                tempDirectory
+                    .toFile()
+                    .deleteRecursively()
             }
         }
+    }
 }

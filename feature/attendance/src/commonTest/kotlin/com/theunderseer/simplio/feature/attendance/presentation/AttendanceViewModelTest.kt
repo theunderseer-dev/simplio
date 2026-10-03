@@ -22,150 +22,146 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelTest {
     @Test
-    fun `loads attendance into content state`() =
-        runViewModelTest {
-            // Given
-            val studentRepository =
-                FakeStudentRepository()
+    fun `loads attendance into content state`() = runViewModelTest {
+        // Given
+        val studentRepository =
+            FakeStudentRepository()
 
-            val studentPackageRepository =
-                FakeStudentPackageRepository()
+        val studentPackageRepository =
+            FakeStudentPackageRepository()
 
-            val student =
-                studentRepository.seed(
-                    Student(
-                        id = 1,
-                        fullName = "Anna Smith",
-                    ),
-                )
-
-            val packageType =
-                PackageType(
+        val student =
+            studentRepository.seed(
+                Student(
                     id = 1,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
-
-            val studentPackage =
-                studentPackageRepository.seed(
-                    studentId = student.id,
-                    packageType = packageType,
-                    startedOn = LocalDate(2026, 10, 2),
-                )
-
-            val getAttendance =
-                GetAttendanceUseCase(
-                    studentRepository = studentRepository,
-                    studentPackageRepository = studentPackageRepository,
-                )
-
-            val expectedAttendance =
-                Attendance(
-                    entries =
-                        listOf(
-                            RegisteredStudent(
-                                student = student,
-                                studentPackage = studentPackage,
-                            ),
-                        ),
-                )
-
-            // When
-            val viewModel =
-                AttendanceViewModel(
-                    getAttendance = getAttendance,
-                )
-
-            advanceUntilIdle()
-
-            // Then
-            assertEquals(
-                AttendanceUiState.Content(
-                    attendance = expectedAttendance,
+                    fullName = "Anna Smith",
                 ),
-                viewModel.uiState.value,
             )
-        }
 
-    @Test
-    fun `moves to error state when attendance loading fails`() =
-        runViewModelTest {
-            // Given
-            val studentRepository =
-                FakeStudentRepository()
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
 
-            val studentPackageRepository =
-                FakeStudentPackageRepository()
+        val studentPackage =
+            studentPackageRepository.seed(
+                studentId = student.id,
+                packageType = packageType,
+                startedOn = LocalDate(2026, 10, 2),
+            )
 
-            val student =
-                studentRepository.seed(
-                    Student(
-                        id = 1,
-                        fullName = "Anna Smith",
+        val getAttendance =
+            GetAttendanceUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        val expectedAttendance =
+            Attendance(
+                entries =
+                listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage = studentPackage,
                     ),
-                )
-
-            val getAttendance =
-                GetAttendanceUseCase(
-                    studentRepository = studentRepository,
-                    studentPackageRepository = studentPackageRepository,
-                )
-
-            // When
-            val viewModel =
-                AttendanceViewModel(
-                    getAttendance = getAttendance,
-                )
-
-            advanceUntilIdle()
-
-            // Then
-            assertEquals(
-                AttendanceUiState.Error(
-                    message = "Registered student ${student.id} has no package",
                 ),
-                viewModel.uiState.value,
             )
-        }
+
+        // When
+        val viewModel =
+            AttendanceViewModel(
+                getAttendance = getAttendance,
+            )
+
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(
+            AttendanceUiState.Content(
+                attendance = expectedAttendance,
+            ),
+            viewModel.uiState.value,
+        )
+    }
 
     @Test
-    fun `starts in loading state`() =
-        runViewModelTest {
-            // Given
-            val getAttendance =
-                GetAttendanceUseCase(
-                    studentRepository = FakeStudentRepository(),
-                    studentPackageRepository = FakeStudentPackageRepository(),
-                )
+    fun `moves to error state when attendance loading fails`() = runViewModelTest {
+        // Given
+        val studentRepository =
+            FakeStudentRepository()
 
-            // When
-            val viewModel =
-                AttendanceViewModel(
-                    getAttendance = getAttendance,
-                )
+        val studentPackageRepository =
+            FakeStudentPackageRepository()
 
-            // Then
-            assertEquals(
-                AttendanceUiState.Loading,
-                viewModel.uiState.value,
+        val student =
+            studentRepository.seed(
+                Student(
+                    id = 1,
+                    fullName = "Anna Smith",
+                ),
             )
+
+        val getAttendance =
+            GetAttendanceUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        // When
+        val viewModel =
+            AttendanceViewModel(
+                getAttendance = getAttendance,
+            )
+
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(
+            AttendanceUiState.Error(
+                message = "Registered student ${student.id} has no package",
+            ),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
+    fun `starts in loading state`() = runViewModelTest {
+        // Given
+        val getAttendance =
+            GetAttendanceUseCase(
+                studentRepository = FakeStudentRepository(),
+                studentPackageRepository = FakeStudentPackageRepository(),
+            )
+
+        // When
+        val viewModel =
+            AttendanceViewModel(
+                getAttendance = getAttendance,
+            )
+
+        // Then
+        assertEquals(
+            AttendanceUiState.Loading,
+            viewModel.uiState.value,
+        )
+    }
+
+    private fun runViewModelTest(block: suspend TestScope.() -> Unit) = runTest {
+        val mainDispatcher =
+            StandardTestDispatcher(
+                scheduler = testScheduler,
+            )
+
+        Dispatchers.setMain(mainDispatcher)
+
+        try {
+            block()
+        } finally {
+            Dispatchers.resetMain()
         }
-
-    private fun runViewModelTest(block: suspend TestScope.() -> Unit) =
-        runTest {
-            val mainDispatcher =
-                StandardTestDispatcher(
-                    scheduler = testScheduler,
-                )
-
-            Dispatchers.setMain(mainDispatcher)
-
-            try {
-                block()
-            } finally {
-                Dispatchers.resetMain()
-            }
-        }
+    }
 }

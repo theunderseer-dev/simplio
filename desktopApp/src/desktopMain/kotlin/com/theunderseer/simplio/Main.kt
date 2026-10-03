@@ -9,9 +9,9 @@ import java.nio.file.Path
 fun main() {
     createAttendanceComponent(
         userHome =
-            Path.of(
-                System.getProperty("user.home"),
-            ),
+        Path.of(
+            System.getProperty("user.home"),
+        ),
     ).use { component ->
         runBlocking {
             component.initialize()
