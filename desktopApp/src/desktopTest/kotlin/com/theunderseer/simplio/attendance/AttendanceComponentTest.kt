@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.attendance
 
+import com.theunderseer.simplio.database.prepareSimplioDatabasePath
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
@@ -418,9 +419,16 @@ class AttendanceComponentTest {
             }
 
         try {
+            val databasePath =
+                withContext(Dispatchers.IO) {
+                    prepareSimplioDatabasePath(
+                        userHome = userHome,
+                    ).toString()
+                }
+
             val component =
                 createAttendanceComponent(
-                    userHome = userHome,
+                    databasePath = databasePath,
                 )
 
             component.use { component ->

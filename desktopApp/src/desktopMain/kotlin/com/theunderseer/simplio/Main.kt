@@ -4,15 +4,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.theunderseer.simplio.attendance.createAttendanceComponent
 import kotlinx.coroutines.runBlocking
-import java.nio.file.Path
 
 fun main() {
-    createAttendanceComponent(
-        userHome =
-        Path.of(
-            System.getProperty("user.home"),
-        ),
-    ).use { component ->
+    val component =
+        createAttendanceComponent()
+
+    component.use { component ->
         runBlocking {
             component.initialize()
         }

@@ -9,6 +9,17 @@ fun simplioDatabasePath(userHome: Path): Path = userHome
     .resolve("Simplio")
     .resolve("simplio.db")
 
+fun prepareSimplioDatabasePath(): String {
+    val userHome =
+        Path.of(
+            System.getProperty("user.home"),
+        )
+
+    return prepareSimplioDatabasePath(
+        userHome = userHome,
+    ).toString()
+}
+
 fun prepareSimplioDatabasePath(userHome: Path): Path {
     val path =
         simplioDatabasePath(

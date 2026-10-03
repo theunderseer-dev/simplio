@@ -13,7 +13,6 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceU
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
-import java.nio.file.Path
 
 class AttendanceComponent(
     internal val database: AttendanceDatabase,
@@ -33,15 +32,14 @@ class AttendanceComponent(
     }
 }
 
-fun createAttendanceComponent(userHome: Path): AttendanceComponent {
-    val databasePath =
-        prepareSimplioDatabasePath(
-            userHome = userHome,
-        )
+fun createAttendanceComponent(): AttendanceComponent = createAttendanceComponent(
+    databasePath = prepareSimplioDatabasePath(),
+)
 
+internal fun createAttendanceComponent(databasePath: String): AttendanceComponent {
     val database =
         createAttendanceDatabase(
-            path = databasePath.toString(),
+            path = databasePath,
         )
 
     val studentRepository =
