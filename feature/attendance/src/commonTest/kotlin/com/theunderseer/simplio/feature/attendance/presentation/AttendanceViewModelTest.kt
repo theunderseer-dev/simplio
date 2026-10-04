@@ -5,8 +5,10 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import kotlinx.coroutines.Dispatchers
@@ -79,6 +81,12 @@ class AttendanceViewModelTest {
                 packageTypes = packageTypes,
             )
 
+        val registerStudent =
+            createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
         val expectedAttendance =
             Attendance(
                 entries =
@@ -95,6 +103,10 @@ class AttendanceViewModelTest {
             AttendanceViewModel(
                 getAttendanceUseCase = getAttendance,
                 getPackageTypesUseCase = getPackageTypes,
+                registerStudentUseCase = registerStudent,
+                currentDate = {
+                    LocalDate(2026, 10, 3)
+                },
             )
 
         advanceUntilIdle()
@@ -155,11 +167,21 @@ class AttendanceViewModelTest {
                 packageTypes = packageTypes,
             )
 
+        val registerStudent =
+            createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
         // When
         val viewModel =
             AttendanceViewModel(
                 getAttendanceUseCase = getAttendance,
                 getPackageTypesUseCase = getPackageTypes,
+                registerStudentUseCase = registerStudent,
+                currentDate = {
+                    LocalDate(2026, 10, 3)
+                },
             )
 
         advanceUntilIdle()
@@ -235,6 +257,110 @@ class AttendanceViewModelTest {
         )
     }
 
+    @Test
+    fun `registers student and refreshes attendance`() = runViewModelTest {
+        // Given
+        val studentRepository =
+            FakeStudentRepository()
+
+        val studentPackageRepository =
+            FakeStudentPackageRepository()
+
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        val packageTypes =
+            listOf(
+                packageType,
+            )
+
+        val getAttendance =
+            GetAttendanceUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        val getPackageTypes =
+            createGetPackageTypesUseCase(
+                packageTypes = packageTypes,
+            )
+
+        val registerStudent =
+            createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        val registeredOn =
+            LocalDate(
+                2026,
+                10,
+                3,
+            )
+
+        val viewModel =
+            AttendanceViewModel(
+                getAttendanceUseCase = getAttendance,
+                getPackageTypesUseCase = getPackageTypes,
+                registerStudentUseCase = registerStudent,
+                currentDate = {
+                    registeredOn
+                },
+            )
+
+        advanceUntilIdle()
+
+        // When
+        viewModel.registerStudent(
+            fullName = "Anna Smith",
+            packageType = packageType,
+        )
+
+        advanceUntilIdle()
+
+        // Then
+        val state =
+            viewModel.uiState.value as AttendanceUiState.Content
+
+        assertEquals(
+            packageTypes,
+            state.packageTypes,
+        )
+
+        assertEquals(
+            1,
+            state.attendance.entries.size,
+        )
+
+        val registeredStudent =
+            state.attendance.entries.single()
+
+        assertEquals(
+            "Anna Smith",
+            registeredStudent.student.fullName,
+        )
+
+        assertEquals(
+            packageType,
+            registeredStudent.studentPackage.packageType,
+        )
+
+        assertEquals(
+            registeredOn,
+            registeredStudent.studentPackage.startedOn,
+        )
+
+        assertEquals(
+            setOf(registeredOn),
+            registeredStudent.studentPackage.attendanceDates,
+        )
+    }
 
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
@@ -248,13 +374,24 @@ class AttendanceViewModelTest {
             },
         )
 
+    private fun createRegisterStudentUseCase(
+        studentRepository: FakeStudentRepository,
+        studentPackageRepository: FakeStudentPackageRepository,
+    ): RegisterStudentUseCase = RegisterStudentUseCase(
+        studentRepository = studentRepository,
+        studentPackageRepository = studentPackageRepository,
+        transactionRunner = transactionRunner,
+    )
+
     private fun runViewModelTest(block: suspend TestScope.() -> Unit) = runTest {
         val mainDispatcher =
             StandardTestDispatcher(
                 scheduler = testScheduler,
             )
 
-        Dispatchers.setMain(mainDispatcher)
+        Dispatchers.setMain(
+            mainDispatcher,
+        )
 
         try {
             block()
@@ -262,4 +399,9 @@ class AttendanceViewModelTest {
             Dispatchers.resetMain()
         }
     }
+
+    private val transactionRunner =
+        object : TransactionRunner {
+            override suspend fun <T> run(block: suspend () -> T): T = block()
+        }
 }
