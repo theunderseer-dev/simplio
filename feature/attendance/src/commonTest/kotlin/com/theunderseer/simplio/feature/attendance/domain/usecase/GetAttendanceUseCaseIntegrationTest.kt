@@ -37,14 +37,14 @@ class GetAttendanceUseCaseIntegrationTest {
         getAttendance =
             GetAttendanceUseCase(
                 studentRepository =
-                    RoomStudentRepository(
-                        studentDao = database.studentDao(),
-                    ),
+                RoomStudentRepository(
+                    studentDao = database.studentDao(),
+                ),
                 studentPackageRepository =
-                    RoomStudentPackageRepository(
-                        studentPackageDao = database.studentPackageDao(),
-                        attendanceDao = database.attendanceDao(),
-                    ),
+                RoomStudentPackageRepository(
+                    studentPackageDao = database.studentPackageDao(),
+                    attendanceDao = database.attendanceDao(),
+                ),
             )
     }
 
@@ -54,152 +54,151 @@ class GetAttendanceUseCaseIntegrationTest {
     }
 
     @Test
-    fun `attendance returns student with latest package and its attendance history`() =
-        runTest {
-            // Given
-            val studentId =
-                database
-                    .studentDao()
-                    .insert(
-                        StudentEntity(
+    fun `attendance returns student with latest package and its attendance history`() = runTest {
+        // Given
+        val studentId =
+            database
+                .studentDao()
+                .insert(
+                    StudentEntity(
+                        fullName = "Anna Smith",
+                    ),
+                ).toInt()
+
+        val packageTypeId =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = "5-class package",
+                        totalClasses = 5,
+                        validityWeeks = 6,
+                        price = 1700,
+                    ),
+                ).toInt()
+
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+
+        val latestStartedOn =
+            LocalDate(
+                2026,
+                10,
+                1,
+            )
+
+        val latestPackageId =
+            database
+                .studentPackageDao()
+                .insert(
+                    StudentPackageEntity(
+                        studentId = studentId,
+                        packageTypeId = packageTypeId,
+                        packageName = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
+                        startedOnEpochDay = latestStartedOn.toEpochDays(),
+                    ),
+                ).toInt()
+
+        val secondAttendanceDate =
+            LocalDate(
+                2026,
+                10,
+                3,
+            )
+
+        database
+            .attendanceDao()
+            .insert(
+                AttendanceEntity(
+                    packageId = latestPackageId,
+                    attendedOnEpochDay = latestStartedOn.toEpochDays(),
+                ),
+            )
+
+        database
+            .attendanceDao()
+            .insert(
+                AttendanceEntity(
+                    packageId = latestPackageId,
+                    attendedOnEpochDay = secondAttendanceDate.toEpochDays(),
+                ),
+            )
+
+        val oldStartedOn =
+            LocalDate(
+                2026,
+                8,
+                1,
+            )
+
+        val oldPackageId =
+            database
+                .studentPackageDao()
+                .insert(
+                    StudentPackageEntity(
+                        studentId = studentId,
+                        packageTypeId = packageTypeId,
+                        packageName = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
+                        startedOnEpochDay = oldStartedOn.toEpochDays(),
+                    ),
+                ).toInt()
+
+        assertTrue(
+            oldPackageId > latestPackageId,
+        )
+
+        database
+            .attendanceDao()
+            .insert(
+                AttendanceEntity(
+                    packageId = oldPackageId,
+                    attendedOnEpochDay = oldStartedOn.toEpochDays(),
+                ),
+            )
+
+        // When
+        val attendance =
+            getAttendance()
+
+        // Then
+        assertEquals(
+            Attendance(
+                entries =
+                listOf(
+                    RegisteredStudent(
+                        student =
+                        Student(
+                            id = studentId,
                             fullName = "Anna Smith",
                         ),
-                    ).toInt()
-
-            val packageTypeId =
-                database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
-
-            val latestStartedOn =
-                LocalDate(
-                    2026,
-                    10,
-                    1,
-                )
-
-            val latestPackageId =
-                database
-                    .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
+                        studentPackage =
+                        StudentPackage(
+                            id = latestPackageId,
                             studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = packageType.name,
-                            totalClasses = packageType.totalClasses,
-                            validityWeeks = packageType.validityWeeks,
-                            price = packageType.price,
-                            startedOnEpochDay = latestStartedOn.toEpochDays(),
-                        ),
-                    ).toInt()
-
-            val secondAttendanceDate =
-                LocalDate(
-                    2026,
-                    10,
-                    3,
-                )
-
-            database
-                .attendanceDao()
-                .insert(
-                    AttendanceEntity(
-                        packageId = latestPackageId,
-                        attendedOnEpochDay = latestStartedOn.toEpochDays(),
-                    ),
-                )
-
-            database
-                .attendanceDao()
-                .insert(
-                    AttendanceEntity(
-                        packageId = latestPackageId,
-                        attendedOnEpochDay = secondAttendanceDate.toEpochDays(),
-                    ),
-                )
-
-            val oldStartedOn =
-                LocalDate(
-                    2026,
-                    8,
-                    1,
-                )
-
-            val oldPackageId =
-                database
-                    .studentPackageDao()
-                    .insert(
-                        StudentPackageEntity(
-                            studentId = studentId,
-                            packageTypeId = packageTypeId,
-                            packageName = packageType.name,
-                            totalClasses = packageType.totalClasses,
-                            validityWeeks = packageType.validityWeeks,
-                            price = packageType.price,
-                            startedOnEpochDay = oldStartedOn.toEpochDays(),
-                        ),
-                    ).toInt()
-
-            assertTrue(
-                oldPackageId > latestPackageId,
-            )
-
-            database
-                .attendanceDao()
-                .insert(
-                    AttendanceEntity(
-                        packageId = oldPackageId,
-                        attendedOnEpochDay = oldStartedOn.toEpochDays(),
-                    ),
-                )
-
-            // When
-            val attendance =
-                getAttendance()
-
-            // Then
-            assertEquals(
-                Attendance(
-                    entries =
-                        listOf(
-                            RegisteredStudent(
-                                student =
-                                    Student(
-                                        id = studentId,
-                                        fullName = "Anna Smith",
-                                    ),
-                                studentPackage =
-                                    StudentPackage(
-                                        id = latestPackageId,
-                                        studentId = studentId,
-                                        packageType = packageType,
-                                        startedOn = latestStartedOn,
-                                        attendanceDates =
-                                            setOf(
-                                                latestStartedOn,
-                                                secondAttendanceDate,
-                                            ),
-                                    ),
+                            packageType = packageType,
+                            startedOn = latestStartedOn,
+                            attendanceDates =
+                            setOf(
+                                latestStartedOn,
+                                secondAttendanceDate,
                             ),
                         ),
+                    ),
                 ),
-                attendance,
-            )
-        }
+            ),
+            attendance,
+        )
+    }
 }

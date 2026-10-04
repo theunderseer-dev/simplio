@@ -5,9 +5,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import kotlinx.datetime.LocalDate
 
-class FakeStudentPackageRepository(
-    initialPackages: List<StudentPackage> = emptyList(),
-) : StudentPackageRepository {
+class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = emptyList()) : StudentPackageRepository {
     private val storedPackages = mutableListOf<StudentPackage>()
     private val storedRecordedAttendances =
         mutableListOf<RecordedAttendance>()
@@ -20,11 +18,7 @@ class FakeStudentPackageRepository(
 
     private var nextId = (initialPackages.maxOfOrNull { it.id } ?: 0) + 1
 
-    override suspend fun create(
-        studentId: Int,
-        packageType: PackageType,
-        startedOn: LocalDate,
-    ): StudentPackage =
+    override suspend fun create(studentId: Int, packageType: PackageType, startedOn: LocalDate): StudentPackage =
         addPackage(
             studentId = studentId,
             packageType = packageType,
@@ -37,23 +31,18 @@ class FakeStudentPackageRepository(
         packageType: PackageType,
         startedOn: LocalDate,
         attendanceDates: Set<LocalDate> = setOf(startedOn),
-    ): StudentPackage =
-        addPackage(
-            studentId = studentId,
-            packageType = packageType,
-            startedOn = startedOn,
-            attendanceDates = attendanceDates,
-        )
+    ): StudentPackage = addPackage(
+        studentId = studentId,
+        packageType = packageType,
+        startedOn = startedOn,
+        attendanceDates = attendanceDates,
+    )
 
-    override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? =
-        storedPackages
-            .filter { it.studentId == studentId }
-            .maxByOrNull { it.startedOn }
+    override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? = storedPackages
+        .filter { it.studentId == studentId }
+        .maxByOrNull { it.startedOn }
 
-    override suspend fun recordAttendance(
-        packageId: Int,
-        attendedOn: LocalDate,
-    ) {
+    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
         val index =
             storedPackages.indexOfFirst {
                 it.id == packageId
@@ -68,7 +57,7 @@ class FakeStudentPackageRepository(
         storedPackages[index] =
             currentPackage.copy(
                 attendanceDates =
-                    currentPackage.attendanceDates + attendedOn,
+                currentPackage.attendanceDates + attendedOn,
             )
 
         storedRecordedAttendances +=
@@ -99,7 +88,4 @@ class FakeStudentPackageRepository(
     }
 }
 
-data class RecordedAttendance(
-    val packageId: Int,
-    val attendedOn: LocalDate,
-)
+data class RecordedAttendance(val packageId: Int, val attendedOn: LocalDate)

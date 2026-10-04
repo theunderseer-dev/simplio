@@ -8,20 +8,19 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
-import java.nio.file.Path
 
 class AttendanceComponent(
     internal val database: AttendanceDatabase,
-    val packageTypeRepository: PackageTypeRepository,
     val registerStudent: RegisterStudentUseCase,
     val renewStudentPackage: RenewStudentPackageUseCase,
     val markStudentPresent: MarkStudentPresentUseCase,
     val getAttendance: GetAttendanceUseCase,
+    val getPackageTypes: GetPackageTypesUseCase,
     private val packageTypeSeeder: PackageTypeSeeder,
 ) : AutoCloseable {
     suspend fun initialize() {
@@ -33,15 +32,14 @@ class AttendanceComponent(
     }
 }
 
-fun createAttendanceComponent(userHome: Path): AttendanceComponent {
-    val databasePath =
-        prepareSimplioDatabasePath(
-            userHome = userHome,
-        )
+fun createAttendanceComponent(): AttendanceComponent = createAttendanceComponent(
+    databasePath = prepareSimplioDatabasePath(),
+)
 
+internal fun createAttendanceComponent(databasePath: String): AttendanceComponent {
     val database =
         createAttendanceDatabase(
-            path = databasePath.toString(),
+            path = databasePath,
         )
 
     val studentRepository =
@@ -64,6 +62,11 @@ fun createAttendanceComponent(userHome: Path): AttendanceComponent {
         GetAttendanceUseCase(
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
+        )
+
+    val getPackageTypes =
+        GetPackageTypesUseCase(
+            packageTypeRepository = packageTypeRepository,
         )
 
     val transactionRunner =
@@ -98,11 +101,11 @@ fun createAttendanceComponent(userHome: Path): AttendanceComponent {
 
     return AttendanceComponent(
         database = database,
-        packageTypeRepository = packageTypeRepository,
         registerStudent = registerStudent,
         renewStudentPackage = renewStudentPackage,
         markStudentPresent = markStudentPresent,
         getAttendance = getAttendance,
+        getPackageTypes = getPackageTypes,
         packageTypeSeeder = packageTypeSeeder,
     )
 }

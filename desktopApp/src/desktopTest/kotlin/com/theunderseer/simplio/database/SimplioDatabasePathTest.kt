@@ -10,7 +10,10 @@ class SimplioDatabasePathTest {
     @Test
     fun `database path is located in macOS application support directory`() {
         // Given
-        val userHome = Path.of("/Users/eugene")
+        val userHome =
+            Path.of(
+                "/Users/test",
+            )
 
         // When
         val path =
@@ -20,13 +23,11 @@ class SimplioDatabasePathTest {
 
         // Then
         assertEquals(
-            Path.of(
-                "/Users/eugene",
-                "Library",
-                "Application Support",
-                "Simplio",
-                "simplio.db",
-            ),
+            userHome
+                .resolve("Library")
+                .resolve("Application Support")
+                .resolve("Simplio")
+                .resolve("simplio.db"),
             path,
         )
     }

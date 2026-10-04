@@ -9,10 +9,7 @@ class MarkStudentPresentUseCase(
     private val repository: StudentPackageRepository,
     private val transactionRunner: TransactionRunner,
 ) {
-    suspend operator fun invoke(
-        studentId: Int,
-        attendanceDate: LocalDate,
-    ): MarkStudentPresentResult =
+    suspend operator fun invoke(studentId: Int, attendanceDate: LocalDate): MarkStudentPresentResult =
         transactionRunner.run {
             val studentPackage =
                 repository.getLatestPackageForStudent(studentId)

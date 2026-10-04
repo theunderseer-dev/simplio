@@ -4,10 +4,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.PackageTypeDao
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 
-class PackageTypeSeeder(
-    private val packageTypeDao: PackageTypeDao,
-    private val transactionRunner: TransactionRunner,
-) {
+class PackageTypeSeeder(private val packageTypeDao: PackageTypeDao, private val transactionRunner: TransactionRunner) {
     suspend fun seedDefaults() {
         transactionRunner.run {
             if (packageTypeDao.getAll().isNotEmpty()) {
