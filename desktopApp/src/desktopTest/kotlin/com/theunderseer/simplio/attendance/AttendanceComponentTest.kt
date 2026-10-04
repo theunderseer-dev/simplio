@@ -270,7 +270,7 @@ class AttendanceComponentTest {
     }
 
     @Test
-    fun `attendance component exposes persisted package types through repository`() = runTest {
+    fun `attendance component exposes persisted package types`() = runTest {
         withAttendanceComponent { component ->
             // Given
             val firstId =
@@ -298,8 +298,7 @@ class AttendanceComponentTest {
                     ).toInt()
 
             // When
-            val packageTypes =
-                component.packageTypeRepository.getAll()
+            val packageTypes = component.getPackageTypes()
 
             // Then
             assertEquals(
@@ -334,8 +333,7 @@ class AttendanceComponentTest {
             component.initialize()
 
             // Then
-            val packageTypes =
-                component.packageTypeRepository.getAll()
+            val packageTypes = component.getPackageTypes()
 
             assertEquals(
                 2,

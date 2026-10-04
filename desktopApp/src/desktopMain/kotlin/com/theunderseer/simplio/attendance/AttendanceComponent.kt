@@ -8,19 +8,19 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 
 class AttendanceComponent(
     internal val database: AttendanceDatabase,
-    val packageTypeRepository: PackageTypeRepository,
     val registerStudent: RegisterStudentUseCase,
     val renewStudentPackage: RenewStudentPackageUseCase,
     val markStudentPresent: MarkStudentPresentUseCase,
     val getAttendance: GetAttendanceUseCase,
+    val getPackageTypes: GetPackageTypesUseCase,
     private val packageTypeSeeder: PackageTypeSeeder,
 ) : AutoCloseable {
     suspend fun initialize() {
@@ -64,6 +64,11 @@ internal fun createAttendanceComponent(databasePath: String): AttendanceComponen
             studentPackageRepository = studentPackageRepository,
         )
 
+    val getPackageTypes =
+        GetPackageTypesUseCase(
+            packageTypeRepository = packageTypeRepository,
+        )
+
     val transactionRunner =
         RoomTransactionRunner(
             database = database,
@@ -96,11 +101,11 @@ internal fun createAttendanceComponent(databasePath: String): AttendanceComponen
 
     return AttendanceComponent(
         database = database,
-        packageTypeRepository = packageTypeRepository,
         registerStudent = registerStudent,
         renewStudentPackage = renewStudentPackage,
         markStudentPresent = markStudentPresent,
         getAttendance = getAttendance,
+        getPackageTypes = getPackageTypes,
         packageTypeSeeder = packageTypeSeeder,
     )
 }

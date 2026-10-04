@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     alias(libs.plugins.kover)
@@ -11,13 +13,22 @@ kotlin {
     jvm("desktop")
 
     sourceSets {
+        val desktopTest by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+            }
+        }
+
         commonMain {
             dependencies {
                 api(libs.androidx.room.runtime)
+                api(libs.androidx.lifecycle.viewmodel)
 
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.androidx.sqlite.bundled)
-                implementation(libs.androidx.lifecycle.viewmodel.compose)
+                implementation(libs.compose.runtime)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.material3)
             }
         }
 
@@ -25,6 +36,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.compose.ui.test)
             }
         }
     }

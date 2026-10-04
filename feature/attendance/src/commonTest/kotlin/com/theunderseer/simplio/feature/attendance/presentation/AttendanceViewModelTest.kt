@@ -4,7 +4,9 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
+import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import kotlinx.coroutines.Dispatchers
@@ -38,14 +40,26 @@ class AttendanceViewModelTest {
                 ),
             )
 
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
+        val packageTypes =
+            listOf(
+                PackageType(
+                    id = 1,
+                    name = "4-class package",
+                    totalClasses = 4,
+                    validityWeeks = 5,
+                    price = 1400,
+                ),
+                PackageType(
+                    id = 2,
+                    name = "5-class package",
+                    totalClasses = 5,
+                    validityWeeks = 6,
+                    price = 1700,
+                ),
             )
+
+        val packageType =
+            packageTypes.first()
 
         val studentPackage =
             studentPackageRepository.seed(
@@ -58,6 +72,11 @@ class AttendanceViewModelTest {
             GetAttendanceUseCase(
                 studentRepository = studentRepository,
                 studentPackageRepository = studentPackageRepository,
+            )
+
+        val getPackageTypes =
+            createGetPackageTypesUseCase(
+                packageTypes = packageTypes,
             )
 
         val expectedAttendance =
@@ -74,7 +93,8 @@ class AttendanceViewModelTest {
         // When
         val viewModel =
             AttendanceViewModel(
-                getAttendance = getAttendance,
+                getAttendanceUseCase = getAttendance,
+                getPackageTypesUseCase = getPackageTypes,
             )
 
         advanceUntilIdle()
@@ -83,6 +103,7 @@ class AttendanceViewModelTest {
         assertEquals(
             AttendanceUiState.Content(
                 attendance = expectedAttendance,
+                packageTypes = packageTypes,
             ),
             viewModel.uiState.value,
         )
@@ -105,16 +126,40 @@ class AttendanceViewModelTest {
                 ),
             )
 
+        val packageTypes =
+            listOf(
+                PackageType(
+                    id = 1,
+                    name = "4-class package",
+                    totalClasses = 4,
+                    validityWeeks = 5,
+                    price = 1400,
+                ),
+                PackageType(
+                    id = 2,
+                    name = "5-class package",
+                    totalClasses = 5,
+                    validityWeeks = 6,
+                    price = 1700,
+                ),
+            )
+
         val getAttendance =
             GetAttendanceUseCase(
                 studentRepository = studentRepository,
                 studentPackageRepository = studentPackageRepository,
             )
 
+        val getPackageTypes =
+            createGetPackageTypesUseCase(
+                packageTypes = packageTypes,
+            )
+
         // When
         val viewModel =
             AttendanceViewModel(
-                getAttendance = getAttendance,
+                getAttendanceUseCase = getAttendance,
+                getPackageTypesUseCase = getPackageTypes,
             )
 
         advanceUntilIdle()
@@ -131,16 +176,56 @@ class AttendanceViewModelTest {
     @Test
     fun `starts in loading state`() = runViewModelTest {
         // Given
+        val studentRepository =
+            FakeStudentRepository()
+
+        val studentPackageRepository =
+            FakeStudentPackageRepository()
+
+        val packageTypes =
+            listOf(
+                PackageType(
+                    id = 1,
+                    name = "4-class package",
+                    totalClasses = 4,
+                    validityWeeks = 5,
+                    price = 1400,
+                ),
+                PackageType(
+                    id = 2,
+                    name = "5-class package",
+                    totalClasses = 5,
+                    validityWeeks = 6,
+                    price = 1700,
+                ),
+            )
+
         val getAttendance =
             GetAttendanceUseCase(
-                studentRepository = FakeStudentRepository(),
-                studentPackageRepository = FakeStudentPackageRepository(),
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        val getPackageTypes =
+            createGetPackageTypesUseCase(
+                packageTypes = packageTypes,
+            )
+
+        val registerStudent =
+            createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
             )
 
         // When
         val viewModel =
             AttendanceViewModel(
-                getAttendance = getAttendance,
+                getAttendanceUseCase = getAttendance,
+                getPackageTypesUseCase = getPackageTypes,
+                registerStudentUseCase = registerStudent,
+                currentDate = {
+                    LocalDate(2026, 10, 3)
+                },
             )
 
         // Then
@@ -149,6 +234,19 @@ class AttendanceViewModelTest {
             viewModel.uiState.value,
         )
     }
+
+
+    private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
+        GetPackageTypesUseCase(
+            packageTypeRepository =
+            object : PackageTypeRepository {
+                override suspend fun getAll(): List<PackageType> = packageTypes
+
+                override suspend fun getById(id: Int): PackageType? = packageTypes.firstOrNull {
+                    it.id == id
+                }
+            },
+        )
 
     private fun runViewModelTest(block: suspend TestScope.() -> Unit) = runTest {
         val mainDispatcher =
