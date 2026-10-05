@@ -45,6 +45,7 @@ fun main() {
                 AttendanceScreen(
                     state = state,
                     onRegisterStudent = attendanceViewModel::registerStudent,
+                    onDeleteStudent = {},
                 )
             }
         }

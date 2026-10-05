@@ -1,28 +1,43 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 
 @Composable
-fun AttendanceScreen(state: AttendanceUiState, onRegisterStudent: (String, PackageType) -> Unit) {
+fun AttendanceScreen(
+    state: AttendanceUiState,
+    onRegisterStudent: (String, PackageType) -> Unit,
+    onDeleteStudent: (Int) -> Unit,
+) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
+    }
+
+    var deleteStudentDialog by remember {
+        mutableStateOf<Int?>(null)
     }
 
     when (state) {
@@ -31,6 +46,9 @@ fun AttendanceScreen(state: AttendanceUiState, onRegisterStudent: (String, Packa
                 state = state,
                 onAddStudentClick = {
                     showRegistrationDialog = true
+                },
+                onDeleteStudentClick = { studentId ->
+                    deleteStudentDialog = studentId
                 },
             )
 
@@ -49,6 +67,52 @@ fun AttendanceScreen(state: AttendanceUiState, onRegisterStudent: (String, Packa
                     },
                 )
             }
+
+            deleteStudentDialog?.let { studentId ->
+                val student =
+                    state.attendance.entries
+                        .first { it.student.id == studentId }
+                        .student
+
+                AlertDialog(
+                    onDismissRequest = {
+                        deleteStudentDialog = null
+                    },
+                    title = {
+                        Text(
+                            text = "Delete student?",
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "Delete \"${student.fullName}\"?",
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                onDeleteStudent(studentId)
+                                deleteStudentDialog = null
+                            },
+                        ) {
+                            Text(
+                                text = "Delete",
+                            )
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                deleteStudentDialog = null
+                            },
+                        ) {
+                            Text(
+                                text = "Cancel",
+                            )
+                        }
+                    },
+                )
+            }
         }
 
         AttendanceUiState.Loading -> Unit
@@ -58,7 +122,11 @@ fun AttendanceScreen(state: AttendanceUiState, onRegisterStudent: (String, Packa
 }
 
 @Composable
-private fun AttendanceContent(state: AttendanceUiState.Content, onAddStudentClick: () -> Unit) {
+private fun AttendanceContent(
+    state: AttendanceUiState.Content,
+    onAddStudentClick: () -> Unit,
+    onDeleteStudentClick: (Int) -> Unit,
+) {
     Column(
         modifier =
         Modifier.padding(
@@ -73,6 +141,11 @@ private fun AttendanceContent(state: AttendanceUiState.Content, onAddStudentClic
             state.attendance.entries.forEachIndexed { index, registeredStudent ->
                 StudentAttendanceRow(
                     registeredStudent = registeredStudent,
+                    onDeleteClick = {
+                        onDeleteStudentClick(
+                            registeredStudent.student.id,
+                        )
+                    },
                 )
 
                 if (index < state.attendance.entries.lastIndex) {
@@ -94,16 +167,15 @@ private fun AttendanceContent(state: AttendanceUiState.Content, onAddStudentClic
 }
 
 @Composable
-private fun StudentAttendanceRow(registeredStudent: RegisteredStudent) {
+private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteClick: () -> Unit) {
     val studentPackage =
         registeredStudent.studentPackage
 
     Row(
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        modifier =
-        Modifier.padding(
+        modifier = Modifier.padding(
             vertical = 6.dp,
         ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = registeredStudent.student.fullName,
@@ -134,6 +206,26 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent) {
             modifier = Modifier.width(AttendanceDimensions.PackageColumnWidth),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+
+        Text(
+            text = "×",
+            modifier =
+            Modifier
+                .clickable(
+                    onClick = onDeleteClick,
+                )
+                .semantics {
+                    contentDescription =
+                        "Delete ${registeredStudent.student.fullName}"
+                }
+                .padding(
+                    horizontal = 6.dp,
+                    vertical = 2.dp,
+                ),
+            color = MaterialTheme.colorScheme.error,
+            fontSize = 20.sp,
+            lineHeight = 20.sp,
         )
     }
 }
