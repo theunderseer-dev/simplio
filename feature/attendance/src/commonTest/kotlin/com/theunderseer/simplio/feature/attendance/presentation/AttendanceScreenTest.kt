@@ -78,10 +78,10 @@ class AttendanceScreenTest {
         onNodeWithText("3 / 5")
             .assertIsDisplayed()
 
-        onNodeWithText(studentPackage.startedOn.toString())
+        onNodeWithText("Oct 1")
             .assertIsDisplayed()
 
-        onNodeWithText(studentPackage.expiresOn.toString())
+        onNodeWithText("Nov 12")
             .assertIsDisplayed()
 
         onNodeWithText("5-class package")

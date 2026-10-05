@@ -6,6 +6,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStuden
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
@@ -28,86 +29,79 @@ class AttendanceViewModelTest {
     @Test
     fun `loads attendance into content state`() = runViewModelTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
+        val studentRepository = FakeStudentRepository()
 
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
 
-        val student =
-            studentRepository.seed(
-                Student(
-                    id = 1,
-                    fullName = "Anna Smith",
+        val student = studentRepository.seed(
+            Student(
+                id = 1,
+                fullName = "Anna Smith",
+            ),
+        )
+
+        val packageTypes = listOf(
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            ),
+            PackageType(
+                id = 2,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            ),
+        )
+
+        val packageType = packageTypes.first()
+
+        val studentPackage = studentPackageRepository.seed(
+            studentId = student.id,
+            packageType = packageType,
+            startedOn = LocalDate(2026, 10, 2),
+        )
+
+        val getAttendance = GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val getPackageTypes = createGetPackageTypesUseCase(
+            packageTypes = packageTypes,
+        )
+
+        val deleteStudentUseCase = DeleteStudentUseCase(
+            studentRepository = studentRepository,
+        )
+
+        val registerStudent = createRegisterStudentUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val expectedAttendance = Attendance(
+            entries = listOf(
+                RegisteredStudent(
+                    student = student,
+                    studentPackage = studentPackage,
                 ),
-            )
-
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 5,
-                    price = 1400,
-                ),
-                PackageType(
-                    id = 2,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                ),
-            )
-
-        val packageType =
-            packageTypes.first()
-
-        val studentPackage =
-            studentPackageRepository.seed(
-                studentId = student.id,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 2),
-            )
-
-        val getAttendance =
-            GetAttendanceUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
-
-        val getPackageTypes =
-            createGetPackageTypesUseCase(
-                packageTypes = packageTypes,
-            )
-
-        val registerStudent =
-            createRegisterStudentUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
-
-        val expectedAttendance =
-            Attendance(
-                entries =
-                listOf(
-                    RegisteredStudent(
-                        student = student,
-                        studentPackage = studentPackage,
-                    ),
-                ),
-            )
+            ),
+        )
 
         // When
-        val viewModel =
-            AttendanceViewModel(
-                getAttendanceUseCase = getAttendance,
-                getPackageTypesUseCase = getPackageTypes,
-                registerStudentUseCase = registerStudent,
-                currentDate = {
-                    LocalDate(2026, 10, 3)
-                },
-            )
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = getAttendance,
+            getPackageTypesUseCase = getPackageTypes,
+            registerStudentUseCase = registerStudent,
+            deleteStudentUseCase = deleteStudentUseCase,
+            currentDate = {
+                LocalDate(2026, 10, 3)
+            },
+        )
 
         advanceUntilIdle()
 
@@ -124,65 +118,62 @@ class AttendanceViewModelTest {
     @Test
     fun `moves to error state when attendance loading fails`() = runViewModelTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
+        val studentRepository = FakeStudentRepository()
 
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
 
-        val student =
-            studentRepository.seed(
-                Student(
-                    id = 1,
-                    fullName = "Anna Smith",
-                ),
-            )
+        val student = studentRepository.seed(
+            Student(
+                id = 1,
+                fullName = "Anna Smith",
+            ),
+        )
 
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 5,
-                    price = 1400,
-                ),
-                PackageType(
-                    id = 2,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                ),
-            )
+        val packageTypes = listOf(
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            ),
+            PackageType(
+                id = 2,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            ),
+        )
 
-        val getAttendance =
-            GetAttendanceUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
+        val getAttendance = GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
 
-        val getPackageTypes =
-            createGetPackageTypesUseCase(
-                packageTypes = packageTypes,
-            )
+        val getPackageTypes = createGetPackageTypesUseCase(
+            packageTypes = packageTypes,
+        )
 
-        val registerStudent =
-            createRegisterStudentUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
+        val registerStudent = createRegisterStudentUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val deleteStudentUseCase = DeleteStudentUseCase(
+            studentRepository = studentRepository,
+        )
 
         // When
-        val viewModel =
-            AttendanceViewModel(
-                getAttendanceUseCase = getAttendance,
-                getPackageTypesUseCase = getPackageTypes,
-                registerStudentUseCase = registerStudent,
-                currentDate = {
-                    LocalDate(2026, 10, 3)
-                },
-            )
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = getAttendance,
+            getPackageTypesUseCase = getPackageTypes,
+            registerStudentUseCase = registerStudent,
+            deleteStudentUseCase = deleteStudentUseCase,
+            currentDate = {
+                LocalDate(2026, 10, 3)
+            },
+        )
 
         advanceUntilIdle()
 
@@ -198,57 +189,56 @@ class AttendanceViewModelTest {
     @Test
     fun `starts in loading state`() = runViewModelTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
+        val studentRepository = FakeStudentRepository()
 
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
 
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 5,
-                    price = 1400,
-                ),
-                PackageType(
-                    id = 2,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                ),
-            )
+        val packageTypes = listOf(
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            ),
+            PackageType(
+                id = 2,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            ),
+        )
 
-        val getAttendance =
-            GetAttendanceUseCase(
+        val getAttendance = GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val getPackageTypes = createGetPackageTypesUseCase(
+            packageTypes = packageTypes,
+        )
+
+        val registerStudent = createRegisterStudentUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val deleteStudentUseCase =
+            DeleteStudentUseCase(
                 studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
-
-        val getPackageTypes =
-            createGetPackageTypesUseCase(
-                packageTypes = packageTypes,
-            )
-
-        val registerStudent =
-            createRegisterStudentUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
             )
 
         // When
-        val viewModel =
-            AttendanceViewModel(
-                getAttendanceUseCase = getAttendance,
-                getPackageTypesUseCase = getPackageTypes,
-                registerStudentUseCase = registerStudent,
-                currentDate = {
-                    LocalDate(2026, 10, 3)
-                },
-            )
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = getAttendance,
+            getPackageTypesUseCase = getPackageTypes,
+            registerStudentUseCase = registerStudent,
+            deleteStudentUseCase = deleteStudentUseCase,
+            currentDate = {
+                LocalDate(2026, 10, 3)
+            },
+        )
 
         // Then
         assertEquals(
@@ -260,59 +250,56 @@ class AttendanceViewModelTest {
     @Test
     fun `registers student and refreshes attendance`() = runViewModelTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
+        val studentRepository = FakeStudentRepository()
 
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
 
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 5,
-                price = 1400,
-            )
+        val packageType = PackageType(
+            id = 1,
+            name = "4-class package",
+            totalClasses = 4,
+            validityWeeks = 5,
+            price = 1400,
+        )
 
-        val packageTypes =
-            listOf(
-                packageType,
-            )
+        val packageTypes = listOf(
+            packageType,
+        )
 
-        val getAttendance =
-            GetAttendanceUseCase(
+        val getAttendance = GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val getPackageTypes = createGetPackageTypesUseCase(
+            packageTypes = packageTypes,
+        )
+
+        val registerStudent = createRegisterStudentUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
+
+        val deleteStudentUseCase =
+            DeleteStudentUseCase(
                 studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
             )
 
-        val getPackageTypes =
-            createGetPackageTypesUseCase(
-                packageTypes = packageTypes,
-            )
+        val registeredOn = LocalDate(
+            2026,
+            10,
+            3,
+        )
 
-        val registerStudent =
-            createRegisterStudentUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
-
-        val registeredOn =
-            LocalDate(
-                2026,
-                10,
-                3,
-            )
-
-        val viewModel =
-            AttendanceViewModel(
-                getAttendanceUseCase = getAttendance,
-                getPackageTypesUseCase = getPackageTypes,
-                registerStudentUseCase = registerStudent,
-                currentDate = {
-                    registeredOn
-                },
-            )
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = getAttendance,
+            getPackageTypesUseCase = getPackageTypes,
+            registerStudentUseCase = registerStudent,
+            deleteStudentUseCase = deleteStudentUseCase,
+            currentDate = {
+                registeredOn
+            },
+        )
 
         advanceUntilIdle()
 
@@ -325,8 +312,7 @@ class AttendanceViewModelTest {
         advanceUntilIdle()
 
         // Then
-        val state =
-            viewModel.uiState.value as AttendanceUiState.Content
+        val state = viewModel.uiState.value as AttendanceUiState.Content
 
         assertEquals(
             packageTypes,
@@ -338,8 +324,7 @@ class AttendanceViewModelTest {
             state.attendance.entries.size,
         )
 
-        val registeredStudent =
-            state.attendance.entries.single()
+        val registeredStudent = state.attendance.entries.single()
 
         assertEquals(
             "Anna Smith",
@@ -365,28 +350,24 @@ class AttendanceViewModelTest {
     @Test
     fun `deletes student and refreshes attendance`() = runViewModelTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
+        val studentRepository = FakeStudentRepository()
 
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
 
-        val student =
-            studentRepository.seed(
-                Student(
-                    id = 1,
-                    fullName = "Anna Smith",
-                ),
-            )
-
-        val packageType =
-            PackageType(
+        val student = studentRepository.seed(
+            Student(
                 id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 5,
-                price = 1400,
-            )
+                fullName = "Anna Smith",
+            ),
+        )
+
+        val packageType = PackageType(
+            id = 1,
+            name = "4-class package",
+            totalClasses = 4,
+            validityWeeks = 5,
+            price = 1400,
+        )
 
         studentPackageRepository.seed(
             studentId = student.id,
@@ -394,37 +375,32 @@ class AttendanceViewModelTest {
             startedOn = LocalDate(2026, 10, 5),
         )
 
-        val getAttendance =
-            GetAttendanceUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-            )
+        val getAttendance = GetAttendanceUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+        )
 
-        val getPackageTypes =
-            createGetPackageTypesUseCase(
-                packageTypes = listOf(packageType),
-            )
+        val getPackageTypes = createGetPackageTypesUseCase(
+            packageTypes = listOf(packageType),
+        )
 
-        val deleteStudent =
+        val deleteStudentUseCase =
             DeleteStudentUseCase(
                 studentRepository = studentRepository,
-                studentPackageRepository = studentPackageRepository,
-                transactionRunner = transactionRunner,
             )
 
-        val viewModel =
-            AttendanceViewModel(
-                getAttendanceUseCase = getAttendance,
-                getPackageTypesUseCase = getPackageTypes,
-                registerStudentUseCase = createRegisterStudentUseCase(
-                    studentRepository = studentRepository,
-                    studentPackageRepository = studentPackageRepository,
-                ),
-                deleteStudentUseCase = deleteStudent,
-                currentDate = {
-                    LocalDate(2026, 10, 5)
-                },
-            )
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = getAttendance,
+            getPackageTypesUseCase = getPackageTypes,
+            registerStudentUseCase = createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            ),
+            deleteStudentUseCase = deleteStudentUseCase,
+            currentDate = {
+                LocalDate(2026, 10, 5)
+            },
+        )
 
         advanceUntilIdle()
 
@@ -436,8 +412,7 @@ class AttendanceViewModelTest {
         advanceUntilIdle()
 
         // Then
-        val state =
-            viewModel.uiState.value as AttendanceUiState.Content
+        val state = viewModel.uiState.value as AttendanceUiState.Content
 
         assertEquals(
             emptyList(),
@@ -447,8 +422,7 @@ class AttendanceViewModelTest {
 
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
-            packageTypeRepository =
-            object : PackageTypeRepository {
+            packageTypeRepository = object : PackageTypeRepository {
                 override suspend fun getAll(): List<PackageType> = packageTypes
 
                 override suspend fun getById(id: Int): PackageType? = packageTypes.firstOrNull {
@@ -467,10 +441,9 @@ class AttendanceViewModelTest {
     )
 
     private fun runViewModelTest(block: suspend TestScope.() -> Unit) = runTest {
-        val mainDispatcher =
-            StandardTestDispatcher(
-                scheduler = testScheduler,
-            )
+        val mainDispatcher = StandardTestDispatcher(
+            scheduler = testScheduler,
+        )
 
         Dispatchers.setMain(
             mainDispatcher,
@@ -483,8 +456,7 @@ class AttendanceViewModelTest {
         }
     }
 
-    private val transactionRunner =
-        object : TransactionRunner {
-            override suspend fun <T> run(block: suspend () -> T): T = block()
-        }
+    private val transactionRunner = object : TransactionRunner {
+        override suspend fun <T> run(block: suspend () -> T): T = block()
+    }
 }
