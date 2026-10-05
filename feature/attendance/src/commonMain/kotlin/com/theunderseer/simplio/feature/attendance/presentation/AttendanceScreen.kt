@@ -50,38 +50,34 @@ fun AttendanceScreen(state: AttendanceUiState, onRegisterStudent: (String, Packa
 
 @Composable
 private fun AttendanceContent(state: AttendanceUiState.Content, onAddStudentClick: () -> Unit) {
-    if (state.attendance.entries.isEmpty()) {
-        Column {
+    Column {
+        if (state.attendance.entries.isEmpty()) {
             Text(
                 text = "No students yet",
             )
-
-            Button(
-                onClick = onAddStudentClick,
-            ) {
+        } else {
+            state.attendance.entries.forEach { registeredStudent ->
                 Text(
-                    text = "Add Student",
+                    text = registeredStudent.student.fullName,
+                )
+
+                Text(
+                    text =
+                    "${registeredStudent.studentPackage.usedClasses} / " +
+                        "${registeredStudent.studentPackage.packageType.totalClasses}",
+                )
+
+                Text(
+                    text = registeredStudent.studentPackage.packageType.name,
                 )
             }
         }
 
-        return
-    }
-
-    Column {
-        state.attendance.entries.forEach { entry ->
+        Button(
+            onClick = onAddStudentClick,
+        ) {
             Text(
-                text = entry.student.fullName,
-            )
-
-            Text(
-                text =
-                "${entry.studentPackage.usedClasses} / " +
-                    "${entry.studentPackage.packageType.totalClasses}",
-            )
-
-            Text(
-                text = entry.studentPackage.packageType.name,
+                text = "Add Student",
             )
         }
     }
