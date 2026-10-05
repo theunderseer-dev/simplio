@@ -45,6 +45,12 @@ fun main() {
 
                 AttendanceScreen(
                     state = state,
+                    currentDate =
+                    Clock.System
+                        .now()
+                        .toLocalDateTime(
+                            TimeZone.currentSystemDefault(),
+                        ).date,
                     onRegisterStudent = attendanceViewModel::registerStudent,
                     onDeleteStudent = attendanceViewModel::deleteStudent,
                 )

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -33,9 +34,12 @@ class StudentRegistrationDialogTest {
                 ),
             )
 
+        val registeredDate = LocalDate(2026, 10, 5)
+
         setContent {
             StudentRegistrationDialog(
                 packageTypes = packageTypes,
+                initialDate = registeredDate,
                 onRegister = { _, _ -> },
                 onDismiss = {},
             )
@@ -58,6 +62,41 @@ class StudentRegistrationDialogTest {
     }
 
     @Test
+    fun `displays initial registration date`() = runComposeUiTest {
+        // Given
+        val today =
+            LocalDate(2026, 10, 5)
+
+        val packageTypes =
+            listOf(
+                PackageType(
+                    id = 1,
+                    name = "4-class package",
+                    totalClasses = 4,
+                    validityWeeks = 5,
+                    price = 1400,
+                ),
+            )
+
+        // When
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = packageTypes,
+                initialDate = today,
+                onRegister = { _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // Then
+        onNodeWithText("Registration date")
+            .assertIsDisplayed()
+
+        onNodeWithText("Oct 5")
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun `registers student with entered name and selected package`() = runComposeUiTest {
         // Given
         val packageType =
@@ -69,12 +108,15 @@ class StudentRegistrationDialogTest {
                 price = 1700,
             )
 
+        val registeredDate = LocalDate(2026, 10, 5)
+
         var registeredName: String? = null
         var registeredPackage: PackageType? = null
 
         setContent {
             StudentRegistrationDialog(
                 packageTypes = listOf(packageType),
+                initialDate = registeredDate,
                 onRegister = { fullName, selectedPackage ->
                     registeredName = fullName
                     registeredPackage = selectedPackage
@@ -102,6 +144,42 @@ class StudentRegistrationDialogTest {
         assertEquals(
             packageType,
             registeredPackage,
+        )
+    }
+
+    @Test
+    fun `does not allow registration date after today`() {
+        // Given
+        val today =
+            LocalDate(
+                2026,
+                10,
+                5,
+            )
+
+        // Then
+        assertEquals(
+            true,
+            isRegistrationDateSelectable(
+                date = LocalDate(2026, 10, 5),
+                today = today,
+            ),
+        )
+
+        assertEquals(
+            true,
+            isRegistrationDateSelectable(
+                date = LocalDate(2026, 10, 4),
+                today = today,
+            ),
+        )
+
+        assertEquals(
+            false,
+            isRegistrationDateSelectable(
+                date = LocalDate(2026, 10, 6),
+                today = today,
+            ),
         )
     }
 }

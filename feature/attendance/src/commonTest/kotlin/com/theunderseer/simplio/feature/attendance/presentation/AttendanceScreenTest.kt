@@ -17,6 +17,8 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenTest {
+    private val today = LocalDate(2026, 10, 5)
+
     @Test
     fun `displays registered student attendance`() = runComposeUiTest {
         // Given
@@ -66,6 +68,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
             )
@@ -104,6 +107,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
             )
@@ -140,6 +144,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
             )
@@ -203,6 +208,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
             )
@@ -210,6 +216,81 @@ class AttendanceScreenTest {
 
         // Then
         onNodeWithText("Add Student")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `opens date picker when registration date is clicked`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(packageType),
+                initialDate = today,
+                onRegister = { _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        // Then
+        onNodeWithText("Select registration date")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `updates registration date after selecting past date`() = runComposeUiTest {
+        // Given
+        val today =
+            LocalDate(
+                2026,
+                10,
+                5,
+            )
+
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(packageType),
+                initialDate = today,
+                onRegister = { _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        onNodeWithText("Saturday, October 3, 2026")
+            .performClick()
+
+        onNodeWithText("OK")
+            .performClick()
+
+        onNodeWithText("Oct 3")
             .assertIsDisplayed()
     }
 
@@ -258,6 +339,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
             )
@@ -314,6 +396,7 @@ class AttendanceScreenTest {
         setContent {
             AttendanceScreen(
                 state = state,
+                currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = { studentId ->
                     deletedStudentId = studentId
