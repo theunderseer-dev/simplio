@@ -146,4 +146,58 @@ class AttendanceScreenTest {
         onNodeWithText("Register")
             .assertIsDisplayed()
     }
+
+    @Test
+    fun `displays add student action when attendance has students`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = packageType,
+                                startedOn = LocalDate(2026, 10, 5),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(packageType),
+            )
+
+        // When
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _ -> },
+            )
+        }
+
+        // Then
+        onNodeWithText("Add Student")
+            .assertIsDisplayed()
+    }
 }
