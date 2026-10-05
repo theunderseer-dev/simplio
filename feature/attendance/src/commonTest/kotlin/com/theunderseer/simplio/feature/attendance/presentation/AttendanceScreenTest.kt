@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -12,6 +13,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenTest {
@@ -65,6 +67,7 @@ class AttendanceScreenTest {
             AttendanceScreen(
                 state = state,
                 onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
             )
         }
 
@@ -75,10 +78,10 @@ class AttendanceScreenTest {
         onNodeWithText("3 / 5")
             .assertIsDisplayed()
 
-        onNodeWithText(studentPackage.startedOn.toString())
+        onNodeWithText("Oct 1")
             .assertIsDisplayed()
 
-        onNodeWithText(studentPackage.expiresOn.toString())
+        onNodeWithText("Nov 12")
             .assertIsDisplayed()
 
         onNodeWithText("5-class package")
@@ -102,6 +105,7 @@ class AttendanceScreenTest {
             AttendanceScreen(
                 state = state,
                 onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
             )
         }
 
@@ -137,6 +141,7 @@ class AttendanceScreenTest {
             AttendanceScreen(
                 state = state,
                 onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
             )
         }
 
@@ -199,11 +204,143 @@ class AttendanceScreenTest {
             AttendanceScreen(
                 state = state,
                 onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
             )
         }
 
         // Then
         onNodeWithText("Add Student")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `shows delete action for registered student`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = packageType,
+                                startedOn = LocalDate(2026, 10, 5),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(packageType),
+            )
+
+        // When
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
+            )
+        }
+
+        // Then
+        onNodeWithContentDescription("Delete Anna Smith")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `shows confirmation dialog before deleting student`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = packageType,
+                                startedOn = LocalDate(2026, 10, 5),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(packageType),
+            )
+
+        var deletedStudentId: Int? = null
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = { studentId ->
+                    deletedStudentId = studentId
+                },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Delete Anna Smith")
+            .performClick()
+
+        // Then
+        onNodeWithText("Delete student?")
+            .assertIsDisplayed()
+
+        onNodeWithText("Delete \"Anna Smith\"?")
+            .assertIsDisplayed()
+
+        onNodeWithText("Cancel")
+            .assertIsDisplayed()
+
+        onNodeWithText("Delete")
+            .assertIsDisplayed()
+
+        assertEquals(
+            null,
+            deletedStudentId,
+        )
     }
 }

@@ -6,4 +6,6 @@ interface StudentRepository {
     suspend fun create(fullName: String): Student
 
     suspend fun getAll(): List<Student>
+
+    suspend fun delete(studentId: Int)
 }

@@ -22,6 +22,12 @@ class FakeStudentRepository : StudentRepository {
 
     override suspend fun getAll(): List<Student> = students.toList()
 
+    override suspend fun delete(studentId: Int) {
+        students.removeAll { student ->
+            student.id == studentId
+        }
+    }
+
     fun seed(student: Student): Student {
         students += student
         return student

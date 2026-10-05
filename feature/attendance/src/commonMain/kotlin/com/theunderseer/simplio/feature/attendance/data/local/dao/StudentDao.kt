@@ -10,6 +10,14 @@ interface StudentDao {
     @Insert
     suspend fun insert(student: StudentEntity): Long
 
+    @Query(
+        """
+    DELETE FROM students
+    WHERE id = :studentId
+    """,
+    )
+    suspend fun deleteById(studentId: Int)
+
     @Query("SELECT * FROM students ORDER BY id")
     suspend fun getAll(): List<StudentEntity>
 

@@ -24,4 +24,10 @@ class RoomStudentRepository(private val studentDao: StudentDao) : StudentReposit
     override suspend fun getAll(): List<Student> = studentDao
         .getAll()
         .map { it.toDomain() }
+
+    override suspend fun delete(studentId: Int) {
+        studentDao.deleteById(
+            studentId = studentId,
+        )
+    }
 }
