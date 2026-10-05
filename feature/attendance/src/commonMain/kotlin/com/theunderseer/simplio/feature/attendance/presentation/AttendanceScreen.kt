@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import kotlinx.datetime.LocalDate
 
 @Composable
 fun AttendanceScreen(
@@ -192,12 +193,12 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
         )
 
         Text(
-            text = studentPackage.startedOn.toString(),
+            text = studentPackage.startedOn.toDisplayDate(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 
         Text(
-            text = studentPackage.expiresOn.toString(),
+            text = studentPackage.expiresOn.toDisplayDate(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 
@@ -228,4 +229,14 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
             lineHeight = 20.sp,
         )
     }
+}
+
+private fun LocalDate.toDisplayDate(): String {
+    val month =
+        month.name
+            .take(3)
+            .lowercase()
+            .replaceFirstChar { it.uppercase() }
+
+    return "$month $day"
 }
