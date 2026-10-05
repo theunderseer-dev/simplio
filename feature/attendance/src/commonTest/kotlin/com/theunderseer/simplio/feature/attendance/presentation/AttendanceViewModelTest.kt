@@ -362,6 +362,89 @@ class AttendanceViewModelTest {
         )
     }
 
+    @Test
+    fun `deletes student and refreshes attendance`() = runViewModelTest {
+        // Given
+        val studentRepository =
+            FakeStudentRepository()
+
+        val studentPackageRepository =
+            FakeStudentPackageRepository()
+
+        val student =
+            studentRepository.seed(
+                Student(
+                    id = 1,
+                    fullName = "Anna Smith",
+                ),
+            )
+
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 5,
+                price = 1400,
+            )
+
+        studentPackageRepository.seed(
+            studentId = student.id,
+            packageType = packageType,
+            startedOn = LocalDate(2026, 10, 5),
+        )
+
+        val getAttendance =
+            GetAttendanceUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            )
+
+        val getPackageTypes =
+            createGetPackageTypesUseCase(
+                packageTypes = listOf(packageType),
+            )
+
+        val deleteStudent =
+            DeleteStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+                transactionRunner = transactionRunner,
+            )
+
+        val viewModel =
+            AttendanceViewModel(
+                getAttendanceUseCase = getAttendance,
+                getPackageTypesUseCase = getPackageTypes,
+                registerStudentUseCase = createRegisterStudentUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                deleteStudentUseCase = deleteStudent,
+                currentDate = {
+                    LocalDate(2026, 10, 5)
+                },
+            )
+
+        advanceUntilIdle()
+
+        // When
+        viewModel.deleteStudent(
+            studentId = student.id,
+        )
+
+        advanceUntilIdle()
+
+        // Then
+        val state =
+            viewModel.uiState.value as AttendanceUiState.Content
+
+        assertEquals(
+            emptyList(),
+            state.attendance.entries,
+        )
+    }
+
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
             packageTypeRepository =

@@ -26,6 +26,7 @@ fun main() {
                 getAttendanceUseCase = component.getAttendance,
                 getPackageTypesUseCase = component.getPackageTypes,
                 registerStudentUseCase = component.registerStudent,
+                deleteStudentUseCase = component.deleteStudent,
                 currentDate = {
                     Clock.System
                         .now()
@@ -45,7 +46,7 @@ fun main() {
                 AttendanceScreen(
                     state = state,
                     onRegisterStudent = attendanceViewModel::registerStudent,
-                    onDeleteStudent = {},
+                    onDeleteStudent = attendanceViewModel::deleteStudent,
                 )
             }
         }
