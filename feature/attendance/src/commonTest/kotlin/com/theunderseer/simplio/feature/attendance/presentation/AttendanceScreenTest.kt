@@ -75,6 +75,12 @@ class AttendanceScreenTest {
         onNodeWithText("3 / 5")
             .assertIsDisplayed()
 
+        onNodeWithText(studentPackage.startedOn.toString())
+            .assertIsDisplayed()
+
+        onNodeWithText(studentPackage.expiresOn.toString())
+            .assertIsDisplayed()
+
         onNodeWithText("5-class package")
             .assertIsDisplayed()
     }
