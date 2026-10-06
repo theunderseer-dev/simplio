@@ -1,6 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasSetTextAction
@@ -725,6 +728,16 @@ class AttendanceScreenTest {
         // When
         onNodeWithContentDescription("Mark Anna Smith present")
             .assertIsDisplayed()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Pending",
+                ),
+            )
+            .performClick()
+
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .assertIsDisplayed()
             .performClick()
 
         // Then
@@ -732,6 +745,58 @@ class AttendanceScreenTest {
             student.id,
             checkedStudentId,
         )
+    }
+
+    @Test
+    fun `shows checked state when latest scheduled attendance is recorded`() = runComposeUiTest {
+        // Given
+        val student = Student(
+            id = 7,
+            fullName = "Anna Smith",
+        )
+
+        val state = AttendanceUiState.Content(
+            attendance = Attendance(
+                entries = listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage = StudentPackage(
+                            id = 1,
+                            studentId = student.id,
+                            packageType = fiveClassPackage,
+                            startedOn = LocalDate(2026, 10, 2),
+                            attendanceDates = setOf(
+                                LocalDate(2026, 10, 2),
+                                LocalDate(2026, 10, 5),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            packageTypes = listOf(fiveClassPackage),
+        )
+
+        // When
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = LocalDate(2026, 10, 6),
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onCheckStudent = {},
+            )
+        }
+
+        // Then
+        onNodeWithText("✓")
+            .assertIsDisplayed()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Checked",
+                ),
+            )
     }
 
     private fun emptyAttendanceState(packageTypes: List<PackageType> = emptyList()): AttendanceUiState.Content =

@@ -27,9 +27,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
@@ -37,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.domain.schedule.attendanceCheckState
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
@@ -95,6 +100,9 @@ fun AttendanceScreen(
                             }
                         },
                         onCheckStudentClick = onCheckStudent,
+                        latestClassDate = latestScheduledClassDate(
+                            today = currentDate,
+                        ),
                     )
                 }
             }
@@ -177,6 +185,7 @@ private fun AttendanceContent(
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: () -> Unit,
     onCheckStudentClick: (Int) -> Unit,
+    latestClassDate: LocalDate,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -191,6 +200,10 @@ private fun AttendanceContent(
             state.attendance.entries.forEachIndexed { index, registeredStudent ->
                 StudentAttendanceRow(
                     registeredStudent = registeredStudent,
+                    checkState = attendanceCheckState(
+                        attendanceDates = registeredStudent.studentPackage.attendanceDates,
+                        latestScheduledClassDate = latestClassDate,
+                    ),
                     onCheckClick = {
                         onCheckStudentClick(
                             registeredStudent.student.id,
@@ -223,14 +236,14 @@ private fun AttendanceContent(
             Text(
                 text = "⧉",
                 modifier =
-                Modifier
-                    .clickable(
-                        onClick = onCopyAttendanceClick,
-                    )
-                    .semantics {
-                        contentDescription = "Copy attendance"
-                    }
-                    .padding(8.dp),
+                    Modifier
+                        .clickable(
+                            onClick = onCopyAttendanceClick,
+                        )
+                        .semantics {
+                            contentDescription = "Copy attendance"
+                        }
+                        .padding(8.dp),
             )
         }
     }
@@ -239,6 +252,7 @@ private fun AttendanceContent(
 @Composable
 private fun StudentAttendanceRow(
     registeredStudent: RegisteredStudent,
+    checkState: AttendanceCheckState,
     onCheckClick: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
@@ -254,7 +268,7 @@ private fun StudentAttendanceRow(
     }
 
     val isAttendanceHovered by
-        attendanceInteractionSource.collectIsHoveredAsState()
+    attendanceInteractionSource.collectIsHoveredAsState()
 
     Row(
         modifier = Modifier.padding(
@@ -274,26 +288,26 @@ private fun StudentAttendanceRow(
         ) {
             Text(
                 text =
-                "${studentPackage.usedClasses} / " +
-                    "${studentPackage.packageType.totalClasses}",
+                    "${studentPackage.usedClasses} / " +
+                        "${studentPackage.packageType.totalClasses}",
                 modifier =
-                Modifier
-                    .hoverable(
-                        interactionSource = attendanceInteractionSource,
-                    )
-                    .clickable {
-                        showAttendanceDates = true
-                    }.semantics {
-                        contentDescription =
-                            "View attendance dates for ${registeredStudent.student.fullName}"
-                    },
+                    Modifier
+                        .hoverable(
+                            interactionSource = attendanceInteractionSource,
+                        )
+                        .clickable {
+                            showAttendanceDates = true
+                        }.semantics {
+                            contentDescription =
+                                "View attendance dates for ${registeredStudent.student.fullName}"
+                        },
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration =
-                if (isAttendanceHovered) {
-                    TextDecoration.Underline
-                } else {
-                    TextDecoration.None
-                },
+                    if (isAttendanceHovered) {
+                        TextDecoration.Underline
+                    } else {
+                        TextDecoration.None
+                    },
             )
 
             DropdownMenu(
@@ -346,19 +360,27 @@ private fun StudentAttendanceRow(
         Text(
             text = "✓",
             modifier =
-            Modifier
-                .clickable(
-                    onClick = onCheckClick,
-                )
-                .semantics {
-                    contentDescription =
-                        "Mark ${registeredStudent.student.fullName} present"
-                }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Modifier
+                    .clickable(
+                        onClick = onCheckClick,
+                    )
+                    .semantics {
+                        contentDescription =
+                            "Mark ${registeredStudent.student.fullName} present"
+                        stateDescription = checkState.name
+                    }
+                    .padding(
+                        horizontal = 6.dp,
+                        vertical = 2.dp,
+                    ),
+            color =
+                when (checkState) {
+                    AttendanceCheckState.Pending ->
+                        MaterialTheme.colorScheme.onSurfaceVariant
+
+                    AttendanceCheckState.Checked ->
+                        Color(0xFF2E7D32)
+                },
             fontSize = 20.sp,
             lineHeight = 20.sp,
         )
@@ -366,18 +388,18 @@ private fun StudentAttendanceRow(
         Text(
             text = "×",
             modifier =
-            Modifier
-                .clickable(
-                    onClick = onDeleteClick,
-                )
-                .semantics {
-                    contentDescription =
-                        "Delete ${registeredStudent.student.fullName}"
-                }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
+                Modifier
+                    .clickable(
+                        onClick = onDeleteClick,
+                    )
+                    .semantics {
+                        contentDescription =
+                            "Delete ${registeredStudent.student.fullName}"
+                    }
+                    .padding(
+                        horizontal = 6.dp,
+                        vertical = 2.dp,
+                    ),
             color = MaterialTheme.colorScheme.error,
             fontSize = 20.sp,
             lineHeight = 20.sp,
