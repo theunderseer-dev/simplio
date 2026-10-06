@@ -34,13 +34,6 @@ fun main() {
                 getPackageTypesUseCase = component.getPackageTypes,
                 registerStudentUseCase = component.registerStudent,
                 deleteStudentUseCase = component.deleteStudent,
-                currentDate = {
-                    Clock.System
-                        .now()
-                        .toLocalDateTime(
-                            TimeZone.currentSystemDefault(),
-                        ).date
-                },
             )
 
         application {

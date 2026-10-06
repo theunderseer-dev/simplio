@@ -19,7 +19,6 @@ class AttendanceViewModel(
     private val getPackageTypesUseCase: GetPackageTypesUseCase,
     private val registerStudentUseCase: RegisterStudentUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
-    private val currentDate: () -> LocalDate,
 ) : ViewModel() {
     private val _uiState =
         MutableStateFlow<AttendanceUiState>(
@@ -33,13 +32,13 @@ class AttendanceViewModel(
         loadAttendance()
     }
 
-    fun registerStudent(fullName: String, packageType: PackageType) {
+    fun registerStudent(fullName: String, packageType: PackageType, registeredOn: LocalDate) {
         viewModelScope.launch {
             try {
                 registerStudentUseCase(
                     fullName = fullName,
                     packageType = packageType,
-                    registeredOn = currentDate(),
+                    registeredOn = registeredOn,
                 )
 
                 _uiState.value =
