@@ -33,6 +33,7 @@ fun main() {
                 getAttendanceUseCase = component.getAttendance,
                 getPackageTypesUseCase = component.getPackageTypes,
                 registerStudentUseCase = component.registerStudent,
+                markStudentPresentUseCase = component.markStudentPresent,
                 deleteStudentUseCase = component.deleteStudent,
             )
 
@@ -65,6 +66,7 @@ fun main() {
                             )
                         }
                     },
+                    onCheckStudent = {},
                 )
             }
         }
