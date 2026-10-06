@@ -15,7 +15,7 @@ class PackageTypeSeeder(private val packageTypeDao: PackageTypeDao, private val 
                 PackageTypeEntity(
                     name = "4-class package",
                     totalClasses = 4,
-                    validityWeeks = 5,
+                    validityWeeks = 4,
                     price = 1400,
                 ),
             )
@@ -24,7 +24,7 @@ class PackageTypeSeeder(private val packageTypeDao: PackageTypeDao, private val 
                 PackageTypeEntity(
                     name = "5-class package",
                     totalClasses = 5,
-                    validityWeeks = 6,
+                    validityWeeks = 5,
                     price = 1700,
                 ),
             )

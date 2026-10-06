@@ -33,7 +33,7 @@ import kotlin.time.Instant
 fun StudentRegistrationDialog(
     packageTypes: List<PackageType>,
     initialDate: LocalDate,
-    onRegister: (String, PackageType) -> Unit,
+    onRegister: (String, PackageType, LocalDate) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var fullName by remember {
@@ -110,6 +110,7 @@ fun StudentRegistrationDialog(
                     onRegister(
                         fullName.trim(),
                         checkNotNull(selectedPackage),
+                        selectedDate,
                     )
                 },
             ) {

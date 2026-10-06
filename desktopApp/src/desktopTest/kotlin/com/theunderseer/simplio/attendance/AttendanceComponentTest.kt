@@ -21,26 +21,7 @@ class AttendanceComponentTest {
     fun `attendance component wires registration to persistent database`() = runTest {
         withAttendanceComponent { component ->
             // Given
-            val packageTypeId =
-                component.database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
+            val packageType = component.insertPackageType()
 
             val registeredOn =
                 LocalDate(
@@ -86,7 +67,7 @@ class AttendanceComponentTest {
                 )
 
             assertEquals(
-                packageTypeId,
+                packageType.id,
                 persistedPackage.packageTypeId,
             )
 
@@ -113,26 +94,7 @@ class AttendanceComponentTest {
     fun `attendance component wires package renewal to persistent database`() = runTest {
         withAttendanceComponent { component ->
             // Given
-            val packageTypeId =
-                component.database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
+            val packageType = component.insertPackageType()
 
             val registeredStudent =
                 component.registerStudent(
@@ -195,26 +157,7 @@ class AttendanceComponentTest {
     fun `attendance component wires attendance marking to persistent database`() = runTest {
         withAttendanceComponent { component ->
             // Given
-            val packageTypeId =
-                component.database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
+            val packageType = component.insertPackageType()
 
             val registeredOn =
                 LocalDate(2026, 10, 1)
@@ -280,7 +223,7 @@ class AttendanceComponentTest {
                         PackageTypeEntity(
                             name = "4-class package",
                             totalClasses = 4,
-                            validityWeeks = 5,
+                            validityWeeks = 4,
                             price = 1400,
                         ),
                     ).toInt()
@@ -292,7 +235,7 @@ class AttendanceComponentTest {
                         PackageTypeEntity(
                             name = "5-class package",
                             totalClasses = 5,
-                            validityWeeks = 6,
+                            validityWeeks = 5,
                             price = 1700,
                         ),
                     ).toInt()
@@ -307,14 +250,14 @@ class AttendanceComponentTest {
                         id = firstId,
                         name = "4-class package",
                         totalClasses = 4,
-                        validityWeeks = 5,
+                        validityWeeks = 4,
                         price = 1400,
                     ),
                     PackageType(
                         id = secondId,
                         name = "5-class package",
                         totalClasses = 5,
-                        validityWeeks = 6,
+                        validityWeeks = 5,
                         price = 1700,
                     ),
                 ),
@@ -345,7 +288,7 @@ class AttendanceComponentTest {
                     id = packageTypes[0].id,
                     name = "4-class package",
                     totalClasses = 4,
-                    validityWeeks = 5,
+                    validityWeeks = 4,
                     price = 1400,
                 ),
                 packageTypes[0],
@@ -356,7 +299,7 @@ class AttendanceComponentTest {
                     id = packageTypes[1].id,
                     name = "5-class package",
                     totalClasses = 5,
-                    validityWeeks = 6,
+                    validityWeeks = 5,
                     price = 1700,
                 ),
                 packageTypes[1],
@@ -368,26 +311,7 @@ class AttendanceComponentTest {
     fun `attendance component exposes persisted attendance state`() = runTest {
         withAttendanceComponent { component ->
             // Given
-            val packageTypeId =
-                component.database
-                    .packageTypeDao()
-                    .insert(
-                        PackageTypeEntity(
-                            name = "5-class package",
-                            totalClasses = 5,
-                            validityWeeks = 6,
-                            price = 1700,
-                        ),
-                    ).toInt()
-
-            val packageType =
-                PackageType(
-                    id = packageTypeId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                )
+            val packageType = component.insertPackageType()
 
             val registeredStudent =
                 component.registerStudent(
@@ -439,5 +363,32 @@ class AttendanceComponentTest {
                     .deleteRecursively()
             }
         }
+    }
+
+    private suspend fun AttendanceComponent.insertPackageType(
+        name: String = "5-class package",
+        totalClasses: Int = 5,
+        validityWeeks: Int = 5,
+        price: Int = 1700,
+    ): PackageType {
+        val id =
+            database
+                .packageTypeDao()
+                .insert(
+                    PackageTypeEntity(
+                        name = name,
+                        totalClasses = totalClasses,
+                        validityWeeks = validityWeeks,
+                        price = price,
+                    ),
+                ).toInt()
+
+        return PackageType(
+            id = id,
+            name = name,
+            totalClasses = totalClasses,
+            validityWeeks = validityWeeks,
+            price = price,
+        )
     }
 }

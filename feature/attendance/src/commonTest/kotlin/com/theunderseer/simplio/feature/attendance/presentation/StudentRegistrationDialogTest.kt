@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -22,14 +23,14 @@ class StudentRegistrationDialogTest {
                     id = 1,
                     name = "4-class package",
                     totalClasses = 4,
-                    validityWeeks = 5,
+                    validityWeeks = 4,
                     price = 1400,
                 ),
                 PackageType(
                     id = 2,
                     name = "5-class package",
                     totalClasses = 5,
-                    validityWeeks = 6,
+                    validityWeeks = 5,
                     price = 1700,
                 ),
             )
@@ -40,7 +41,7 @@ class StudentRegistrationDialogTest {
             StudentRegistrationDialog(
                 packageTypes = packageTypes,
                 initialDate = registeredDate,
-                onRegister = { _, _ -> },
+                onRegister = { _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -73,7 +74,7 @@ class StudentRegistrationDialogTest {
                     id = 1,
                     name = "4-class package",
                     totalClasses = 4,
-                    validityWeeks = 5,
+                    validityWeeks = 4,
                     price = 1400,
                 ),
             )
@@ -83,7 +84,7 @@ class StudentRegistrationDialogTest {
             StudentRegistrationDialog(
                 packageTypes = packageTypes,
                 initialDate = today,
-                onRegister = { _, _ -> },
+                onRegister = { _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -104,7 +105,7 @@ class StudentRegistrationDialogTest {
                 id = 2,
                 name = "5-class package",
                 totalClasses = 5,
-                validityWeeks = 6,
+                validityWeeks = 5,
                 price = 1700,
             )
 
@@ -117,7 +118,7 @@ class StudentRegistrationDialogTest {
             StudentRegistrationDialog(
                 packageTypes = listOf(packageType),
                 initialDate = registeredDate,
-                onRegister = { fullName, selectedPackage ->
+                onRegister = { fullName, selectedPackage, _ ->
                     registeredName = fullName
                     registeredPackage = selectedPackage
                 },
@@ -180,6 +181,57 @@ class StudentRegistrationDialogTest {
                 date = LocalDate(2026, 10, 6),
                 today = today,
             ),
+        )
+    }
+
+    @Test
+    fun `registers student with selected registration date`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 5,
+                price = 1700,
+            )
+
+        var registeredOn: LocalDate? = null
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(packageType),
+                initialDate = LocalDate(2026, 10, 6),
+                onRegister = { _, _, date ->
+                    registeredOn = date
+                },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        onNodeWithText("Saturday, October 3, 2026")
+            .performClick()
+
+        onNodeWithText("OK")
+            .performClick()
+
+        onNode(hasSetTextAction())
+            .performTextInput("Anna Smith")
+
+        onNodeWithText("5-class package")
+            .performClick()
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            LocalDate(2026, 10, 3),
+            registeredOn,
         )
     }
 }

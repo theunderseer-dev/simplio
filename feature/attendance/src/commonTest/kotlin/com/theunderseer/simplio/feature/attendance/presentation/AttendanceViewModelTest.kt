@@ -98,9 +98,6 @@ class AttendanceViewModelTest {
             getPackageTypesUseCase = getPackageTypes,
             registerStudentUseCase = registerStudent,
             deleteStudentUseCase = deleteStudentUseCase,
-            currentDate = {
-                LocalDate(2026, 10, 3)
-            },
         )
 
         advanceUntilIdle()
@@ -170,9 +167,6 @@ class AttendanceViewModelTest {
             getPackageTypesUseCase = getPackageTypes,
             registerStudentUseCase = registerStudent,
             deleteStudentUseCase = deleteStudentUseCase,
-            currentDate = {
-                LocalDate(2026, 10, 3)
-            },
         )
 
         advanceUntilIdle()
@@ -235,9 +229,6 @@ class AttendanceViewModelTest {
             getPackageTypesUseCase = getPackageTypes,
             registerStudentUseCase = registerStudent,
             deleteStudentUseCase = deleteStudentUseCase,
-            currentDate = {
-                LocalDate(2026, 10, 3)
-            },
         )
 
         // Then
@@ -296,9 +287,6 @@ class AttendanceViewModelTest {
             getPackageTypesUseCase = getPackageTypes,
             registerStudentUseCase = registerStudent,
             deleteStudentUseCase = deleteStudentUseCase,
-            currentDate = {
-                registeredOn
-            },
         )
 
         advanceUntilIdle()
@@ -307,6 +295,7 @@ class AttendanceViewModelTest {
         viewModel.registerStudent(
             fullName = "Anna Smith",
             packageType = packageType,
+            registeredOn = registeredOn,
         )
 
         advanceUntilIdle()
@@ -397,9 +386,6 @@ class AttendanceViewModelTest {
                 studentPackageRepository = studentPackageRepository,
             ),
             deleteStudentUseCase = deleteStudentUseCase,
-            currentDate = {
-                LocalDate(2026, 10, 5)
-            },
         )
 
         advanceUntilIdle()
