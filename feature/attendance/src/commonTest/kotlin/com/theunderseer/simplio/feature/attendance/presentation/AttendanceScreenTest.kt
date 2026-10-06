@@ -2,7 +2,10 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -549,6 +552,118 @@ class AttendanceScreenTest {
 
         onNodeWithText("Copied to clipboard")
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun `shows attendance dates when classes count is clicked`() = runComposeUiTest {
+        // Given
+        val packageType = fiveClassPackage
+
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = packageType,
+                                startedOn = LocalDate(2026, 10, 1),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 1),
+                                    LocalDate(2026, 10, 3),
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(packageType),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = today,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+            )
+        }
+
+        // When
+        onNodeWithText("3 / 5")
+            .performClick()
+
+        // Then
+        onNodeWithText("Attendance dates")
+            .assertIsDisplayed()
+
+        onNode(
+            hasTestTag("attendance-dates-menu") and
+                hasAnyDescendant(hasText("1. Oct 1")) and
+                hasAnyDescendant(hasText("2. Oct 3")) and
+                hasAnyDescendant(hasText("3. Oct 5")),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `exposes attendance count as attendance history action`() = runComposeUiTest {
+        // Given
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = fiveClassPackage,
+                                startedOn = LocalDate(2026, 10, 1),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 1),
+                                    LocalDate(2026, 10, 3),
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(fiveClassPackage),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = today,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+            )
+        }
+
+        // Then
+        onNodeWithContentDescription(
+            "View attendance dates for Anna Smith",
+        ).assertIsDisplayed()
     }
 
     private fun emptyAttendanceState(packageTypes: List<PackageType> = emptyList()): AttendanceUiState.Content =

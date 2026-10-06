@@ -1,12 +1,17 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -22,8 +27,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -225,6 +233,17 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
     val studentPackage =
         registeredStudent.studentPackage
 
+    var showAttendanceDates by remember {
+        mutableStateOf(false)
+    }
+
+    val attendanceInteractionSource = remember {
+        MutableInteractionSource()
+    }
+
+    val isAttendanceHovered by
+        attendanceInteractionSource.collectIsHoveredAsState()
+
     Row(
         modifier = Modifier.padding(
             vertical = 6.dp,
@@ -238,12 +257,62 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
             overflow = TextOverflow.Ellipsis,
         )
 
-        Text(
-            text =
-            "${studentPackage.usedClasses} / " +
-                "${studentPackage.packageType.totalClasses}",
+        Box(
             modifier = Modifier.width(AttendanceDimensions.ClassesColumnWidth),
-        )
+        ) {
+            Text(
+                text =
+                "${studentPackage.usedClasses} / " +
+                    "${studentPackage.packageType.totalClasses}",
+                modifier =
+                Modifier
+                    .hoverable(
+                        interactionSource = attendanceInteractionSource,
+                    )
+                    .clickable {
+                        showAttendanceDates = true
+                    }.semantics {
+                        contentDescription =
+                            "View attendance dates for ${registeredStudent.student.fullName}"
+                    },
+                color = MaterialTheme.colorScheme.primary,
+                textDecoration =
+                if (isAttendanceHovered) {
+                    TextDecoration.Underline
+                } else {
+                    TextDecoration.None
+                },
+            )
+
+            DropdownMenu(
+                expanded = showAttendanceDates,
+                onDismissRequest = {
+                    showAttendanceDates = false
+                },
+                modifier = Modifier.testTag("attendance-dates-menu"),
+            ) {
+                Text(
+                    text = "Attendance dates",
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 8.dp,
+                    ),
+                    fontWeight = FontWeight.SemiBold,
+                )
+
+                studentPackage.attendanceDates
+                    .sorted()
+                    .forEachIndexed { index, date ->
+                        Text(
+                            text = "${index + 1}. ${date.toDisplayDate()}",
+                            modifier = Modifier.padding(
+                                horizontal = 16.dp,
+                                vertical = 4.dp,
+                            ),
+                        )
+                    }
+            }
+        }
 
         Text(
             text = studentPackage.startedOn.toDisplayDate(),
