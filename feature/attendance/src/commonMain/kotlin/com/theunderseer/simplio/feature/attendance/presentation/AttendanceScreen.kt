@@ -9,12 +9,16 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 @Composable
@@ -43,25 +48,46 @@ fun AttendanceScreen(
         mutableStateOf<Int?>(null)
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     when (state) {
         is AttendanceUiState.Content -> {
-            AttendanceContent(
-                state = state,
-                onAddStudentClick = {
-                    showRegistrationDialog = true
-                },
-                onDeleteStudentClick = { studentId ->
-                    deleteStudentDialog = studentId
-                },
-                onCopyAttendance = {
-                    onCopyAttendance(
-                        formatAttendanceForSharing(
-                            attendance = state.attendance,
-                            currentDate = currentDate,
-                        ),
+            Scaffold(
+                snackbarHost = {
+                    SnackbarHost(
+                        hostState = snackbarHostState,
                     )
                 },
-            )
+            ) { contentPadding ->
+                Column(
+                    modifier = Modifier.padding(contentPadding),
+                ) {
+                    AttendanceContent(
+                        state = state,
+                        onAddStudentClick = {
+                            showRegistrationDialog = true
+                        },
+                        onDeleteStudentClick = { studentId ->
+                            deleteStudentDialog = studentId
+                        },
+                        onCopyAttendance = {
+                            onCopyAttendance(
+                                formatAttendanceForSharing(
+                                    attendance = state.attendance,
+                                    currentDate = currentDate,
+                                ),
+                            )
+
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Copied to clipboard",
+                                )
+                            }
+                        },
+                    )
+                }
+            }
 
             if (showRegistrationDialog) {
                 StudentRegistrationDialog(

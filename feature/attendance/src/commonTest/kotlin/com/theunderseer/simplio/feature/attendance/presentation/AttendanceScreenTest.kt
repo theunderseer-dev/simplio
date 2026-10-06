@@ -541,4 +541,70 @@ class AttendanceScreenTest {
             copiedText,
         )
     }
+
+    @Test
+    fun `shows copy confirmation after copy action`() = runComposeUiTest {
+        // Given
+        val state =
+            AttendanceUiState.Content(
+                attendance = Attendance(entries = emptyList()),
+                packageTypes = emptyList(),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = LocalDate(2026, 10, 6),
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Copy attendance")
+            .performClick()
+
+        // Then
+        onNodeWithText("Copied to clipboard")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `hides copy confirmation automatically`() = runComposeUiTest {
+        // Given
+        mainClock.autoAdvance = false
+
+        val state =
+            AttendanceUiState.Content(
+                attendance = Attendance(entries = emptyList()),
+                packageTypes = emptyList(),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = LocalDate(2026, 10, 6),
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Copy attendance")
+            .performClick()
+
+        mainClock.advanceTimeByFrame()
+
+        // Then
+        onNodeWithText("Copied to clipboard")
+            .assertIsDisplayed()
+
+        mainClock.advanceTimeBy(5_000)
+        waitForIdle()
+
+        onNodeWithText("Copied to clipboard")
+            .assertDoesNotExist()
+    }
 }
