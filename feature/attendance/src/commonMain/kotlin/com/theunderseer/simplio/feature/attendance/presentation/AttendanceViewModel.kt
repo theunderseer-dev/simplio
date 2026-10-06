@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentU
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,10 +15,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
+
 class AttendanceViewModel(
     private val getAttendanceUseCase: GetAttendanceUseCase,
     private val getPackageTypesUseCase: GetPackageTypesUseCase,
     private val registerStudentUseCase: RegisterStudentUseCase,
+    private val markStudentPresentUseCase: MarkStudentPresentUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
 ) : ViewModel() {
     private val _uiState =
@@ -52,8 +55,37 @@ class AttendanceViewModel(
                 _uiState.value =
                     AttendanceUiState.Error(
                         message =
-                        exception.message
-                            ?: "Failed to register student",
+                            exception.message
+                                ?: "Failed to register student",
+                    )
+            }
+        }
+    }
+
+    fun markStudentPresent(
+        studentId: Int,
+        attendanceDate: LocalDate,
+    ) {
+        viewModelScope.launch {
+            try {
+                markStudentPresentUseCase(
+                    studentId = studentId,
+                    attendanceDate = attendanceDate,
+                )
+
+                _uiState.value =
+                    AttendanceUiState.Content(
+                        attendance = getAttendanceUseCase(),
+                        packageTypes = getPackageTypesUseCase(),
+                    )
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.value =
+                    AttendanceUiState.Error(
+                        message =
+                            exception.message
+                                ?: "Failed to mark student present",
                     )
             }
         }
@@ -96,8 +128,8 @@ class AttendanceViewModel(
                 _uiState.value =
                     AttendanceUiState.Error(
                         message =
-                        exception.message
-                            ?: "Failed to load attendance",
+                            exception.message
+                                ?: "Failed to load attendance",
                     )
             }
         }
