@@ -71,6 +71,7 @@ class AttendanceScreenTest {
                 currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
+                onCopyAttendance = {},
             )
         }
 
@@ -110,6 +111,7 @@ class AttendanceScreenTest {
                 currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
+                onCopyAttendance = {},
             )
         }
 
@@ -147,6 +149,7 @@ class AttendanceScreenTest {
                 currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
+                onCopyAttendance = {},
             )
         }
 
@@ -211,6 +214,7 @@ class AttendanceScreenTest {
                 currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
+                onCopyAttendance = {},
             )
         }
 
@@ -342,6 +346,7 @@ class AttendanceScreenTest {
                 currentDate = today,
                 onRegisterStudent = { _, _ -> },
                 onDeleteStudent = {},
+                onCopyAttendance = {},
             )
         }
 
@@ -401,6 +406,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = { studentId ->
                     deletedStudentId = studentId
                 },
+                onCopyAttendance = {},
             )
         }
 
@@ -424,6 +430,115 @@ class AttendanceScreenTest {
         assertEquals(
             null,
             deletedStudentId,
+        )
+    }
+
+    @Test
+    fun `displays copy attendance action`() = runComposeUiTest {
+        // Given
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries = emptyList(),
+                ),
+                packageTypes = emptyList(),
+            )
+
+        val today =
+            LocalDate(
+                2026,
+                10,
+                6,
+            )
+
+        // When
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = today,
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+            )
+        }
+
+        // Then
+        onNodeWithContentDescription("Copy attendance")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `provides formatted attendance when copy action is clicked`() = runComposeUiTest {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+
+        val state =
+            AttendanceUiState.Content(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = 1,
+                                fullName = "Anna Smith",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = 1,
+                                packageType = packageType,
+                                startedOn = LocalDate(2026, 10, 1),
+                                attendanceDates =
+                                setOf(
+                                    LocalDate(2026, 10, 1),
+                                    LocalDate(2026, 10, 3),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(packageType),
+            )
+
+        val today =
+            LocalDate(
+                2026,
+                10,
+                6,
+            )
+
+        var copiedText: String? = null
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = today,
+                onRegisterStudent = { _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = { text ->
+                    copiedText = text
+                },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Copy attendance")
+            .performClick()
+
+        // Then
+        assertEquals(
+            "\tAnna Smith\t2 / 5\t(until 12/11)",
+            copiedText,
         )
     }
 }

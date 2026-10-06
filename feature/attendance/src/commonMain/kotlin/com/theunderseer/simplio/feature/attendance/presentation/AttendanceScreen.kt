@@ -33,6 +33,7 @@ fun AttendanceScreen(
     currentDate: LocalDate,
     onRegisterStudent: (String, PackageType) -> Unit,
     onDeleteStudent: (Int) -> Unit,
+    onCopyAttendance: (String) -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -51,6 +52,14 @@ fun AttendanceScreen(
                 },
                 onDeleteStudentClick = { studentId ->
                     deleteStudentDialog = studentId
+                },
+                onCopyAttendance = {
+                    onCopyAttendance(
+                        formatAttendanceForSharing(
+                            attendance = state.attendance,
+                            currentDate = currentDate,
+                        ),
+                    )
                 },
             )
 
@@ -129,6 +138,7 @@ private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
+    onCopyAttendance: () -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -158,11 +168,26 @@ private fun AttendanceContent(
             }
         }
 
-        Button(
-            onClick = onAddStudentClick,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Button(
+                onClick = onAddStudentClick,
+            ) {
+                Text("Add Student")
+            }
+
             Text(
-                text = "Add Student",
+                text = "⧉",
+                modifier =
+                Modifier
+                    .clickable(
+                        onClick = onCopyAttendance,
+                    )
+                    .semantics {
+                        contentDescription = "Copy attendance"
+                    }
+                    .padding(8.dp),
             )
         }
     }
