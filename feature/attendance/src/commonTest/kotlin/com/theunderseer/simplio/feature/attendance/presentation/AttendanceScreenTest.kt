@@ -86,6 +86,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -119,6 +120,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -141,6 +143,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -197,6 +200,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -268,6 +272,7 @@ class AttendanceScreenTest {
                 },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -340,6 +345,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -391,6 +397,7 @@ class AttendanceScreenTest {
                     deletedStudentId = studentId
                 },
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -430,6 +437,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -482,6 +490,7 @@ class AttendanceScreenTest {
                 onCopyAttendance = { text ->
                     copiedText = text
                 },
+                onCheckStudent = {},
             )
         }
 
@@ -508,6 +517,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -534,6 +544,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -597,6 +608,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -657,6 +669,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
+                onCheckStudent = {},
             )
         }
 
@@ -664,6 +677,61 @@ class AttendanceScreenTest {
         onNodeWithContentDescription(
             "View attendance dates for Anna Smith",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `provides student id when pending check is clicked`() = runComposeUiTest {
+        // Given
+        val student = Student(
+            id = 7,
+            fullName = "Anna Smith",
+        )
+
+        val state = AttendanceUiState.Content(
+            attendance = Attendance(
+                entries = listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage = StudentPackage(
+                            id = 1,
+                            studentId = student.id,
+                            packageType = fiveClassPackage,
+                            startedOn = LocalDate(2026, 10, 2),
+                            attendanceDates = setOf(
+                                LocalDate(2026, 10, 2),
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            packageTypes = listOf(fiveClassPackage),
+        )
+
+        var checkedStudentId: Int? = null
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                currentDate = LocalDate(2026, 10, 6),
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onCheckStudent = { studentId ->
+                    checkedStudentId = studentId
+                },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .assertIsDisplayed()
+            .performClick()
+
+        // Then
+        assertEquals(
+            student.id,
+            checkedStudentId,
+        )
     }
 
     private fun emptyAttendanceState(packageTypes: List<PackageType> = emptyList()): AttendanceUiState.Content =

@@ -47,6 +47,7 @@ fun AttendanceScreen(
     onRegisterStudent: (String, PackageType, LocalDate) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
+    onCheckStudent: (Int) -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -79,7 +80,7 @@ fun AttendanceScreen(
                         onDeleteStudentClick = { studentId ->
                             deleteStudentDialog = studentId
                         },
-                        onCopyAttendance = {
+                        onCopyAttendanceClick = {
                             onCopyAttendance(
                                 formatAttendanceForSharing(
                                     attendance = state.attendance,
@@ -93,6 +94,7 @@ fun AttendanceScreen(
                                 )
                             }
                         },
+                        onCheckStudentClick = onCheckStudent,
                     )
                 }
             }
@@ -173,7 +175,8 @@ private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
-    onCopyAttendance: () -> Unit,
+    onCopyAttendanceClick: () -> Unit,
+    onCheckStudentClick: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -188,6 +191,11 @@ private fun AttendanceContent(
             state.attendance.entries.forEachIndexed { index, registeredStudent ->
                 StudentAttendanceRow(
                     registeredStudent = registeredStudent,
+                    onCheckClick = {
+                        onCheckStudentClick(
+                            registeredStudent.student.id,
+                        )
+                    },
                     onDeleteClick = {
                         onDeleteStudentClick(
                             registeredStudent.student.id,
@@ -217,7 +225,7 @@ private fun AttendanceContent(
                 modifier =
                 Modifier
                     .clickable(
-                        onClick = onCopyAttendance,
+                        onClick = onCopyAttendanceClick,
                     )
                     .semantics {
                         contentDescription = "Copy attendance"
@@ -229,7 +237,11 @@ private fun AttendanceContent(
 }
 
 @Composable
-private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteClick: () -> Unit) {
+private fun StudentAttendanceRow(
+    registeredStudent: RegisteredStudent,
+    onCheckClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
     val studentPackage =
         registeredStudent.studentPackage
 
@@ -329,6 +341,26 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
             modifier = Modifier.width(AttendanceDimensions.PackageColumnWidth),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+
+        Text(
+            text = "✓",
+            modifier =
+            Modifier
+                .clickable(
+                    onClick = onCheckClick,
+                )
+                .semantics {
+                    contentDescription =
+                        "Mark ${registeredStudent.student.fullName} present"
+                }
+                .padding(
+                    horizontal = 6.dp,
+                    vertical = 2.dp,
+                ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 20.sp,
+            lineHeight = 20.sp,
         )
 
         Text(
