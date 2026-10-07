@@ -23,7 +23,12 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AttendanceDatePickerDialog(initialDate: LocalDate, currentDate: LocalDate, onDismiss: () -> Unit) {
+internal fun AttendanceDatePickerDialog(
+    initialDate: LocalDate,
+    currentDate: LocalDate,
+    onConfirm: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+) {
     val currentDateState = rememberUpdatedState(currentDate)
 
     val selectableDates =
@@ -53,9 +58,36 @@ internal fun AttendanceDatePickerDialog(initialDate: LocalDate, currentDate: Loc
             selectableDates = selectableDates,
         )
 
+    val selectedDate =
+        datePickerState.selectedDateMillis?.let { millis ->
+            Instant
+                .fromEpochMilliseconds(millis)
+                .toLocalDateTime(TimeZone.UTC)
+                .date
+        }
+
+    val canConfirm =
+        selectedDate?.let { date ->
+            isAttendanceDateSelectable(
+                date = date,
+                today = currentDate,
+            )
+        } ?: false
+
     DatePickerDialog(
         onDismissRequest = onDismiss,
-        confirmButton = {},
+        confirmButton = {
+            TextButton(
+                enabled = canConfirm,
+                onClick = {
+                    selectedDate?.let { date ->
+                        onConfirm(date)
+                    }
+                },
+            ) {
+                Text(text = "OK")
+            }
+        },
         dismissButton = {
             TextButton(
                 onClick = onDismiss,

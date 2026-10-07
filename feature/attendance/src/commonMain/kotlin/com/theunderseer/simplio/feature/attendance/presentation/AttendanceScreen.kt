@@ -49,7 +49,7 @@ fun AttendanceScreen(
     onRegisterStudent: (String, PackageType, LocalDate) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
-    onCheckStudent: (Int) -> Unit,
+    onMarkStudentPresent: (Int, LocalDate) -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -101,8 +101,6 @@ fun AttendanceScreen(
                             }
                         },
                         onCheckStudentClick = { studentId, checkState ->
-                            onCheckStudent(studentId)
-
                             if (checkState == AttendanceCheckState.Pending) {
                                 attendanceDatePickerStudentId = studentId
                             }
@@ -129,10 +127,17 @@ fun AttendanceScreen(
                 )
             }
 
-            if (attendanceDatePickerStudentId != null) {
+            attendanceDatePickerStudentId?.let { studentId ->
                 AttendanceDatePickerDialog(
                     initialDate = state.latestClassDate,
                     currentDate = state.currentDate,
+                    onConfirm = { selectedDate ->
+                        onMarkStudentPresent(
+                            studentId,
+                            selectedDate,
+                        )
+                        attendanceDatePickerStudentId = null
+                    },
                     onDismiss = {
                         attendanceDatePickerStudentId = null
                     },

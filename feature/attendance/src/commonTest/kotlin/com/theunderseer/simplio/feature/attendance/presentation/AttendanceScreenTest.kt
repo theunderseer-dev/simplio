@@ -92,7 +92,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -125,7 +125,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -147,7 +147,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -204,7 +204,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -279,7 +279,7 @@ class AttendanceScreenTest {
                 },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -352,7 +352,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -404,7 +404,7 @@ class AttendanceScreenTest {
                     deletedStudentId = studentId
                 },
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -443,7 +443,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -496,7 +496,7 @@ class AttendanceScreenTest {
                 onCopyAttendance = { text ->
                     copiedText = text
                 },
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -525,7 +525,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -554,7 +554,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -618,7 +618,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -679,7 +679,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -690,35 +690,32 @@ class AttendanceScreenTest {
     }
 
     @Test
-    fun `provides student id when pending check is clicked`() = runComposeUiTest {
+    fun `confirms attendance with student id and selected date and closes picker`() = runComposeUiTest {
         // Given
         val student = Student(
             id = 7,
             fullName = "Anna Smith",
         )
-
+        val studentPackage = StudentPackage(
+            id = 1,
+            studentId = student.id,
+            packageType = fiveClassPackage,
+            startedOn = LocalDate(2026, 10, 2),
+            attendanceDates = setOf(LocalDate(2026, 10, 2)),
+        )
         val state = attendanceContentUiState(
             attendance = Attendance(
                 entries = listOf(
                     RegisteredStudent(
                         student = student,
-                        studentPackage = StudentPackage(
-                            id = 1,
-                            studentId = student.id,
-                            packageType = fiveClassPackage,
-                            startedOn = LocalDate(2026, 10, 2),
-                            attendanceDates = setOf(
-                                LocalDate(2026, 10, 2),
-                            ),
-                        ),
+                        studentPackage = studentPackage,
                     ),
                 ),
             ),
             packageTypes = listOf(fiveClassPackage),
-            currentDate = LocalDate(2026, 10, 6),
+            currentDate = LocalDate(2026, 10, 9),
         )
-
-        var checkedStudentId: Int? = null
+        val confirmedAttendance = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
             AttendanceScreen(
@@ -726,28 +723,37 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = { studentId ->
-                    checkedStudentId = studentId
+                onMarkStudentPresent = { studentId, date ->
+                    confirmedAttendance += studentId to date
                 },
             )
         }
 
-        // When
+        // When: picker is opened and a past class date is selected
         onNodeWithContentDescription("Mark Anna Smith present")
-            .assertIsDisplayed()
-            .assert(
-                SemanticsMatcher.expectValue(
-                    SemanticsProperties.StateDescription,
-                    "Pending",
-                ),
-            )
+            .performClick()
+
+        onNodeWithText("Monday, October 5, 2026")
+            .performClick()
+
+        // Then: attendance is not submitted yet
+        assertEquals(
+            emptyList<Pair<Int, LocalDate>>(),
+            confirmedAttendance,
+        )
+
+        // When
+        onNodeWithText("OK")
             .performClick()
 
         // Then
         assertEquals(
-            student.id,
-            checkedStudentId,
+            listOf(student.id to LocalDate(2026, 10, 5)),
+            confirmedAttendance,
         )
+
+        onNodeWithText("Select attendance date")
+            .assertDoesNotExist()
     }
 
     @Test
@@ -787,7 +793,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -843,7 +849,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -896,7 +902,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -950,7 +956,7 @@ class AttendanceScreenTest {
                 onRegisterStudent = { _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onCheckStudent = {},
+                onMarkStudentPresent = { _, _ -> },
             )
         }
 
@@ -972,6 +978,48 @@ class AttendanceScreenTest {
         // Next Monday is in the future
         onNodeWithText("Monday, October 12, 2026")
             .assertIsNotEnabled()
+    }
+
+    @Test
+    fun `confirms selected attendance date only after OK is clicked`() = runComposeUiTest {
+        // Given
+        val confirmedDates = mutableListOf<LocalDate>()
+
+        setContent {
+            AttendanceDatePickerDialog(
+                initialDate = LocalDate(2026, 10, 5),
+                currentDate = LocalDate(2026, 10, 8),
+                onConfirm = { date ->
+                    confirmedDates += date
+                },
+                onDismiss = {},
+            )
+        }
+
+        assertEquals(
+            emptyList(),
+            confirmedDates,
+        )
+
+        // When: a different allowed date is selected
+        onNodeWithText("Friday, October 2, 2026")
+            .performClick()
+
+        // Then: selection alone does not confirm attendance
+        assertEquals(
+            emptyList(),
+            confirmedDates,
+        )
+
+        // When
+        onNodeWithText("OK")
+            .performClick()
+
+        // Then
+        assertEquals(
+            listOf(LocalDate(2026, 10, 2)),
+            confirmedDates,
+        )
     }
 
     private fun emptyAttendanceState(

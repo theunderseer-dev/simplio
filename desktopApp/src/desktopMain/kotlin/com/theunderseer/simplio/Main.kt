@@ -58,7 +58,7 @@ fun main() {
                             )
                         }
                     },
-                    onCheckStudent = {},
+                    onMarkStudentPresent = attendanceViewModel::markStudentPresent,
                 )
             }
         }
