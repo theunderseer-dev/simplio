@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
@@ -9,11 +10,16 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageType
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlin.time.Duration.Companion.seconds
 
 class AttendanceViewModel(
     private val getAttendanceUseCase: GetAttendanceUseCase,
@@ -21,14 +27,42 @@ class AttendanceViewModel(
     private val registerStudentUseCase: RegisterStudentUseCase,
     private val markStudentPresentUseCase: MarkStudentPresentUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
+    currentDates: Flow<LocalDate>,
 ) : ViewModel() {
-    private val _uiState =
-        MutableStateFlow<AttendanceUiState>(
-            AttendanceUiState.Loading,
+    private val attendanceData =
+        MutableStateFlow<AttendanceDataState>(
+            AttendanceDataState.Loading,
         )
 
     val uiState: StateFlow<AttendanceUiState> =
-        _uiState.asStateFlow()
+        combine(
+            attendanceData,
+            currentDates,
+        ) { data, currentDate ->
+            when (data) {
+                AttendanceDataState.Loading ->
+                    AttendanceUiState.Loading
+
+                is AttendanceDataState.Content ->
+                    attendanceContentUiState(
+                        attendance = data.attendance,
+                        packageTypes = data.packageTypes,
+                        currentDate = currentDate,
+                    )
+
+                is AttendanceDataState.Error ->
+                    AttendanceUiState.Error(
+                        message = data.message,
+                    )
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started =
+            SharingStarted.WhileSubscribed(
+                stopTimeout = 5.seconds,
+            ),
+            initialValue = AttendanceUiState.Loading,
+        )
 
     init {
         loadAttendance()
@@ -43,16 +77,12 @@ class AttendanceViewModel(
                     registeredOn = registeredOn,
                 )
 
-                _uiState.value =
-                    AttendanceUiState.Content(
-                        attendance = getAttendanceUseCase(),
-                        packageTypes = getPackageTypesUseCase(),
-                    )
+                refreshAttendance()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.value =
-                    AttendanceUiState.Error(
+                attendanceData.value =
+                    AttendanceDataState.Error(
                         message =
                         exception.message
                             ?: "Failed to register student",
@@ -69,16 +99,12 @@ class AttendanceViewModel(
                     attendanceDate = attendanceDate,
                 )
 
-                _uiState.value =
-                    AttendanceUiState.Content(
-                        attendance = getAttendanceUseCase(),
-                        packageTypes = getPackageTypesUseCase(),
-                    )
+                refreshAttendance()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.value =
-                    AttendanceUiState.Error(
+                attendanceData.value =
+                    AttendanceDataState.Error(
                         message =
                         exception.message
                             ?: "Failed to mark student present",
@@ -94,16 +120,12 @@ class AttendanceViewModel(
                     studentId = studentId,
                 )
 
-                _uiState.value =
-                    AttendanceUiState.Content(
-                        attendance = getAttendanceUseCase(),
-                        packageTypes = getPackageTypesUseCase(),
-                    )
+                refreshAttendance()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.value =
-                    AttendanceUiState.Error(
+                attendanceData.value =
+                    AttendanceDataState.Error(
                         message = exception.message ?: "Failed to delete student",
                     )
             }
@@ -113,21 +135,33 @@ class AttendanceViewModel(
     private fun loadAttendance() {
         viewModelScope.launch {
             try {
-                _uiState.value =
-                    AttendanceUiState.Content(
-                        attendance = getAttendanceUseCase(),
-                        packageTypes = getPackageTypesUseCase(),
-                    )
+                refreshAttendance()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                _uiState.value =
-                    AttendanceUiState.Error(
+                attendanceData.value =
+                    AttendanceDataState.Error(
                         message =
                         exception.message
                             ?: "Failed to load attendance",
                     )
             }
         }
+    }
+
+    private suspend fun refreshAttendance() {
+        attendanceData.value =
+            AttendanceDataState.Content(
+                attendance = getAttendanceUseCase(),
+                packageTypes = getPackageTypesUseCase(),
+            )
+    }
+
+    private sealed interface AttendanceDataState {
+        data object Loading : AttendanceDataState
+
+        data class Content(val attendance: Attendance, val packageTypes: List<PackageType>) : AttendanceDataState
+
+        data class Error(val message: String) : AttendanceDataState
     }
 }

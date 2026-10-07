@@ -40,15 +40,12 @@ import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
-import com.theunderseer.simplio.feature.attendance.domain.schedule.attendanceCheckState
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    currentDate: LocalDate,
     onRegisterStudent: (String, PackageType, LocalDate) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
@@ -59,6 +56,10 @@ fun AttendanceScreen(
     }
 
     var deleteStudentDialog by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    var attendanceDatePickerStudentId by remember {
         mutableStateOf<Int?>(null)
     }
 
@@ -89,7 +90,7 @@ fun AttendanceScreen(
                             onCopyAttendance(
                                 formatAttendanceForSharing(
                                     attendance = state.attendance,
-                                    currentDate = currentDate,
+                                    currentDate = state.currentDate,
                                 ),
                             )
 
@@ -99,10 +100,13 @@ fun AttendanceScreen(
                                 )
                             }
                         },
-                        onCheckStudentClick = onCheckStudent,
-                        latestClassDate = latestScheduledClassDate(
-                            today = currentDate,
-                        ),
+                        onCheckStudentClick = { studentId, checkState ->
+                            onCheckStudent(studentId)
+
+                            if (checkState == AttendanceCheckState.Pending) {
+                                attendanceDatePickerStudentId = studentId
+                            }
+                        },
                     )
                 }
             }
@@ -110,7 +114,7 @@ fun AttendanceScreen(
             if (showRegistrationDialog) {
                 StudentRegistrationDialog(
                     packageTypes = state.packageTypes,
-                    initialDate = currentDate,
+                    initialDate = state.currentDate,
                     onRegister = { fullName, packageType, registeredOn ->
                         onRegisterStudent(
                             fullName,
@@ -121,6 +125,14 @@ fun AttendanceScreen(
                     },
                     onDismiss = {
                         showRegistrationDialog = false
+                    },
+                )
+            }
+
+            if (attendanceDatePickerStudentId != null) {
+                AttendanceDatePickerDialog(
+                    onDismiss = {
+                        attendanceDatePickerStudentId = null
                     },
                 )
             }
@@ -184,39 +196,36 @@ private fun AttendanceContent(
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: () -> Unit,
-    onCheckStudentClick: (Int) -> Unit,
-    latestClassDate: LocalDate,
+    onCheckStudentClick: (Int, AttendanceCheckState) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
             horizontal = 12.dp,
         ),
     ) {
-        if (state.attendance.entries.isEmpty()) {
+        if (state.rows.isEmpty()) {
             Text(
                 text = "No students yet",
             )
         } else {
-            state.attendance.entries.forEachIndexed { index, registeredStudent ->
+            state.rows.forEachIndexed { index, row ->
                 StudentAttendanceRow(
-                    registeredStudent = registeredStudent,
-                    checkState = attendanceCheckState(
-                        attendanceDates = registeredStudent.studentPackage.attendanceDates,
-                        latestScheduledClassDate = latestClassDate,
-                    ),
+                    registeredStudent = row.registeredStudent,
+                    checkState = row.checkState,
                     onCheckClick = {
                         onCheckStudentClick(
-                            registeredStudent.student.id,
+                            row.registeredStudent.student.id,
+                            row.checkState,
                         )
                     },
                     onDeleteClick = {
                         onDeleteStudentClick(
-                            registeredStudent.student.id,
+                            row.registeredStudent.student.id,
                         )
                     },
                 )
 
-                if (index < state.attendance.entries.lastIndex) {
+                if (index < state.rows.lastIndex) {
                     HorizontalDivider(
                         thickness = 0.5.dp,
                     )

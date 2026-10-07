@@ -2,7 +2,6 @@ package com.theunderseer.simplio
 
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.ClipEntry
@@ -10,7 +9,6 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.theunderseer.simplio.attendance.createAttendanceComponent
-import com.theunderseer.simplio.attendance.time.attendanceDateAt
 import com.theunderseer.simplio.attendance.time.attendanceDates
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceScreen
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
@@ -21,8 +19,7 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    val component =
-        createAttendanceComponent()
+    val component = createAttendanceComponent()
 
     component.use { component ->
         runBlocking {
@@ -36,6 +33,7 @@ fun main() {
                 registerStudentUseCase = component.registerStudent,
                 markStudentPresentUseCase = component.markStudentPresent,
                 deleteStudentUseCase = component.deleteStudent,
+                currentDates = attendanceDates(clock = Clock.System),
             )
 
         application {
@@ -44,31 +42,11 @@ fun main() {
                 title = "Simplio",
             ) {
                 val state by attendanceViewModel.uiState.collectAsState()
-
                 val clipboard = LocalClipboard.current
                 val coroutineScope = rememberCoroutineScope()
 
-                val dateUpdates =
-                    remember {
-                        attendanceDates(
-                            clock = Clock.System,
-                        )
-                    }
-
-                val initialDate =
-                    remember {
-                        attendanceDateAt(
-                            instant = Clock.System.now(),
-                        )
-                    }
-
-                val currentDate by dateUpdates.collectAsState(
-                    initial = initialDate,
-                )
-
                 AttendanceScreen(
                     state = state,
-                    currentDate = currentDate,
                     onRegisterStudent = attendanceViewModel::registerStudent,
                     onDeleteStudent = attendanceViewModel::deleteStudent,
                     onCopyAttendance = { text ->
