@@ -131,6 +131,8 @@ fun AttendanceScreen(
 
             if (attendanceDatePickerStudentId != null) {
                 AttendanceDatePickerDialog(
+                    initialDate = state.latestClassDate,
+                    currentDate = state.currentDate,
                     onDismiss = {
                         attendanceDatePickerStudentId = null
                     },

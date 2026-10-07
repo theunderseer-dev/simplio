@@ -5,6 +5,9 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -851,6 +854,124 @@ class AttendanceScreenTest {
         // Then
         onNodeWithText("Select attendance date")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `initially selects latest scheduled class date in attendance picker`() = runComposeUiTest {
+        // Given
+        val student =
+            Student(
+                id = 7,
+                fullName = "Anna Smith",
+            )
+
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = student.id,
+                packageType = fiveClassPackage,
+                startedOn = LocalDate(2026, 10, 2),
+                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+            )
+
+        val state =
+            attendanceContentUiState(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student = student,
+                            studentPackage = studentPackage,
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(fiveClassPackage),
+                currentDate = LocalDate(2026, 10, 8),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onCheckStudent = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .performClick()
+
+        // Then
+        onNodeWithText("Monday, October 5, 2026")
+            .assertIsDisplayed()
+            .assertIsSelected()
+    }
+
+    @Test
+    fun `allows only scheduled attendance dates up to current date`() = runComposeUiTest {
+        // Given
+        val student =
+            Student(
+                id = 7,
+                fullName = "Anna Smith",
+            )
+
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = student.id,
+                packageType = fiveClassPackage,
+                startedOn = LocalDate(2026, 10, 2),
+                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+            )
+
+        val state =
+            attendanceContentUiState(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student = student,
+                            studentPackage = studentPackage,
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(fiveClassPackage),
+                currentDate = LocalDate(2026, 10, 9),
+            )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onCheckStudent = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .performClick()
+
+        // Then: past Monday and today's Friday are available
+        onNodeWithText("Monday, October 5, 2026")
+            .assertIsEnabled()
+
+        onNodeWithText("Friday, October 9, 2026")
+            .assertIsEnabled()
+
+        // Thursday is outside the schedule
+        onNodeWithText("Thursday, October 8, 2026")
+            .assertIsNotEnabled()
+
+        // Next Monday is in the future
+        onNodeWithText("Monday, October 12, 2026")
+            .assertIsNotEnabled()
     }
 
     private fun emptyAttendanceState(
