@@ -1,6 +1,5 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import androidx.compose.ui.test.ExperimentalTestApi
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
@@ -10,20 +9,19 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalTestApi::class)
 class AttendanceShareFormatterTest {
+    private val packageType =
+        PackageType(
+            id = 1,
+            name = "5-class package",
+            totalClasses = 5,
+            validityWeeks = 6,
+            price = 1700,
+        )
+
     @Test
     fun `formats active student for sharing`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -68,15 +66,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `marks completed package for renewal`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -123,15 +112,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `marks expired package for renewal`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -175,15 +155,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `formats multiple students on separate lines`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =

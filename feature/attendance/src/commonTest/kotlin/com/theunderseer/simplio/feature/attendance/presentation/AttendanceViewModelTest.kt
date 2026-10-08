@@ -337,7 +337,10 @@ class AttendanceViewModelTest {
         advanceUntilIdle()
 
         // Then
-        val state = viewModel.uiState.value as AttendanceUiState.Content
+        val state =
+            assertIs<AttendanceUiState.Content>(
+                viewModel.uiState.value,
+            )
 
         assertEquals(
             packageTypes,
@@ -437,7 +440,10 @@ class AttendanceViewModelTest {
         advanceUntilIdle()
 
         // Then
-        val state = viewModel.uiState.value as AttendanceUiState.Content
+        val state =
+            assertIs<AttendanceUiState.Content>(
+                viewModel.uiState.value,
+            )
 
         assertEquals(
             emptyList(),
@@ -472,13 +478,8 @@ class AttendanceViewModelTest {
             )
 
         val getPackageTypes =
-            GetPackageTypesUseCase(
-                packageTypeRepository =
-                object : PackageTypeRepository {
-                    override suspend fun getAll(): List<PackageType> = listOf(fiveClassPackage)
-
-                    override suspend fun getById(id: Int): PackageType? = fiveClassPackage.takeIf { it.id == id }
-                },
+            createGetPackageTypesUseCase(
+                packageTypes = listOf(fiveClassPackage),
             )
 
         val registerStudent =
@@ -488,9 +489,8 @@ class AttendanceViewModelTest {
             )
 
         val markStudentPresent =
-            MarkStudentPresentUseCase(
-                repository = studentPackageRepository,
-                transactionRunner = transactionRunner,
+            createMarkStudentPresentUseCase(
+                studentPackageRepository = studentPackageRepository,
             )
 
         val deleteStudent =
@@ -528,7 +528,9 @@ class AttendanceViewModelTest {
 
         // Then
         val state =
-            viewModel.uiState.value as AttendanceUiState.Content
+            assertIs<AttendanceUiState.Content>(
+                viewModel.uiState.value,
+            )
 
         val registeredStudent =
             state.attendance.entries.single()
