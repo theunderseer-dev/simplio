@@ -20,4 +20,8 @@ sealed interface AttendanceUiState {
     data class Error(val message: String) : AttendanceUiState
 }
 
-data class StudentAttendanceUiState(val registeredStudent: RegisteredStudent, val checkState: AttendanceCheckState)
+data class StudentAttendanceUiState(
+    val registeredStudent: RegisteredStudent,
+    val checkState: AttendanceCheckState,
+    val isCheckEnabled: Boolean,
+)

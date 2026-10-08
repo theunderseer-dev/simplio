@@ -93,6 +93,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -126,6 +127,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -148,6 +150,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -205,6 +208,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -250,7 +254,10 @@ class AttendanceScreenTest {
         onNodeWithContentDescription("Registration date")
             .performClick()
 
-        onNodeWithText("Saturday, October 3, 2026")
+        onNodeWithText(
+            text = "Saturday, October 3, 2026",
+            substring = true,
+        )
             .performClick()
 
         onNodeWithText("OK")
@@ -280,6 +287,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -290,7 +298,10 @@ class AttendanceScreenTest {
         onNodeWithContentDescription("Registration date")
             .performClick()
 
-        onNodeWithText("Saturday, October 3, 2026")
+        onNodeWithText(
+            text = "Saturday, October 3, 2026",
+            substring = true,
+        )
             .performClick()
 
         onNodeWithText("OK")
@@ -353,6 +364,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -405,6 +417,7 @@ class AttendanceScreenTest {
                 },
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -444,6 +457,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -497,6 +511,7 @@ class AttendanceScreenTest {
                     copiedText = text
                 },
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -526,6 +541,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -555,6 +571,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -619,6 +636,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -680,6 +698,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -726,6 +745,7 @@ class AttendanceScreenTest {
                 onMarkStudentPresent = { studentId, date ->
                     confirmedAttendance += studentId to date
                 },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -733,12 +753,15 @@ class AttendanceScreenTest {
         onNodeWithContentDescription("Mark Anna Smith present")
             .performClick()
 
-        onNodeWithText("Monday, October 5, 2026")
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        )
             .performClick()
 
         // Then: attendance is not submitted yet
         assertEquals(
-            emptyList<Pair<Int, LocalDate>>(),
+            emptyList(),
             confirmedAttendance,
         )
 
@@ -794,6 +817,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -850,6 +874,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -860,6 +885,84 @@ class AttendanceScreenTest {
         // Then
         onNodeWithText("Select attendance date")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `confirms attendance removal with student id and date and closes dialog`() = runComposeUiTest {
+        // Given
+        val student =
+            Student(
+                id = 7,
+                fullName = "Anna Smith",
+            )
+
+        val state =
+            attendanceContentUiState(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student = student,
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = student.id,
+                                packageType = fiveClassPackage,
+                                startedOn = LocalDate(2026, 10, 2),
+                                attendanceDates = setOf(
+                                    LocalDate(2026, 10, 2),
+                                    LocalDate(2026, 10, 5),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(fiveClassPackage),
+                currentDate = LocalDate(2026, 10, 6),
+            )
+
+        val removedAttendance = mutableListOf<Pair<Int, LocalDate>>()
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { studentId, date ->
+                    removedAttendance += studentId to date
+                },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .performClick()
+
+        // Then
+        onNodeWithText("Remove attendance?")
+            .assertIsDisplayed()
+
+        // Opening the dialog does not remove attendance
+        assertEquals(
+            emptyList(),
+            removedAttendance,
+        )
+
+        // When
+        onNodeWithText("Remove")
+            .performClick()
+
+        // Then
+        assertEquals(
+            listOf(student.id to LocalDate(2026, 10, 5)),
+            removedAttendance,
+        )
+
+        onNodeWithText("Remove attendance?")
+            .assertDoesNotExist()
     }
 
     @Test
@@ -903,6 +1006,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -911,7 +1015,10 @@ class AttendanceScreenTest {
             .performClick()
 
         // Then
-        onNodeWithText("Monday, October 5, 2026")
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        )
             .assertIsDisplayed()
             .assertIsSelected()
     }
@@ -957,6 +1064,7 @@ class AttendanceScreenTest {
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
             )
         }
 
@@ -965,19 +1073,25 @@ class AttendanceScreenTest {
             .performClick()
 
         // Then: past Monday and today's Friday are available
-        onNodeWithText("Monday, October 5, 2026")
-            .assertIsEnabled()
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsEnabled()
 
-        onNodeWithText("Friday, October 9, 2026")
-            .assertIsEnabled()
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
 
-        // Thursday is outside the schedule
-        onNodeWithText("Thursday, October 8, 2026")
-            .assertIsNotEnabled()
+        onNodeWithText(
+            text = "Thursday, October 8, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
 
-        // Next Monday is in the future
-        onNodeWithText("Monday, October 12, 2026")
-            .assertIsNotEnabled()
+        onNodeWithText(
+            text = "Monday, October 12, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
     }
 
     @Test
@@ -1002,7 +1116,10 @@ class AttendanceScreenTest {
         )
 
         // When: a different allowed date is selected
-        onNodeWithText("Friday, October 2, 2026")
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        )
             .performClick()
 
         // Then: selection alone does not confirm attendance
@@ -1020,6 +1137,69 @@ class AttendanceScreenTest {
             listOf(LocalDate(2026, 10, 2)),
             confirmedDates,
         )
+    }
+
+    @Test
+    fun `opens attendance removal confirmation when checked attendance is clicked`() = runComposeUiTest {
+        // Given
+        val student = Student(
+            id = 7,
+            fullName = "Anna Smith",
+        )
+        val studentPackage = StudentPackage(
+            id = 1,
+            studentId = student.id,
+            packageType = fiveClassPackage,
+            startedOn = LocalDate(2026, 10, 2),
+            attendanceDates = setOf(
+                LocalDate(2026, 10, 2),
+                LocalDate(2026, 10, 5),
+            ),
+        )
+        val state = attendanceContentUiState(
+            attendance = Attendance(
+                entries = listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage = studentPackage,
+                    ),
+                ),
+            ),
+            packageTypes = listOf(fiveClassPackage),
+            currentDate = LocalDate(2026, 10, 8),
+        )
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna Smith present")
+            .performClick()
+
+        // Then
+        onNodeWithText("Remove attendance?")
+            .assertIsDisplayed()
+
+        onNodeWithText(
+            "Remove attendance for Anna Smith on Oct 5?",
+        ).assertIsDisplayed()
+
+        onNodeWithText("Remove")
+            .assertIsDisplayed()
+
+        onNodeWithText("Cancel")
+            .assertIsDisplayed()
+
+        onNodeWithText("Select attendance date")
+            .assertDoesNotExist()
     }
 
     private fun emptyAttendanceState(

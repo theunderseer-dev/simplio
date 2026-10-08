@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.schedule.attendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import kotlinx.datetime.LocalDate
@@ -18,13 +19,20 @@ internal fun attendanceContentUiState(
 
     val rows =
         attendance.entries.map { registeredStudent ->
-            StudentAttendanceUiState(
-                registeredStudent = registeredStudent,
-                checkState =
+            val checkState =
                 attendanceCheckState(
                     attendanceDates = registeredStudent.studentPackage.attendanceDates,
                     latestScheduledClassDate = latestClassDate,
-                ),
+                )
+
+            StudentAttendanceUiState(
+                registeredStudent = registeredStudent,
+                checkState = checkState,
+                isCheckEnabled =
+                when (checkState) {
+                    AttendanceCheckState.Pending -> true
+                    AttendanceCheckState.Checked -> latestClassDate != registeredStudent.studentPackage.startedOn
+                },
             )
         }
 

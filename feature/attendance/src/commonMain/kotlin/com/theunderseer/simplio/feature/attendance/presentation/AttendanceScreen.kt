@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -50,6 +49,7 @@ fun AttendanceScreen(
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
     onMarkStudentPresent: (Int, LocalDate) -> Unit,
+    onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -61,6 +61,10 @@ fun AttendanceScreen(
 
     var attendanceDatePickerStudentId by remember {
         mutableStateOf<Int?>(null)
+    }
+
+    var attendanceRemovalRequest by remember {
+        mutableStateOf<AttendanceRemovalRequest?>(null)
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -100,9 +104,23 @@ fun AttendanceScreen(
                                 )
                             }
                         },
-                        onCheckStudentClick = { studentId, checkState ->
-                            if (checkState == AttendanceCheckState.Pending) {
-                                attendanceDatePickerStudentId = studentId
+                        onCheckStudentClick = { row ->
+                            if (row.isCheckEnabled) {
+                                val student = row.registeredStudent.student
+
+                                when (row.checkState) {
+                                    AttendanceCheckState.Pending -> {
+                                        attendanceDatePickerStudentId = student.id
+                                    }
+
+                                    AttendanceCheckState.Checked -> {
+                                        attendanceRemovalRequest = AttendanceRemovalRequest(
+                                            studentId = student.id,
+                                            studentName = student.fullName,
+                                            attendanceDate = state.latestClassDate,
+                                        )
+                                    }
+                                }
                             }
                         },
                     )
@@ -140,6 +158,23 @@ fun AttendanceScreen(
                     },
                     onDismiss = {
                         attendanceDatePickerStudentId = null
+                    },
+                )
+            }
+
+            attendanceRemovalRequest?.let { request ->
+                AttendanceRemovalDialog(
+                    studentName = request.studentName,
+                    attendanceDate = request.attendanceDate,
+                    onConfirm = {
+                        onRemoveStudentAttendance(
+                            request.studentId,
+                            request.attendanceDate,
+                        )
+                        attendanceRemovalRequest = null
+                    },
+                    onDismiss = {
+                        attendanceRemovalRequest = null
                     },
                 )
             }
@@ -203,7 +238,7 @@ private fun AttendanceContent(
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: () -> Unit,
-    onCheckStudentClick: (Int, AttendanceCheckState) -> Unit,
+    onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -217,13 +252,9 @@ private fun AttendanceContent(
         } else {
             state.rows.forEachIndexed { index, row ->
                 StudentAttendanceRow(
-                    registeredStudent = row.registeredStudent,
-                    checkState = row.checkState,
+                    row = row,
                     onCheckClick = {
-                        onCheckStudentClick(
-                            row.registeredStudent.student.id,
-                            row.checkState,
-                        )
+                        onCheckStudentClick(row)
                     },
                     onDeleteClick = {
                         onDeleteStudentClick(
@@ -266,12 +297,8 @@ private fun AttendanceContent(
 }
 
 @Composable
-private fun StudentAttendanceRow(
-    registeredStudent: RegisteredStudent,
-    checkState: AttendanceCheckState,
-    onCheckClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-) {
+private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: () -> Unit, onDeleteClick: () -> Unit) {
+    val registeredStudent = row.registeredStudent
     val studentPackage =
         registeredStudent.studentPackage
 
@@ -378,19 +405,20 @@ private fun StudentAttendanceRow(
             modifier =
             Modifier
                 .clickable(
+                    enabled = row.isCheckEnabled,
                     onClick = onCheckClick,
                 )
                 .semantics {
                     contentDescription =
                         "Mark ${registeredStudent.student.fullName} present"
-                    stateDescription = checkState.name
+                    stateDescription = row.checkState.name
                 }
                 .padding(
                     horizontal = 6.dp,
                     vertical = 2.dp,
                 ),
             color =
-            when (checkState) {
+            when (row.checkState) {
                 AttendanceCheckState.Pending ->
                     MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -432,3 +460,5 @@ internal fun LocalDate.toDisplayDate(): String {
 
     return "$month $day"
 }
+
+private data class AttendanceRemovalRequest(val studentId: Int, val studentName: String, val attendanceDate: LocalDate)

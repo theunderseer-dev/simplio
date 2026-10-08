@@ -32,6 +32,7 @@ fun main() {
                 getPackageTypesUseCase = component.getPackageTypes,
                 registerStudentUseCase = component.registerStudent,
                 markStudentPresentUseCase = component.markStudentPresent,
+                removeStudentAttendanceUseCase = component.removeStudentAttendance,
                 deleteStudentUseCase = component.deleteStudent,
                 currentDates = attendanceDates(clock = Clock.System),
             )
@@ -59,6 +60,7 @@ fun main() {
                         }
                     },
                     onMarkStudentPresent = attendanceViewModel::markStudentPresent,
+                    onRemoveStudentAttendance = attendanceViewModel::removeStudentAttendance,
                 )
             }
         }

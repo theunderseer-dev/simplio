@@ -61,4 +61,11 @@ class RoomStudentPackageRepository(
             ),
         )
     }
+
+    override suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate) {
+        attendanceDao.deleteForPackageOnDate(
+            packageId = packageId,
+            attendedOnEpochDay = attendedOn.toEpochDays(),
+        )
+    }
 }

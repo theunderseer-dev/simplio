@@ -12,6 +12,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceU
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import kotlinx.coroutines.Dispatchers
@@ -117,6 +118,10 @@ class AttendanceViewModelTest {
             createMarkStudentPresentUseCase(
                 studentPackageRepository = studentPackageRepository,
             ),
+            removeStudentAttendanceUseCase =
+            createRemoveStudentAttendanceUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
             deleteStudentUseCase = deleteStudentUseCase,
             currentDates = flowOf(today),
         )
@@ -136,6 +141,7 @@ class AttendanceViewModelTest {
                     StudentAttendanceUiState(
                         registeredStudent = expectedAttendance.entries.single(),
                         checkState = AttendanceCheckState.Pending,
+                        isCheckEnabled = true,
                     ),
                 ),
             ),
@@ -187,6 +193,10 @@ class AttendanceViewModelTest {
             registerStudentUseCase = registerStudent,
             markStudentPresentUseCase =
             createMarkStudentPresentUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
+            removeStudentAttendanceUseCase =
+            createRemoveStudentAttendanceUseCase(
                 studentPackageRepository = studentPackageRepository,
             ),
             deleteStudentUseCase = deleteStudentUseCase,
@@ -246,6 +256,10 @@ class AttendanceViewModelTest {
             createMarkStudentPresentUseCase(
                 studentPackageRepository = studentPackageRepository,
             ),
+            removeStudentAttendanceUseCase =
+            createRemoveStudentAttendanceUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
             deleteStudentUseCase = deleteStudentUseCase,
             currentDates = flowOf(today),
         )
@@ -299,6 +313,10 @@ class AttendanceViewModelTest {
             registerStudentUseCase = registerStudent,
             markStudentPresentUseCase =
             createMarkStudentPresentUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
+            removeStudentAttendanceUseCase =
+            createRemoveStudentAttendanceUseCase(
                 studentPackageRepository = studentPackageRepository,
             ),
             deleteStudentUseCase = deleteStudentUseCase,
@@ -399,6 +417,10 @@ class AttendanceViewModelTest {
             createMarkStudentPresentUseCase(
                 studentPackageRepository = studentPackageRepository,
             ),
+            removeStudentAttendanceUseCase =
+            createRemoveStudentAttendanceUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
             deleteStudentUseCase = deleteStudentUseCase,
             currentDates = flowOf(today),
         )
@@ -482,6 +504,10 @@ class AttendanceViewModelTest {
                 getPackageTypesUseCase = getPackageTypes,
                 registerStudentUseCase = registerStudent,
                 markStudentPresentUseCase = markStudentPresent,
+                removeStudentAttendanceUseCase =
+                createRemoveStudentAttendanceUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
                 deleteStudentUseCase = deleteStudent,
                 currentDates = flowOf(today),
             )
@@ -565,6 +591,10 @@ class AttendanceViewModelTest {
                 createMarkStudentPresentUseCase(
                     studentPackageRepository = studentPackageRepository,
                 ),
+                removeStudentAttendanceUseCase =
+                createRemoveStudentAttendanceUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
                 deleteStudentUseCase =
                 DeleteStudentUseCase(
                     studentRepository = studentRepository,
@@ -605,6 +635,174 @@ class AttendanceViewModelTest {
         assertEquals(before.attendance, after.attendance)
     }
 
+    @Test
+    fun `removes student attendance and refreshes row check state`() = runViewModelTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val attendanceToRemove = LocalDate(2026, 10, 5)
+        val student =
+            studentRepository.seed(
+                Student(
+                    id = 7,
+                    fullName = "Anna Smith",
+                ),
+            )
+        val studentPackage =
+            studentPackageRepository.seed(
+                studentId = student.id,
+                packageType = fiveClassPackage,
+                startedOn = firstAttendance,
+                attendanceDates = setOf(firstAttendance, attendanceToRemove),
+            )
+        val viewModel =
+            AttendanceViewModel(
+                getAttendanceUseCase =
+                GetAttendanceUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                getPackageTypesUseCase =
+                createGetPackageTypesUseCase(
+                    packageTypes = listOf(fiveClassPackage),
+                ),
+                registerStudentUseCase =
+                createRegisterStudentUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                markStudentPresentUseCase =
+                createMarkStudentPresentUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                removeStudentAttendanceUseCase =
+                createRemoveStudentAttendanceUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                deleteStudentUseCase =
+                DeleteStudentUseCase(
+                    studentRepository = studentRepository,
+                ),
+                currentDates = flowOf(today),
+            )
+
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        val before = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+
+        assertEquals(attendanceToRemove, before.latestClassDate)
+        assertEquals(AttendanceCheckState.Checked, before.rows.single().checkState)
+        assertEquals(2, before.rows.single().registeredStudent.studentPackage.usedClasses)
+
+        // When
+        viewModel.removeStudentAttendance(
+            studentId = student.id,
+            attendanceDate = attendanceToRemove,
+        )
+        advanceUntilIdle()
+
+        // Then
+        val after = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+        val expectedPackage =
+            studentPackage.copy(attendanceDates = setOf(firstAttendance))
+        val expectedAttendance =
+            Attendance(
+                entries = listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage = expectedPackage,
+                    ),
+                ),
+            )
+        val row = after.rows.single()
+
+        assertEquals(expectedAttendance, after.attendance)
+        assertEquals(expectedAttendance.entries.single(), row.registeredStudent)
+        assertEquals(1, row.registeredStudent.studentPackage.usedClasses)
+        assertEquals(AttendanceCheckState.Pending, row.checkState)
+        assertEquals(listOf(fiveClassPackage), after.packageTypes)
+        assertEquals(today, after.currentDate)
+        assertEquals(attendanceToRemove, after.latestClassDate)
+        assertEquals(
+            expectedPackage,
+            studentPackageRepository.getLatestPackageForStudent(student.id),
+        )
+    }
+
+    @Test
+    fun `reports first attendance removal rejection and preserves stored package`() = runViewModelTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val student =
+            studentRepository.seed(
+                Student(
+                    id = 7,
+                    fullName = "Anna Smith",
+                ),
+            )
+        val studentPackage =
+            studentPackageRepository.seed(
+                studentId = student.id,
+                packageType = fiveClassPackage,
+                startedOn = firstAttendance,
+            )
+        val viewModel =
+            AttendanceViewModel(
+                getAttendanceUseCase =
+                GetAttendanceUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                getPackageTypesUseCase =
+                createGetPackageTypesUseCase(
+                    packageTypes = listOf(fiveClassPackage),
+                ),
+                registerStudentUseCase =
+                createRegisterStudentUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                markStudentPresentUseCase =
+                createMarkStudentPresentUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                removeStudentAttendanceUseCase =
+                createRemoveStudentAttendanceUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                deleteStudentUseCase =
+                DeleteStudentUseCase(
+                    studentRepository = studentRepository,
+                ),
+                currentDates = flowOf(firstAttendance),
+            )
+
+        observeUiState(viewModel)
+        advanceUntilIdle()
+        assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+
+        // When
+        viewModel.removeStudentAttendance(
+            studentId = student.id,
+            attendanceDate = firstAttendance,
+        )
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(
+            AttendanceUiState.Error(message = "The first attendance cannot be removed"),
+            viewModel.uiState.value,
+        )
+        assertEquals(
+            studentPackage,
+            studentPackageRepository.getLatestPackageForStudent(student.id),
+        )
+    }
+
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
             packageTypeRepository = object : PackageTypeRepository {
@@ -628,6 +826,13 @@ class AttendanceViewModelTest {
     private fun createMarkStudentPresentUseCase(
         studentPackageRepository: FakeStudentPackageRepository,
     ): MarkStudentPresentUseCase = MarkStudentPresentUseCase(
+        repository = studentPackageRepository,
+        transactionRunner = transactionRunner,
+    )
+
+    private fun createRemoveStudentAttendanceUseCase(
+        studentPackageRepository: FakeStudentPackageRepository,
+    ): RemoveStudentAttendanceUseCase = RemoveStudentAttendanceUseCase(
         repository = studentPackageRepository,
         transactionRunner = transactionRunner,
     )
