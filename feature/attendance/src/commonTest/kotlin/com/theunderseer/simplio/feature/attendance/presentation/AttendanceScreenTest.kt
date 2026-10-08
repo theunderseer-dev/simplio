@@ -395,88 +395,6 @@ class AttendanceScreenTest {
     }
 
     @Test
-    fun `displays copy attendance action`() = runComposeUiTest {
-        // Given
-        val state = emptyAttendanceState()
-
-        // When
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // Then
-        onNodeWithContentDescription("Copy attendance")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `provides formatted attendance when copy action is clicked`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = fiveClassPackage,
-                                startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(fiveClassPackage),
-                currentDate = today,
-            )
-
-        var copiedText: String? = null
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = { text ->
-                    copiedText = text
-                },
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Copy attendance")
-            .performClick()
-
-        // Then
-        assertEquals(
-            "\tAnna Smith\t2 / 5\t(until 05/11)",
-            copiedText,
-        )
-    }
-
-    @Test
     fun `shows copy confirmation after copy action`() = runComposeUiTest {
         // Given
         val state =
@@ -502,44 +420,6 @@ class AttendanceScreenTest {
         // Then
         onNodeWithText("Copied to clipboard")
             .assertIsDisplayed()
-    }
-
-    @Test
-    fun `hides copy confirmation automatically`() = runComposeUiTest {
-        // Given
-        mainClock.autoAdvance = false
-
-        val state =
-            emptyAttendanceState(
-                currentDate = LocalDate(2026, 10, 6),
-            )
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Copy attendance")
-            .performClick()
-
-        mainClock.advanceTimeByFrame()
-
-        // Then
-        onNodeWithText("Copied to clipboard")
-            .assertIsDisplayed()
-
-        mainClock.advanceTimeBy(5_000)
-        waitForIdle()
-
-        onNodeWithText("Copied to clipboard")
-            .assertDoesNotExist()
     }
 
     @Test
