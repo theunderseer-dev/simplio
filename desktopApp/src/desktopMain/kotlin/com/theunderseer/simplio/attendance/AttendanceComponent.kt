@@ -13,6 +13,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceU
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 
 class AttendanceComponent(
@@ -20,6 +21,7 @@ class AttendanceComponent(
     val registerStudent: RegisterStudentUseCase,
     val renewStudentPackage: RenewStudentPackageUseCase,
     val markStudentPresent: MarkStudentPresentUseCase,
+    val removeStudentAttendance: RemoveStudentAttendanceUseCase,
     val getAttendance: GetAttendanceUseCase,
     val getPackageTypes: GetPackageTypesUseCase,
     val deleteStudent: DeleteStudentUseCase,
@@ -101,6 +103,12 @@ internal fun createAttendanceComponent(databasePath: String): AttendanceComponen
             transactionRunner = transactionRunner,
         )
 
+    val removeStudentAttendance =
+        RemoveStudentAttendanceUseCase(
+            repository = studentPackageRepository,
+            transactionRunner = transactionRunner,
+        )
+
     val deleteStudent =
         DeleteStudentUseCase(
             studentRepository = studentRepository,
@@ -111,6 +119,7 @@ internal fun createAttendanceComponent(databasePath: String): AttendanceComponen
         registerStudent = registerStudent,
         renewStudentPackage = renewStudentPackage,
         markStudentPresent = markStudentPresent,
+        removeStudentAttendance = removeStudentAttendance,
         getAttendance = getAttendance,
         getPackageTypes = getPackageTypes,
         deleteStudent = deleteStudent,

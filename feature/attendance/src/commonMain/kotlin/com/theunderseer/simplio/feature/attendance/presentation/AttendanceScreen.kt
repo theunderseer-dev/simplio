@@ -27,26 +27,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    currentDate: LocalDate,
     onRegisterStudent: (String, PackageType, LocalDate) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
+    onMarkStudentPresent: (Int, LocalDate) -> Unit,
+    onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -54,6 +57,14 @@ fun AttendanceScreen(
 
     var deleteStudentDialog by remember {
         mutableStateOf<Int?>(null)
+    }
+
+    var attendanceDatePickerStudentId by remember {
+        mutableStateOf<Int?>(null)
+    }
+
+    var attendanceRemovalRequest by remember {
+        mutableStateOf<AttendanceRemovalRequest?>(null)
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -79,11 +90,11 @@ fun AttendanceScreen(
                         onDeleteStudentClick = { studentId ->
                             deleteStudentDialog = studentId
                         },
-                        onCopyAttendance = {
+                        onCopyAttendanceClick = {
                             onCopyAttendance(
                                 formatAttendanceForSharing(
                                     attendance = state.attendance,
-                                    currentDate = currentDate,
+                                    currentDate = state.currentDate,
                                 ),
                             )
 
@@ -93,6 +104,25 @@ fun AttendanceScreen(
                                 )
                             }
                         },
+                        onCheckStudentClick = { row ->
+                            if (row.isCheckEnabled) {
+                                val student = row.registeredStudent.student
+
+                                when (row.checkState) {
+                                    AttendanceCheckState.Pending -> {
+                                        attendanceDatePickerStudentId = student.id
+                                    }
+
+                                    AttendanceCheckState.Checked -> {
+                                        attendanceRemovalRequest = AttendanceRemovalRequest(
+                                            studentId = student.id,
+                                            studentName = student.fullName,
+                                            attendanceDate = state.latestClassDate,
+                                        )
+                                    }
+                                }
+                            }
+                        },
                     )
                 }
             }
@@ -100,7 +130,7 @@ fun AttendanceScreen(
             if (showRegistrationDialog) {
                 StudentRegistrationDialog(
                     packageTypes = state.packageTypes,
-                    initialDate = currentDate,
+                    initialDate = state.currentDate,
                     onRegister = { fullName, packageType, registeredOn ->
                         onRegisterStudent(
                             fullName,
@@ -111,6 +141,40 @@ fun AttendanceScreen(
                     },
                     onDismiss = {
                         showRegistrationDialog = false
+                    },
+                )
+            }
+
+            attendanceDatePickerStudentId?.let { studentId ->
+                AttendanceDatePickerDialog(
+                    initialDate = state.latestClassDate,
+                    currentDate = state.currentDate,
+                    onConfirm = { selectedDate ->
+                        onMarkStudentPresent(
+                            studentId,
+                            selectedDate,
+                        )
+                        attendanceDatePickerStudentId = null
+                    },
+                    onDismiss = {
+                        attendanceDatePickerStudentId = null
+                    },
+                )
+            }
+
+            attendanceRemovalRequest?.let { request ->
+                AttendanceRemovalDialog(
+                    studentName = request.studentName,
+                    attendanceDate = request.attendanceDate,
+                    onConfirm = {
+                        onRemoveStudentAttendance(
+                            request.studentId,
+                            request.attendanceDate,
+                        )
+                        attendanceRemovalRequest = null
+                    },
+                    onDismiss = {
+                        attendanceRemovalRequest = null
                     },
                 )
             }
@@ -173,29 +237,33 @@ private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
-    onCopyAttendance: () -> Unit,
+    onCopyAttendanceClick: () -> Unit,
+    onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
             horizontal = 12.dp,
         ),
     ) {
-        if (state.attendance.entries.isEmpty()) {
+        if (state.rows.isEmpty()) {
             Text(
                 text = "No students yet",
             )
         } else {
-            state.attendance.entries.forEachIndexed { index, registeredStudent ->
+            state.rows.forEachIndexed { index, row ->
                 StudentAttendanceRow(
-                    registeredStudent = registeredStudent,
+                    row = row,
+                    onCheckClick = {
+                        onCheckStudentClick(row)
+                    },
                     onDeleteClick = {
                         onDeleteStudentClick(
-                            registeredStudent.student.id,
+                            row.registeredStudent.student.id,
                         )
                     },
                 )
 
-                if (index < state.attendance.entries.lastIndex) {
+                if (index < state.rows.lastIndex) {
                     HorizontalDivider(
                         thickness = 0.5.dp,
                     )
@@ -217,7 +285,7 @@ private fun AttendanceContent(
                 modifier =
                 Modifier
                     .clickable(
-                        onClick = onCopyAttendance,
+                        onClick = onCopyAttendanceClick,
                     )
                     .semantics {
                         contentDescription = "Copy attendance"
@@ -229,7 +297,8 @@ private fun AttendanceContent(
 }
 
 @Composable
-private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteClick: () -> Unit) {
+private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: () -> Unit, onDeleteClick: () -> Unit) {
+    val registeredStudent = row.registeredStudent
     val studentPackage =
         registeredStudent.studentPackage
 
@@ -332,6 +401,35 @@ private fun StudentAttendanceRow(registeredStudent: RegisteredStudent, onDeleteC
         )
 
         Text(
+            text = "✓",
+            modifier =
+            Modifier
+                .clickable(
+                    enabled = row.isCheckEnabled,
+                    onClick = onCheckClick,
+                )
+                .semantics {
+                    contentDescription =
+                        "Mark ${registeredStudent.student.fullName} present"
+                    stateDescription = row.checkState.name
+                }
+                .padding(
+                    horizontal = 6.dp,
+                    vertical = 2.dp,
+                ),
+            color =
+            when (row.checkState) {
+                AttendanceCheckState.Pending ->
+                    MaterialTheme.colorScheme.onSurfaceVariant
+
+                AttendanceCheckState.Checked ->
+                    Color(0xFF2E7D32)
+            },
+            fontSize = 20.sp,
+            lineHeight = 20.sp,
+        )
+
+        Text(
             text = "×",
             modifier =
             Modifier
@@ -362,3 +460,5 @@ internal fun LocalDate.toDisplayDate(): String {
 
     return "$month $day"
 }
+
+private data class AttendanceRemovalRequest(val studentId: Int, val studentName: String, val attendanceDate: LocalDate)

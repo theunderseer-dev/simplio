@@ -9,19 +9,17 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import com.theunderseer.simplio.attendance.createAttendanceComponent
+import com.theunderseer.simplio.attendance.time.attendanceDates
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceScreen
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import java.awt.datatransfer.StringSelection
 import kotlin.time.Clock
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    val component =
-        createAttendanceComponent()
+    val component = createAttendanceComponent()
 
     component.use { component ->
         runBlocking {
@@ -33,7 +31,10 @@ fun main() {
                 getAttendanceUseCase = component.getAttendance,
                 getPackageTypesUseCase = component.getPackageTypes,
                 registerStudentUseCase = component.registerStudent,
+                markStudentPresentUseCase = component.markStudentPresent,
+                removeStudentAttendanceUseCase = component.removeStudentAttendance,
                 deleteStudentUseCase = component.deleteStudent,
+                currentDates = attendanceDates(clock = Clock.System),
             )
 
         application {
@@ -42,18 +43,11 @@ fun main() {
                 title = "Simplio",
             ) {
                 val state by attendanceViewModel.uiState.collectAsState()
-
                 val clipboard = LocalClipboard.current
                 val coroutineScope = rememberCoroutineScope()
 
                 AttendanceScreen(
                     state = state,
-                    currentDate =
-                    Clock.System
-                        .now()
-                        .toLocalDateTime(
-                            TimeZone.currentSystemDefault(),
-                        ).date,
                     onRegisterStudent = attendanceViewModel::registerStudent,
                     onDeleteStudent = attendanceViewModel::deleteStudent,
                     onCopyAttendance = { text ->
@@ -65,6 +59,8 @@ fun main() {
                             )
                         }
                     },
+                    onMarkStudentPresent = attendanceViewModel::markStudentPresent,
+                    onRemoveStudentAttendance = attendanceViewModel::removeStudentAttendance,
                 )
             }
         }

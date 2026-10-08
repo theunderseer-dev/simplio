@@ -624,4 +624,95 @@ class RoomStudentPackageRepositoryTest {
             reloadedPackage.usedClasses,
         )
     }
+
+    @Test
+    fun `removing attendance deletes only requested date from requested package`() = runTest {
+        // Given
+        val studentId =
+            database.studentDao().insert(
+                StudentEntity(fullName = "Anna Smith"),
+            ).toInt()
+        val otherStudentId =
+            database.studentDao().insert(
+                StudentEntity(fullName = "John Brown"),
+            ).toInt()
+        val packageTypeId =
+            database.packageTypeDao().insert(
+                PackageTypeEntity(
+                    name = "5-class package",
+                    totalClasses = 5,
+                    validityWeeks = 6,
+                    price = 1700,
+                ),
+            ).toInt()
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 6,
+                price = 1700,
+            )
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val attendanceToRemove = LocalDate(2026, 10, 5)
+        val lastAttendance = LocalDate(2026, 10, 9)
+        val studentPackage =
+            repository.create(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = firstAttendance,
+            )
+        val otherStudentPackage =
+            repository.create(
+                studentId = otherStudentId,
+                packageType = packageType,
+                startedOn = firstAttendance,
+            )
+
+        repository.recordAttendance(studentPackage.id, attendanceToRemove)
+        repository.recordAttendance(studentPackage.id, lastAttendance)
+        repository.recordAttendance(otherStudentPackage.id, attendanceToRemove)
+
+        // When
+        repository.removeAttendance(
+            packageId = studentPackage.id,
+            attendedOn = attendanceToRemove,
+        )
+
+        // Then: the remaining history and package details are preserved
+        val expectedPackage =
+            studentPackage.copy(
+                attendanceDates = setOf(firstAttendance, lastAttendance),
+            )
+        val reloadedPackage =
+            assertNotNull(repository.getLatestPackageForStudent(studentId))
+
+        assertEquals(expectedPackage, reloadedPackage)
+        assertEquals(2, reloadedPackage.usedClasses)
+        assertEquals(
+            listOf(firstAttendance.toEpochDays(), lastAttendance.toEpochDays()),
+            database.attendanceDao().getForPackage(studentPackage.id)
+                .map { it.attendedOnEpochDay },
+        )
+
+        // And: the same date remains recorded for another package
+        assertEquals(
+            otherStudentPackage.copy(
+                attendanceDates = setOf(firstAttendance, attendanceToRemove),
+            ),
+            repository.getLatestPackageForStudent(otherStudentId),
+        )
+
+        // When: removal is repeated
+        repository.removeAttendance(
+            packageId = studentPackage.id,
+            attendedOn = attendanceToRemove,
+        )
+
+        // Then: the remaining attendance is unchanged
+        assertEquals(
+            expectedPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+    }
 }

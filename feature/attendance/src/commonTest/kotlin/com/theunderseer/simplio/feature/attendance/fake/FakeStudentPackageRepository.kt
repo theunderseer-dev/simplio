@@ -67,6 +67,25 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
             )
     }
 
+    override suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate) {
+        val index =
+            storedPackages.indexOfFirst {
+                it.id == packageId
+            }
+
+        require(index >= 0) {
+            "Student package with id $packageId not found"
+        }
+
+        val currentPackage = storedPackages[index]
+
+        storedPackages[index] =
+            currentPackage.copy(
+                attendanceDates =
+                currentPackage.attendanceDates - attendedOn,
+            )
+    }
+
     private fun addPackage(
         studentId: Int,
         packageType: PackageType,

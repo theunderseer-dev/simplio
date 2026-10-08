@@ -20,4 +20,13 @@ interface AttendanceDao {
         """,
     )
     suspend fun getForPackage(packageId: Int): List<AttendanceEntity>
+
+    @Query(
+        """
+        DELETE FROM attendance
+        WHERE packageId = :packageId
+          AND attendedOnEpochDay = :attendedOnEpochDay
+        """,
+    )
+    suspend fun deleteForPackageOnDate(packageId: Int, attendedOnEpochDay: Long)
 }
