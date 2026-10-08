@@ -14,7 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class StudentRegistrationDialogTest {
+class StudentRegistrationDialogUiTest {
     @Test
     fun `displays student registration form`() = runComposeUiTest {
         val packageTypes =
@@ -145,42 +145,6 @@ class StudentRegistrationDialogTest {
         assertEquals(
             packageType,
             registeredPackage,
-        )
-    }
-
-    @Test
-    fun `does not allow registration date after today`() {
-        // Given
-        val today =
-            LocalDate(
-                2026,
-                10,
-                5,
-            )
-
-        // Then
-        assertEquals(
-            true,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 5),
-                today = today,
-            ),
-        )
-
-        assertEquals(
-            true,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 4),
-                today = today,
-            ),
-        )
-
-        assertEquals(
-            false,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 6),
-                today = today,
-            ),
         )
     }
 
