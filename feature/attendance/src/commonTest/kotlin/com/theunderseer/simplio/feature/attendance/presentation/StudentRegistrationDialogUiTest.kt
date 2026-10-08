@@ -15,6 +15,17 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class StudentRegistrationDialogUiTest {
+    private val today = LocalDate(2026, 10, 5)
+
+    private val fourClassPackage =
+        PackageType(
+            id = 1,
+            name = "4-class package",
+            totalClasses = 4,
+            validityWeeks = 4,
+            price = 1400,
+        )
+
     @Test
     fun `displays student registration form`() = runComposeUiTest {
         val packageTypes =
@@ -197,5 +208,55 @@ class StudentRegistrationDialogUiTest {
             LocalDate(2026, 10, 3),
             registeredOn,
         )
+    }
+
+    @Test
+    fun `opens date picker when registration date is clicked`() = runComposeUiTest {
+        // Given
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(fourClassPackage),
+                initialDate = today,
+                onRegister = { _, _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        // Then
+        onNodeWithText("Select registration date")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `updates registration date after selecting past date`() = runComposeUiTest {
+        // Given
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(fourClassPackage),
+                initialDate = today,
+                onRegister = { _, _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        onNodeWithText(
+            text = "Saturday, October 3, 2026",
+            substring = true,
+        )
+            .performClick()
+
+        onNodeWithText("OK")
+            .performClick()
+
+        onNodeWithText("Oct 3")
+            .assertIsDisplayed()
     }
 }

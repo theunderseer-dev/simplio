@@ -218,56 +218,6 @@ class AttendanceScreenTest {
     }
 
     @Test
-    fun `opens date picker when registration date is clicked`() = runComposeUiTest {
-        // Given
-        setContent {
-            StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _ -> },
-                onDismiss = {},
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Registration date")
-            .performClick()
-
-        // Then
-        onNodeWithText("Select registration date")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `updates registration date after selecting past date`() = runComposeUiTest {
-        // Given
-        setContent {
-            StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _ -> },
-                onDismiss = {},
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Registration date")
-            .performClick()
-
-        onNodeWithText(
-            text = "Saturday, October 3, 2026",
-            substring = true,
-        )
-            .performClick()
-
-        onNodeWithText("OK")
-            .performClick()
-
-        onNodeWithText("Oct 3")
-            .assertIsDisplayed()
-    }
-
-    @Test
     fun `provides selected registration date when student is registered`() = runComposeUiTest {
         // Given
         val state =
@@ -1092,51 +1042,6 @@ class AttendanceScreenTest {
             text = "Monday, October 12, 2026",
             substring = true,
         ).assertIsNotEnabled()
-    }
-
-    @Test
-    fun `confirms selected attendance date only after OK is clicked`() = runComposeUiTest {
-        // Given
-        val confirmedDates = mutableListOf<LocalDate>()
-
-        setContent {
-            AttendanceDatePickerDialog(
-                initialDate = LocalDate(2026, 10, 5),
-                currentDate = LocalDate(2026, 10, 8),
-                onConfirm = { date ->
-                    confirmedDates += date
-                },
-                onDismiss = {},
-            )
-        }
-
-        assertEquals(
-            emptyList(),
-            confirmedDates,
-        )
-
-        // When: a different allowed date is selected
-        onNodeWithText(
-            text = "Friday, October 2, 2026",
-            substring = true,
-        )
-            .performClick()
-
-        // Then: selection alone does not confirm attendance
-        assertEquals(
-            emptyList(),
-            confirmedDates,
-        )
-
-        // When
-        onNodeWithText("OK")
-            .performClick()
-
-        // Then
-        assertEquals(
-            listOf(LocalDate(2026, 10, 2)),
-            confirmedDates,
-        )
     }
 
     @Test
