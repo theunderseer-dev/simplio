@@ -28,14 +28,7 @@ import kotlin.test.assertEquals
 class AttendanceScreenTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "4-class package",
-            totalClasses = 4,
-            validityWeeks = 4,
-            price = 1700,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `displays registered student attendance`() = runComposeUiTest {

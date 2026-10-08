@@ -17,14 +17,7 @@ import kotlin.test.assertEquals
 class StudentRegistrationDialogUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val fourClassPackage =
-        PackageType(
-            id = 1,
-            name = "4-class package",
-            totalClasses = 4,
-            validityWeeks = 4,
-            price = 1400,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `displays student registration form`() = runComposeUiTest {
@@ -162,15 +155,6 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registers student with selected registration date`() = runComposeUiTest {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 5,
-                price = 1700,
-            )
-
         var registeredOn: LocalDate? = null
 
         setContent {
@@ -197,7 +181,7 @@ class StudentRegistrationDialogUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        onNodeWithText("5-class package")
+        onNodeWithText("4-class package")
             .performClick()
 
         onNodeWithText("Register")
@@ -215,7 +199,7 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
+                packageTypes = listOf(packageType),
                 initialDate = today,
                 onRegister = { _, _, _ -> },
                 onDismiss = {},
@@ -236,7 +220,7 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
+                packageTypes = listOf(packageType),
                 initialDate = today,
                 onRegister = { _, _, _ -> },
                 onDismiss = {},

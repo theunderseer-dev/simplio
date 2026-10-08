@@ -1,9 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
+import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
+import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -22,14 +23,7 @@ class RenewStudentPackageUseCaseTest {
 
         // And
         // a previous package is completed
-        val previousPackageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val previousPackageType = testFiveClassPackage()
 
         val previousPackage =
             repository.seed(
@@ -46,14 +40,7 @@ class RenewStudentPackageUseCaseTest {
                 ),
             )
 
-        val newPackageType =
-            PackageType(
-                id = 2,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 5,
-                price = 1400,
-            )
+        val newPackageType = testFourClassPackage(id = 2)
 
         val renewedOn = LocalDate(2026, 8, 30)
 
@@ -145,14 +132,7 @@ class RenewStudentPackageUseCaseTest {
 
         // And
         // the student has an active package with unused classes
-        val currentPackageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val currentPackageType = testFiveClassPackage()
 
         val currentPackage =
             repository.seed(
@@ -166,14 +146,7 @@ class RenewStudentPackageUseCaseTest {
                 ),
             )
 
-        val newPackageType =
-            PackageType(
-                id = 2,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 5,
-                price = 1400,
-            )
+        val newPackageType = testFourClassPackage(id = 2)
 
         val renewedOn = LocalDate(2026, 9, 28)
         val transactionRunner = FakeTransactionRunner()
@@ -233,14 +206,7 @@ class RenewStudentPackageUseCaseTest {
 
         // And
         // the student has an expired package with unused classes
-        val expiredPackageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val expiredPackageType = testFiveClassPackage()
 
         val expiredPackage =
             repository.seed(
@@ -254,14 +220,7 @@ class RenewStudentPackageUseCaseTest {
                 ),
             )
 
-        val newPackageType =
-            PackageType(
-                id = 2,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 5,
-                price = 1400,
-            )
+        val newPackageType = testFourClassPackage(id = 2)
 
         val renewedOn = LocalDate(2026, 9, 28)
         val transactionRunner = FakeTransactionRunner()

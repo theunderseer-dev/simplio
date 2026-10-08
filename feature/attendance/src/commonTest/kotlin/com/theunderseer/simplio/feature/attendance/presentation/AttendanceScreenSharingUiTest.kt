@@ -18,14 +18,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenSharingUiTest {
     private val today = LocalDate(2026, 10, 5)
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "5-class package",
-            totalClasses = 5,
-            validityWeeks = 5,
-            price = 1700,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `displays copy attendance action`() = runComposeUiTest {
@@ -104,7 +97,7 @@ class AttendanceScreenSharingUiTest {
 
         // Then
         assertEquals(
-            "\tAnna Smith\t2 / 5\t(until 05/11)",
+            "\tAnna Smith\t2 / 4\t(until 29/10)",
             copiedText,
         )
     }

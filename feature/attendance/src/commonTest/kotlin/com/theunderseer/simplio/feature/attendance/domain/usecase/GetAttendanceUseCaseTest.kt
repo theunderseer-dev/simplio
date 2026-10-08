@@ -6,6 +6,8 @@ import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStuden
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
+import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
+import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -38,14 +40,7 @@ class GetAttendanceUseCaseTest {
                 ),
             )
 
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val packageType = testFourClassPackage()
 
         val annaPackage =
             studentPackageRepository.seed(

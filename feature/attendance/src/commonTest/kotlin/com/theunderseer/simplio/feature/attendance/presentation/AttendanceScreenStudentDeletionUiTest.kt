@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -19,14 +18,7 @@ import kotlin.test.assertEquals
 class AttendanceScreenStudentDeletionUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "4-class package",
-            totalClasses = 4,
-            validityWeeks = 4,
-            price = 1400,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `shows delete action for registered student`() = runComposeUiTest {

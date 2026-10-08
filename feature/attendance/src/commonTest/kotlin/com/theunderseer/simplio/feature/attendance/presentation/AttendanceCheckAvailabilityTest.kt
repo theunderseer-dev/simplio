@@ -1,7 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -16,14 +15,7 @@ class AttendanceCheckAvailabilityTest {
     private val firstAttendance = LocalDate(2026, 10, 2)
     private val laterAttendance = LocalDate(2026, 10, 5)
 
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "5-class package",
-            totalClasses = 5,
-            validityWeeks = 6,
-            price = 1700,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `first attendance remains checked but check action is disabled`() {
