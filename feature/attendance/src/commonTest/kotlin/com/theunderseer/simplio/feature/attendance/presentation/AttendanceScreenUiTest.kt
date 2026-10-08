@@ -25,7 +25,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class AttendanceScreenTest {
+class AttendanceScreenUiTest {
     private val today = LocalDate(2026, 10, 5)
 
     private val packageType = testFourClassPackage()

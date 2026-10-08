@@ -19,7 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class AttendanceCheckAvailabilityUiTest {
+class AttendanceScreenCheckAvailabilityUiTest {
     @Test
     fun `first attendance check is disabled and cannot open an attendance dialog`() = runComposeUiTest {
         // Given
