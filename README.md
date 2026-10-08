@@ -62,4 +62,9 @@ Minimal implementation
 Refactoring
 ```
 
+Implementation follows a TDD cycle: RED → GREEN → Refactor.
+Completed, verified milestones are committed incrementally.
+
+See [Development workflow](docs/development-workflow.md) for TDD, verification, and commit guidelines.
+
 #
