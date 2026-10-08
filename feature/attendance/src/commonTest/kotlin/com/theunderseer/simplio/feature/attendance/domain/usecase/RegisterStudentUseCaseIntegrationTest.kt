@@ -7,9 +7,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageType
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
+import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
+import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -58,26 +59,21 @@ class RegisterStudentUseCaseIntegrationTest {
     @Test
     fun `registering student persists student package and first attendance`() = runTest {
         // Given
+        val packageTemplate = testFourClassPackage()
+
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
+                        name = packageTemplate.name,
+                        totalClasses = packageTemplate.totalClasses,
+                        validityWeeks = packageTemplate.validityWeeks,
+                        price = packageTemplate.price,
                     ),
                 ).toInt()
 
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val packageType = testFiveClassPackage(id = packageTypeId)
 
         val registeredOn = LocalDate(2026, 9, 30)
 
@@ -175,14 +171,7 @@ class RegisterStudentUseCaseIntegrationTest {
     fun `failed registration rolls back created student`() = runTest {
         // Given
         // a package type that does not exist in Room
-        val packageType =
-            PackageType(
-                id = 999,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val packageType = testFiveClassPackage(999)
 
         val registeredOn = LocalDate(2026, 9, 30)
 

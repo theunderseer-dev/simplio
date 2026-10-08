@@ -1,10 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fake.RecordedAttendance
+import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
@@ -19,14 +19,7 @@ class MarkStudentPresentUseCaseTest {
     private lateinit var markStudentPresent: MarkStudentPresentUseCase
     private lateinit var transactionRunner: FakeTransactionRunner
     private val studentId = 1
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "5-class package",
-            totalClasses = 5,
-            validityWeeks = 6,
-            price = 1700,
-        )
+    private val packageType = testFiveClassPackage()
 
     @BeforeTest
     fun setUp() {

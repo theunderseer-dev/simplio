@@ -1,9 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
+import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -13,14 +13,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class RemoveStudentAttendanceUseCaseTest {
-    private val packageType =
-        PackageType(
-            id = 1,
-            name = "5-class package",
-            totalClasses = 5,
-            validityWeeks = 6,
-            price = 1700,
-        )
+    private val packageType = testFiveClassPackage()
 
     @Test
     fun `removing attendance deletes only requested date from student package`() = runTest {

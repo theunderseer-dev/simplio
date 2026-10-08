@@ -10,10 +10,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -65,26 +65,21 @@ class GetAttendanceUseCaseIntegrationTest {
                     ),
                 ).toInt()
 
+        val packageTemplate = testFourClassPackage()
+
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
+                        name = packageTemplate.name,
+                        totalClasses = packageTemplate.totalClasses,
+                        validityWeeks = packageTemplate.validityWeeks,
+                        price = packageTemplate.price,
                     ),
                 ).toInt()
 
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val packageType = packageTemplate.copy(id = packageTypeId)
 
         val latestStartedOn =
             LocalDate(

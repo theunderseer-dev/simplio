@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,16 +10,7 @@ import kotlin.test.assertEquals
 class GetPackageTypesUseCaseTest {
     @Test
     fun `returns available package types`() = runTest {
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 5,
-                    price = 1400,
-                ),
-            )
+        val packageTypes = listOf(testFourClassPackage())
 
         val repository =
             object : PackageTypeRepository {

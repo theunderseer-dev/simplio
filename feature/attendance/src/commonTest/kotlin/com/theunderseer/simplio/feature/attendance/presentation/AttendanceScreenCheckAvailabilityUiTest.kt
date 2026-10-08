@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -20,20 +19,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class AttendanceCheckAvailabilityUiTest {
+class AttendanceScreenCheckAvailabilityUiTest {
     @Test
     fun `first attendance check is disabled and cannot open an attendance dialog`() = runComposeUiTest {
         // Given
         val firstAttendance = LocalDate(2026, 10, 2)
         val student = Student(id = 7, fullName = "Anna Smith")
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
+        val packageType = testFourClassPackage()
         val state =
             attendanceContentUiState(
                 attendance =
@@ -82,7 +74,7 @@ class AttendanceCheckAvailabilityUiTest {
                 "Checked",
             ),
         )
-        onNodeWithText("1 / 5").assertIsDisplayed()
+        onNodeWithText("1 / 4").assertIsDisplayed()
 
         // When: a click is attempted
         check.performClick()

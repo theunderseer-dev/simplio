@@ -1,8 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import androidx.compose.ui.test.ExperimentalTestApi
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -10,20 +8,12 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalTestApi::class)
 class AttendanceShareFormatterTest {
+    private val packageType = testFourClassPackage()
+
     @Test
     fun `formats active student for sharing`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -60,7 +50,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "\tAnna Smith\t3 / 5\t(until 12/11)",
+            "\tAnna Smith\t3 / 4\t(until 29/10)",
             result,
         )
     }
@@ -68,15 +58,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `marks completed package for renewal`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -99,7 +80,6 @@ class AttendanceShareFormatterTest {
                                 LocalDate(2026, 10, 2),
                                 LocalDate(2026, 10, 3),
                                 LocalDate(2026, 10, 4),
-                                LocalDate(2026, 10, 5),
                             ),
                         ),
                     ),
@@ -115,7 +95,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "♻️\tAnna Smith\t5 / 5\t(until 12/11)",
+            "♻️\tAnna Smith\t4 / 4\t(until 29/10)",
             result,
         )
     }
@@ -123,15 +103,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `marks expired package for renewal`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -167,7 +138,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "♻️\tAnna Smith\t2 / 5\t(until 12/09)",
+            "♻️\tAnna Smith\t2 / 4\t(until 29/08)",
             result,
         )
     }
@@ -175,15 +146,6 @@ class AttendanceShareFormatterTest {
     @Test
     fun `formats multiple students on separate lines`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
         val attendance =
             Attendance(
                 entries =
@@ -238,8 +200,8 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "\tAnna Smith\t2 / 5\t(until 12/11)\n" +
-                "♻️\tJohn Doe\t2 / 5\t(until 12/09)",
+            "\tAnna Smith\t2 / 4\t(until 29/10)\n" +
+                "♻️\tJohn Doe\t2 / 4\t(until 29/08)",
             result,
         )
     }

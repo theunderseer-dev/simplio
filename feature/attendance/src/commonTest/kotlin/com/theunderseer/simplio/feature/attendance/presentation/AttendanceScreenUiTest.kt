@@ -9,13 +9,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -27,26 +25,10 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class AttendanceScreenTest {
+class AttendanceScreenUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val fourClassPackage =
-        PackageType(
-            id = 1,
-            name = "4-class package",
-            totalClasses = 4,
-            validityWeeks = 4,
-            price = 1400,
-        )
-
-    private val fiveClassPackage =
-        PackageType(
-            id = 1,
-            name = "5-class package",
-            totalClasses = 5,
-            validityWeeks = 5,
-            price = 1700,
-        )
+    private val packageType = testFourClassPackage()
 
     @Test
     fun `displays registered student attendance`() = runComposeUiTest {
@@ -55,7 +37,7 @@ class AttendanceScreenTest {
             StudentPackage(
                 id = 1,
                 studentId = 1,
-                packageType = fiveClassPackage,
+                packageType = packageType,
                 startedOn = LocalDate(2026, 10, 1),
                 attendanceDates =
                 setOf(
@@ -81,7 +63,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = today,
             )
 
@@ -101,16 +83,16 @@ class AttendanceScreenTest {
         onNodeWithText("Anna Smith")
             .assertIsDisplayed()
 
-        onNodeWithText("3 / 5")
+        onNodeWithText("3 / 4")
             .assertIsDisplayed()
 
         onNodeWithText("Oct 1")
             .assertIsDisplayed()
 
-        onNodeWithText("Nov 5")
+        onNodeWithText("Oct 29")
             .assertIsDisplayed()
 
-        onNodeWithText("5-class package")
+        onNodeWithText("4-class package")
             .assertIsDisplayed()
     }
 
@@ -137,393 +119,6 @@ class AttendanceScreenTest {
 
         onNodeWithText("Add Student")
             .assertIsDisplayed()
-    }
-
-    @Test
-    fun `opens student registration dialog when add student is clicked`() = runComposeUiTest {
-        val state = emptyAttendanceState(packageTypes = listOf(fourClassPackage))
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        onNodeWithText("Add Student")
-            .performClick()
-
-        onNodeWithText("Full name")
-            .assertIsDisplayed()
-
-        onNodeWithText("4-class package")
-            .assertIsDisplayed()
-
-        onNodeWithText("Register")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `displays add student action when attendance has students`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = fourClassPackage,
-                                startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(fourClassPackage),
-                currentDate = today,
-            )
-
-        // When
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // Then
-        onNodeWithText("Add Student")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `opens date picker when registration date is clicked`() = runComposeUiTest {
-        // Given
-        setContent {
-            StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _ -> },
-                onDismiss = {},
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Registration date")
-            .performClick()
-
-        // Then
-        onNodeWithText("Select registration date")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `updates registration date after selecting past date`() = runComposeUiTest {
-        // Given
-        setContent {
-            StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _ -> },
-                onDismiss = {},
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Registration date")
-            .performClick()
-
-        onNodeWithText(
-            text = "Saturday, October 3, 2026",
-            substring = true,
-        )
-            .performClick()
-
-        onNodeWithText("OK")
-            .performClick()
-
-        onNodeWithText("Oct 3")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `provides selected registration date when student is registered`() = runComposeUiTest {
-        // Given
-        val state =
-            emptyAttendanceState(
-                packageTypes = listOf(fiveClassPackage),
-                currentDate = LocalDate(2026, 10, 6),
-            )
-
-        var registeredOn: LocalDate? = null
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, date ->
-                    registeredOn = date
-                },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithText("Add Student")
-            .performClick()
-
-        onNodeWithContentDescription("Registration date")
-            .performClick()
-
-        onNodeWithText(
-            text = "Saturday, October 3, 2026",
-            substring = true,
-        )
-            .performClick()
-
-        onNodeWithText("OK")
-            .performClick()
-
-        onNode(hasSetTextAction())
-            .performTextInput("Anna Smith")
-
-        onNodeWithText("5-class package")
-            .performClick()
-
-        onNodeWithText("Register")
-            .performClick()
-
-        // Then
-        assertEquals(
-            LocalDate(2026, 10, 3),
-            registeredOn,
-        )
-    }
-
-    @Test
-    fun `shows delete action for registered student`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = fourClassPackage,
-                                startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(fourClassPackage),
-                currentDate = today,
-            )
-
-        // When
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // Then
-        onNodeWithContentDescription("Delete Anna Smith")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `shows confirmation dialog before deleting student`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = fourClassPackage,
-                                startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(fourClassPackage),
-                currentDate = today,
-            )
-
-        var deletedStudentId: Int? = null
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = { studentId ->
-                    deletedStudentId = studentId
-                },
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Delete Anna Smith")
-            .performClick()
-
-        // Then
-        onNodeWithText("Delete student?")
-            .assertIsDisplayed()
-
-        onNodeWithText("Delete \"Anna Smith\"?")
-            .assertIsDisplayed()
-
-        onNodeWithText("Cancel")
-            .assertIsDisplayed()
-
-        onNodeWithText("Delete")
-            .assertIsDisplayed()
-
-        assertEquals(
-            null,
-            deletedStudentId,
-        )
-    }
-
-    @Test
-    fun `displays copy attendance action`() = runComposeUiTest {
-        // Given
-        val state = emptyAttendanceState()
-
-        // When
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // Then
-        onNodeWithContentDescription("Copy attendance")
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun `provides formatted attendance when copy action is clicked`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = fiveClassPackage,
-                                startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(fiveClassPackage),
-                currentDate = today,
-            )
-
-        var copiedText: String? = null
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = { text ->
-                    copiedText = text
-                },
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Copy attendance")
-            .performClick()
-
-        // Then
-        assertEquals(
-            "\tAnna Smith\t2 / 5\t(until 05/11)",
-            copiedText,
-        )
     }
 
     @Test
@@ -555,48 +150,8 @@ class AttendanceScreenTest {
     }
 
     @Test
-    fun `hides copy confirmation automatically`() = runComposeUiTest {
-        // Given
-        mainClock.autoAdvance = false
-
-        val state =
-            emptyAttendanceState(
-                currentDate = LocalDate(2026, 10, 6),
-            )
-
-        setContent {
-            AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-            )
-        }
-
-        // When
-        onNodeWithContentDescription("Copy attendance")
-            .performClick()
-
-        mainClock.advanceTimeByFrame()
-
-        // Then
-        onNodeWithText("Copied to clipboard")
-            .assertIsDisplayed()
-
-        mainClock.advanceTimeBy(5_000)
-        waitForIdle()
-
-        onNodeWithText("Copied to clipboard")
-            .assertDoesNotExist()
-    }
-
-    @Test
     fun `shows attendance dates when classes count is clicked`() = runComposeUiTest {
         // Given
-        val packageType = fiveClassPackage
-
         val state =
             attendanceContentUiState(
                 attendance =
@@ -641,7 +196,7 @@ class AttendanceScreenTest {
         }
 
         // When
-        onNodeWithText("3 / 5")
+        onNodeWithText("3 / 4")
             .performClick()
 
         // Then
@@ -675,7 +230,7 @@ class AttendanceScreenTest {
                             StudentPackage(
                                 id = 1,
                                 studentId = 1,
-                                packageType = fiveClassPackage,
+                                packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceDates =
                                 setOf(
@@ -687,7 +242,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = today,
             )
 
@@ -718,7 +273,7 @@ class AttendanceScreenTest {
         val studentPackage = StudentPackage(
             id = 1,
             studentId = student.id,
-            packageType = fiveClassPackage,
+            packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
             attendanceDates = setOf(LocalDate(2026, 10, 2)),
         )
@@ -731,7 +286,7 @@ class AttendanceScreenTest {
                     ),
                 ),
             ),
-            packageTypes = listOf(fiveClassPackage),
+            packageTypes = listOf(packageType),
             currentDate = LocalDate(2026, 10, 9),
         )
         val confirmedAttendance = mutableListOf<Pair<Int, LocalDate>>()
@@ -795,7 +350,7 @@ class AttendanceScreenTest {
                         studentPackage = StudentPackage(
                             id = 1,
                             studentId = student.id,
-                            packageType = fiveClassPackage,
+                            packageType = packageType,
                             startedOn = LocalDate(2026, 10, 2),
                             attendanceDates = setOf(
                                 LocalDate(2026, 10, 2),
@@ -805,7 +360,7 @@ class AttendanceScreenTest {
                     ),
                 ),
             ),
-            packageTypes = listOf(fiveClassPackage),
+            packageTypes = listOf(packageType),
             currentDate = LocalDate(2026, 10, 6),
         )
 
@@ -853,7 +408,7 @@ class AttendanceScreenTest {
                             StudentPackage(
                                 id = 1,
                                 studentId = student.id,
-                                packageType = fiveClassPackage,
+                                packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceDates =
                                 setOf(
@@ -863,7 +418,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = LocalDate(2026, 10, 6),
             )
 
@@ -908,7 +463,7 @@ class AttendanceScreenTest {
                             StudentPackage(
                                 id = 1,
                                 studentId = student.id,
-                                packageType = fiveClassPackage,
+                                packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceDates = setOf(
                                     LocalDate(2026, 10, 2),
@@ -918,7 +473,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = LocalDate(2026, 10, 6),
             )
 
@@ -978,7 +533,7 @@ class AttendanceScreenTest {
             StudentPackage(
                 id = 1,
                 studentId = student.id,
-                packageType = fiveClassPackage,
+                packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceDates = setOf(LocalDate(2026, 10, 2)),
             )
@@ -995,7 +550,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = LocalDate(2026, 10, 8),
             )
 
@@ -1036,7 +591,7 @@ class AttendanceScreenTest {
             StudentPackage(
                 id = 1,
                 studentId = student.id,
-                packageType = fiveClassPackage,
+                packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceDates = setOf(LocalDate(2026, 10, 2)),
             )
@@ -1053,7 +608,7 @@ class AttendanceScreenTest {
                         ),
                     ),
                 ),
-                packageTypes = listOf(fiveClassPackage),
+                packageTypes = listOf(packageType),
                 currentDate = LocalDate(2026, 10, 9),
             )
 
@@ -1095,51 +650,6 @@ class AttendanceScreenTest {
     }
 
     @Test
-    fun `confirms selected attendance date only after OK is clicked`() = runComposeUiTest {
-        // Given
-        val confirmedDates = mutableListOf<LocalDate>()
-
-        setContent {
-            AttendanceDatePickerDialog(
-                initialDate = LocalDate(2026, 10, 5),
-                currentDate = LocalDate(2026, 10, 8),
-                onConfirm = { date ->
-                    confirmedDates += date
-                },
-                onDismiss = {},
-            )
-        }
-
-        assertEquals(
-            emptyList(),
-            confirmedDates,
-        )
-
-        // When: a different allowed date is selected
-        onNodeWithText(
-            text = "Friday, October 2, 2026",
-            substring = true,
-        )
-            .performClick()
-
-        // Then: selection alone does not confirm attendance
-        assertEquals(
-            emptyList(),
-            confirmedDates,
-        )
-
-        // When
-        onNodeWithText("OK")
-            .performClick()
-
-        // Then
-        assertEquals(
-            listOf(LocalDate(2026, 10, 2)),
-            confirmedDates,
-        )
-    }
-
-    @Test
     fun `opens attendance removal confirmation when checked attendance is clicked`() = runComposeUiTest {
         // Given
         val student = Student(
@@ -1149,7 +659,7 @@ class AttendanceScreenTest {
         val studentPackage = StudentPackage(
             id = 1,
             studentId = student.id,
-            packageType = fiveClassPackage,
+            packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
             attendanceDates = setOf(
                 LocalDate(2026, 10, 2),
@@ -1165,7 +675,7 @@ class AttendanceScreenTest {
                     ),
                 ),
             ),
-            packageTypes = listOf(fiveClassPackage),
+            packageTypes = listOf(packageType),
             currentDate = LocalDate(2026, 10, 8),
         )
 

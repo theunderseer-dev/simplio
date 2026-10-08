@@ -14,7 +14,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
-class StudentRegistrationDialogTest {
+class StudentRegistrationDialogUiTest {
+    private val today = LocalDate(2026, 10, 5)
+
+    private val packageType = testFourClassPackage()
+
     @Test
     fun `displays student registration form`() = runComposeUiTest {
         val packageTypes =
@@ -149,53 +153,8 @@ class StudentRegistrationDialogTest {
     }
 
     @Test
-    fun `does not allow registration date after today`() {
-        // Given
-        val today =
-            LocalDate(
-                2026,
-                10,
-                5,
-            )
-
-        // Then
-        assertEquals(
-            true,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 5),
-                today = today,
-            ),
-        )
-
-        assertEquals(
-            true,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 4),
-                today = today,
-            ),
-        )
-
-        assertEquals(
-            false,
-            isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 6),
-                today = today,
-            ),
-        )
-    }
-
-    @Test
     fun `registers student with selected registration date`() = runComposeUiTest {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 5,
-                price = 1700,
-            )
-
         var registeredOn: LocalDate? = null
 
         setContent {
@@ -222,7 +181,7 @@ class StudentRegistrationDialogTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        onNodeWithText("5-class package")
+        onNodeWithText("4-class package")
             .performClick()
 
         onNodeWithText("Register")
@@ -233,5 +192,55 @@ class StudentRegistrationDialogTest {
             LocalDate(2026, 10, 3),
             registeredOn,
         )
+    }
+
+    @Test
+    fun `opens date picker when registration date is clicked`() = runComposeUiTest {
+        // Given
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(packageType),
+                initialDate = today,
+                onRegister = { _, _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        // Then
+        onNodeWithText("Select registration date")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `updates registration date after selecting past date`() = runComposeUiTest {
+        // Given
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(packageType),
+                initialDate = today,
+                onRegister = { _, _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Registration date")
+            .performClick()
+
+        onNodeWithText(
+            text = "Saturday, October 3, 2026",
+            substring = true,
+        )
+            .performClick()
+
+        onNodeWithText("OK")
+            .performClick()
+
+        onNodeWithText("Oct 3")
+            .assertIsDisplayed()
     }
 }
