@@ -90,7 +90,7 @@ class RegisterStudentUseCaseTest {
     }
 
     @Test
-    fun `registering paired package records two visits on registration date`() = runTest {
+    fun `registering duo package records two visits on registration date`() = runTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()

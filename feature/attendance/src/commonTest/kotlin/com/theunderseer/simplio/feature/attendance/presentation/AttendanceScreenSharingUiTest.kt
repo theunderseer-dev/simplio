@@ -33,7 +33,7 @@ class AttendanceScreenSharingUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -90,7 +90,7 @@ class AttendanceScreenSharingUiTest {
                 onCopyAttendance = { text ->
                     copiedText = text
                 },
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -120,7 +120,7 @@ class AttendanceScreenSharingUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -150,7 +150,7 @@ class AttendanceScreenSharingUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }

@@ -36,7 +36,7 @@ class PackageTypeMapperTest {
     }
 
     @Test
-    fun `maps paired package with two visits per attendance`() {
+    fun `maps duo package with two visits per attendance`() {
         // Given
         val entity =
             PackageTypeEntity(

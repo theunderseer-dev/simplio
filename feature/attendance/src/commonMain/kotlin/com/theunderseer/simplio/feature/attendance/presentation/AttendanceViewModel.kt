@@ -95,12 +95,13 @@ class AttendanceViewModel(
         }
     }
 
-    fun markStudentPresent(studentId: Int, attendanceDate: LocalDate) {
+    fun markStudentPresent(studentId: Int, attendanceDate: LocalDate, visitCount: Int = 1) {
         viewModelScope.launch {
             try {
                 markStudentPresentUseCase(
                     studentId = studentId,
                     attendanceDate = attendanceDate,
+                    visitCount = visitCount,
                 )
 
                 refreshAttendance()

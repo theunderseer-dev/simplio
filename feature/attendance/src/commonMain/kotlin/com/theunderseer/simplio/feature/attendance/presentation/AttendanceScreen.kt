@@ -48,7 +48,7 @@ fun AttendanceScreen(
     onRegisterStudent: (String, PackageType, LocalDate, Int) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
-    onMarkStudentPresent: (Int, LocalDate) -> Unit,
+    onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
     onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
 ) {
     var showRegistrationDialog by remember {
@@ -147,14 +147,19 @@ fun AttendanceScreen(
             }
 
             attendanceDatePickerStudentId?.let { studentId ->
+                val studentPackage =
+                    state.attendance.entries
+                        .first { it.student.id == studentId }
+                        .studentPackage
+
                 AttendanceDatePickerDialog(
                     initialDate = state.latestClassDate,
                     currentDate = state.currentDate,
-                    onConfirm = { selectedDate ->
-                        onMarkStudentPresent(
-                            studentId,
-                            selectedDate,
-                        )
+                    maxVisitsPerAttendance =
+                    studentPackage.packageType.maxVisitsPerAttendance,
+                    remainingClasses = studentPackage.remainingClasses,
+                    onConfirm = { selectedDate, visitCount ->
+                        onMarkStudentPresent(studentId, selectedDate, visitCount)
                         attendanceDatePickerStudentId = null
                     },
                     onDismiss = {

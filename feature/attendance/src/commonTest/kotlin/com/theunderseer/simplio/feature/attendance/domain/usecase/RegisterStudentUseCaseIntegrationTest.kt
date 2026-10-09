@@ -239,7 +239,7 @@ class RegisterStudentUseCaseIntegrationTest {
     }
 
     @Test
-    fun `registering paired package persists two visits for first attendance`() = runTest {
+    fun `registering duo package persists two visits for first attendance`() = runTest {
         // Given
         val packageTypeId =
             database.packageTypeDao().insert(

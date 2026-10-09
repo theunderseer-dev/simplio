@@ -112,7 +112,7 @@ class PackageTypeSeederTest {
     }
 
     @Test
-    fun `initialization adds special paired package to existing catalog`() = runTest {
+    fun `initialization adds special duo package to existing catalog`() = runTest {
         // Given
         val database =
             Room

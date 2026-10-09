@@ -64,7 +64,7 @@ class AttendanceScreenStudentDeletionUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -120,7 +120,7 @@ class AttendanceScreenStudentDeletionUiTest {
                     deletedStudentId = studentId
                 },
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }

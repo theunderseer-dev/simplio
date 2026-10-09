@@ -22,7 +22,7 @@ class MarkStudentPresentUseCaseTest {
     private lateinit var transactionRunner: FakeTransactionRunner
     private val studentId = 1
     private val packageType = testFiveClassPackage()
-    private val duoPackageType =
+    private val duoPackage =
         PackageType(
             id = 2,
             name = "Duo 8 · Special rate",
@@ -378,7 +378,7 @@ class MarkStudentPresentUseCaseTest {
     }
 
     @Test
-    fun `marking paired attendance records two visits for selected date`() = runTest {
+    fun `marking duo attendance records two visits for selected date`() = runTest {
         // Given
         val firstAttendance = LocalDate(2026, 10, 5)
         val nextAttendance = LocalDate(2026, 10, 9)
@@ -386,7 +386,7 @@ class MarkStudentPresentUseCaseTest {
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = firstAttendance,
             )
 
@@ -489,7 +489,7 @@ class MarkStudentPresentUseCaseTest {
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = firstAttendance,
                 attendanceDates =
                 setOf(
@@ -530,7 +530,7 @@ class MarkStudentPresentUseCaseTest {
     }
 
     @Test
-    fun `marking one remaining visit completes paired package`() = runTest {
+    fun `marking one remaining visit completes duo package`() = runTest {
         // Given
         val firstAttendance = LocalDate(2026, 10, 2)
         val finalAttendance = LocalDate(2026, 10, 26)
@@ -549,7 +549,7 @@ class MarkStudentPresentUseCaseTest {
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = firstAttendance,
                 attendanceDates = previousDates,
             )
@@ -602,7 +602,7 @@ class MarkStudentPresentUseCaseTest {
     }
 
     @Test
-    fun `repeating paired attendance preserves two visits without another repository write`() = runTest {
+    fun `repeating duo attendance preserves two visits without another repository write`() = runTest {
         // Given
         val firstAttendance = LocalDate(2026, 10, 5)
         val attendedOn = LocalDate(2026, 10, 9)
@@ -610,7 +610,7 @@ class MarkStudentPresentUseCaseTest {
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = firstAttendance,
             )
 

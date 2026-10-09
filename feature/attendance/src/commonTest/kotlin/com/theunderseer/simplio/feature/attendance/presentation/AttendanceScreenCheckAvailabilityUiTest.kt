@@ -55,7 +55,7 @@ class AttendanceScreenCheckAvailabilityUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { studentId, date ->
+                onMarkStudentPresent = { studentId, date, _ ->
                     markedAttendance += studentId to date
                 },
                 onRemoveStudentAttendance = { studentId, date ->

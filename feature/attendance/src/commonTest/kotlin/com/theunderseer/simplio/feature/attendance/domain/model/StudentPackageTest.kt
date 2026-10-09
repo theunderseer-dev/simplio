@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class StudentPackageTest {
-    private val duoPackageType =
+    private val duoPackage =
         PackageType(
             id = 3,
             name = "Duo 8 · Special rate",
@@ -26,7 +26,7 @@ class StudentPackageTest {
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -57,7 +57,7 @@ class StudentPackageTest {
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -90,14 +90,14 @@ class StudentPackageTest {
     }
 
     @Test
-    fun `paired package allows only one visit when one class remains`() {
+    fun `duo package allows only one visit when one class remains`() {
         // Given
         val startedOn = LocalDate(2026, 10, 5)
         val studentPackage =
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -118,14 +118,14 @@ class StudentPackageTest {
     }
 
     @Test
-    fun `paired package allows one or two visits when two classes remain`() {
+    fun `duo package allows one or two visits when two classes remain`() {
         // Given
         val startedOn = LocalDate(2026, 10, 5)
         val studentPackage =
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -152,7 +152,7 @@ class StudentPackageTest {
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = duoPackageType,
+                packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(

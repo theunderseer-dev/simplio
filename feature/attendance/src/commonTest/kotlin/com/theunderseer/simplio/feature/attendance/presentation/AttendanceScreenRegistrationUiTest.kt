@@ -34,7 +34,7 @@ class AttendanceScreenRegistrationUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -95,7 +95,7 @@ class AttendanceScreenRegistrationUiTest {
                 onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -124,7 +124,7 @@ class AttendanceScreenRegistrationUiTest {
                 },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }
@@ -159,9 +159,9 @@ class AttendanceScreenRegistrationUiTest {
     }
 
     @Test
-    fun `provides two visits when paired student is registered`() = runComposeUiTest {
+    fun `provides two visits when duo student is registered`() = runComposeUiTest {
         // Given
-        val pairedPackage =
+        val duoPackage =
             PackageType(
                 id = 3,
                 name = "Duo 8 · Special rate",
@@ -173,7 +173,7 @@ class AttendanceScreenRegistrationUiTest {
 
         val state =
             emptyAttendanceState(
-                packageTypes = listOf(packageType, pairedPackage),
+                packageTypes = listOf(packageType, duoPackage),
             )
 
         var registeredVisitCount: Int? = null
@@ -186,7 +186,7 @@ class AttendanceScreenRegistrationUiTest {
                 },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
             )
         }

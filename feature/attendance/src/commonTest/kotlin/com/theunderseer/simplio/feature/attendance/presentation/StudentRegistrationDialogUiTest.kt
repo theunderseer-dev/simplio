@@ -390,7 +390,7 @@ class StudentRegistrationDialogUiTest {
     }
 
     @Test
-    fun `provides one visit when one person is selected for paired registration`() = runComposeUiTest {
+    fun `provides one visit when one person is selected for duo registration`() = runComposeUiTest {
         // Given
         var registeredVisitCount: Int? = null
 
@@ -437,7 +437,7 @@ class StudentRegistrationDialogUiTest {
     }
 
     @Test
-    fun `provides two visits by default when paired student is registered`() = runComposeUiTest {
+    fun `provides two visits by default when duo student is registered`() = runComposeUiTest {
         // Given
         var registeredVisitCount: Int? = null
 

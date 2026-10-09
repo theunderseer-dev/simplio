@@ -25,7 +25,7 @@ class PackageTypeTest {
     }
 
     @Test
-    fun `paired package allows one or two visits per attendance date`() {
+    fun `duo package allows one or two visits per attendance date`() {
         // Given
         val packageType =
             PackageType(
