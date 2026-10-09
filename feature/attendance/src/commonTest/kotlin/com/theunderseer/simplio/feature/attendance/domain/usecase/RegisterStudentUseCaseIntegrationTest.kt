@@ -3,10 +3,12 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
@@ -234,5 +236,76 @@ class RegisterStudentUseCaseIntegrationTest {
             0,
             database.studentDao().count(),
         )
+    }
+
+    @Test
+    fun `registering paired package persists two visits for first attendance`() = runTest {
+        // Given
+        val packageTypeId =
+            database.packageTypeDao().insert(
+                PackageTypeEntity(
+                    name = "Duo 8 · Special rate",
+                    totalClasses = 8,
+                    validityWeeks = 4,
+                    price = 2400,
+                    maxVisitsPerAttendance = 2,
+                ),
+            ).toInt()
+
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        val registeredOn = LocalDate(2026, 10, 9)
+
+        // When
+        val result =
+            registerStudent(
+                fullName = "Anna & John",
+                packageType = packageType,
+                registeredOn = registeredOn,
+                visitCount = 2,
+            )
+
+        // Then
+        assertEquals(
+            mapOf(registeredOn to 2),
+            result.studentPackage.attendanceHistory.visitsByDate,
+        )
+
+        assertEquals(2, result.studentPackage.usedClasses)
+        assertEquals(6, result.studentPackage.remainingClasses)
+
+        assertEquals(
+            listOf(
+                AttendanceEntity(
+                    packageId = result.studentPackage.id,
+                    attendedOnEpochDay = registeredOn.toEpochDays(),
+                    visitCount = 2,
+                ),
+            ),
+            database.attendanceDao().getForPackage(result.studentPackage.id),
+        )
+
+        // And: reading the package restores its terms and visit count
+        val repository =
+            RoomStudentPackageRepository(
+                studentPackageDao = database.studentPackageDao(),
+                attendanceDao = database.attendanceDao(),
+            )
+
+        val reloadedPackage =
+            assertNotNull(
+                repository.getLatestPackageForStudent(result.student.id),
+            )
+
+        assertEquals(packageType, reloadedPackage.packageType)
+        assertEquals(result.studentPackage, reloadedPackage)
     }
 }

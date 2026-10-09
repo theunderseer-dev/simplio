@@ -16,7 +16,12 @@ class RegisterStudentUseCase(
         fullName: String,
         packageType: PackageType,
         registeredOn: LocalDate,
+        visitCount: Int = 1,
     ): RegisteredStudent = transactionRunner.run {
+        require(packageType.allowsVisitCount(visitCount)) {
+            "Visit count is not allowed for the selected package"
+        }
+
         val student = studentRepository.create(fullName = fullName)
 
         val studentPackage =
@@ -24,6 +29,7 @@ class RegisterStudentUseCase(
                 studentId = student.id,
                 packageType = packageType,
                 startedOn = registeredOn,
+                visitCount = visitCount,
             )
 
         RegisteredStudent(student = student, studentPackage = studentPackage)

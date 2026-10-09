@@ -19,13 +19,20 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
     private var nextId = (initialPackages.maxOfOrNull { it.id } ?: 0) + 1
 
-    override suspend fun create(studentId: Int, packageType: PackageType, startedOn: LocalDate): StudentPackage =
-        addPackage(
-            studentId = studentId,
-            packageType = packageType,
-            startedOn = startedOn,
-            attendanceDates = setOf(startedOn),
-        )
+    override suspend fun create(
+        studentId: Int,
+        packageType: PackageType,
+        startedOn: LocalDate,
+        visitCount: Int,
+    ): StudentPackage = addPackage(
+        studentId = studentId,
+        packageType = packageType,
+        startedOn = startedOn,
+        attendanceHistory =
+        AttendanceHistory(
+            visitsByDate = mapOf(startedOn to visitCount),
+        ),
+    )
 
     fun seed(
         studentId: Int,
@@ -36,7 +43,10 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId = studentId,
         packageType = packageType,
         startedOn = startedOn,
-        attendanceDates = attendanceDates,
+        attendanceHistory =
+        AttendanceHistory(
+            visitsByDate = attendanceDates.associateWith { 1 },
+        ),
     )
 
     override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? = storedPackages
@@ -101,7 +111,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId: Int,
         packageType: PackageType,
         startedOn: LocalDate,
-        attendanceDates: Set<LocalDate>,
+        attendanceHistory: AttendanceHistory,
     ): StudentPackage {
         val studentPackage =
             StudentPackage(
@@ -109,10 +119,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = startedOn,
-                attendanceHistory =
-                AttendanceHistory(
-                    visitsByDate = attendanceDates.associateWith { 1 },
-                ),
+                attendanceHistory = attendanceHistory,
             )
 
         storedPackages += studentPackage

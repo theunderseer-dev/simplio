@@ -14,7 +14,12 @@ class RoomStudentPackageRepository(
     private val studentPackageDao: StudentPackageDao,
     private val attendanceDao: AttendanceDao,
 ) : StudentPackageRepository {
-    override suspend fun create(studentId: Int, packageType: PackageType, startedOn: LocalDate): StudentPackage {
+    override suspend fun create(
+        studentId: Int,
+        packageType: PackageType,
+        startedOn: LocalDate,
+        visitCount: Int,
+    ): StudentPackage {
         val entity =
             StudentPackageEntity(
                 studentId = studentId,
@@ -32,6 +37,7 @@ class RoomStudentPackageRepository(
             AttendanceEntity(
                 packageId = id,
                 attendedOnEpochDay = startedOn.toEpochDays(),
+                visitCount = visitCount,
             )
 
         attendanceDao.insert(firstAttendance)

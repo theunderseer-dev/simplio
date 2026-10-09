@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
@@ -8,6 +9,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class RegisterStudentUseCaseTest {
     @Test
@@ -19,7 +22,7 @@ class RegisterStudentUseCaseTest {
         val studentName = "Anna Smith"
 
         // And
-        // a 5-class package is available
+        // a 4-class package is available
         val packageType = testFourClassPackage()
 
         // And
@@ -84,5 +87,95 @@ class RegisterStudentUseCaseTest {
         // And
         // the transaction is run
         assertEquals(1, transactionRunner.runCount)
+    }
+
+    @Test
+    fun `registering paired package records two visits on registration date`() = runTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+
+        val packageType =
+            PackageType(
+                id = 2,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        val registeredOn = LocalDate(2026, 10, 9)
+
+        val registerStudent =
+            RegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+                transactionRunner = FakeTransactionRunner(),
+            )
+
+        // When
+        val result =
+            registerStudent(
+                fullName = "Anna & John",
+                packageType = packageType,
+                registeredOn = registeredOn,
+                visitCount = 2,
+            )
+
+        // Then
+        assertEquals(
+            mapOf(registeredOn to 2),
+            result.studentPackage.attendanceHistory.visitsByDate,
+        )
+
+        assertEquals(
+            2,
+            result.studentPackage.usedClasses,
+        )
+
+        assertEquals(
+            6,
+            result.studentPackage.remainingClasses,
+        )
+
+        assertEquals(
+            result.student,
+            studentRepository.students.single(),
+        )
+
+        assertEquals(
+            result.studentPackage,
+            studentPackageRepository.getLatestPackageForStudent(
+                result.student.id,
+            ),
+        )
+    }
+
+    @Test
+    fun `registration with invalid visit count creates neither student nor package`() = runTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+
+        val registerStudent =
+            RegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+                transactionRunner = FakeTransactionRunner(),
+            )
+
+        // When / Then
+        assertFailsWith<IllegalArgumentException> {
+            registerStudent(
+                fullName = "Anna Smith",
+                packageType = testFourClassPackage(),
+                registeredOn = LocalDate(2026, 10, 9),
+                visitCount = 2,
+            )
+        }
+
+        assertTrue(studentRepository.students.isEmpty())
+        assertTrue(studentPackageRepository.packages.isEmpty())
     }
 }
