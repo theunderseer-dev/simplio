@@ -2,6 +2,8 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -21,23 +23,10 @@ class StudentRegistrationDialogUiTest {
 
     @Test
     fun `displays student registration form`() = runComposeUiTest {
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 4,
-                    price = 1400,
-                ),
-                PackageType(
-                    id = 2,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 5,
-                    price = 1700,
-                ),
-            )
+        val packageTypes = listOf(
+            testFourClassPackage(),
+            testFiveClassPackage(),
+        )
 
         val registeredDate = LocalDate(2026, 10, 5)
 
@@ -59,8 +48,11 @@ class StudentRegistrationDialogUiTest {
         onNodeWithText("4-class package")
             .assertIsDisplayed()
 
-        onNodeWithText("5-class package")
+        onNodeWithText("Package")
             .assertIsDisplayed()
+
+        onNodeWithText("5-class package")
+            .assertDoesNotExist()
 
         onNodeWithText("Register")
             .assertIsDisplayed()
@@ -72,16 +64,7 @@ class StudentRegistrationDialogUiTest {
         val today =
             LocalDate(2026, 10, 5)
 
-        val packageTypes =
-            listOf(
-                PackageType(
-                    id = 1,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 4,
-                    price = 1400,
-                ),
-            )
+        val packageTypes = listOf(testFourClassPackage())
 
         // When
         setContent {
@@ -104,14 +87,7 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registers student with entered name and selected package`() = runComposeUiTest {
         // Given
-        val packageType =
-            PackageType(
-                id = 2,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 5,
-                price = 1700,
-            )
+        val packageType = testFiveClassPackage()
 
         val registeredDate = LocalDate(2026, 10, 5)
 
@@ -134,22 +110,20 @@ class StudentRegistrationDialogUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
+        // Then: a package must still be selected
+        onNodeWithText("Register")
+            .assertIsNotEnabled()
+
+        // When
+        onNodeWithText("Package")
+            .performClick()
+
         onNodeWithText("5-class package")
             .performClick()
 
         onNodeWithText("Register")
+            .assertIsEnabled()
             .performClick()
-
-        // Then
-        assertEquals(
-            "Anna Smith",
-            registeredName,
-        )
-
-        assertEquals(
-            packageType,
-            registeredPackage,
-        )
     }
 
     @Test
@@ -180,9 +154,6 @@ class StudentRegistrationDialogUiTest {
 
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
-
-        onNodeWithText("4-class package")
-            .performClick()
 
         onNodeWithText("Register")
             .performClick()
@@ -242,5 +213,133 @@ class StudentRegistrationDialogUiTest {
 
         onNodeWithText("Oct 3")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `registration uses four class package by default regardless of list order`() = runComposeUiTest {
+        // Given
+        val fourClassPackage =
+            PackageType(
+                id = 7,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 4,
+                price = 1400,
+            )
+
+        val fiveClassPackage =
+            PackageType(
+                id = 1,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 5,
+                price = 1700,
+            )
+
+        var registeredPackage: PackageType? = null
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(fiveClassPackage, fourClassPackage),
+                initialDate = LocalDate(2026, 10, 9),
+                onRegister = { _, selectedPackage, _ ->
+                    registeredPackage = selectedPackage
+                },
+                onDismiss = {},
+            )
+        }
+
+        // Then: name is still required
+        onNodeWithText("Register")
+            .assertIsNotEnabled()
+
+        // When
+        onNode(hasSetTextAction())
+            .performTextInput("Anna Smith")
+
+        // Then: package selection requires no additional action
+        onNodeWithText("Register")
+            .assertIsEnabled()
+
+        // When
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            fourClassPackage,
+            registeredPackage,
+        )
+    }
+
+    @Test
+    fun `registers student with package selected from dropdown`() = runComposeUiTest {
+        // Given
+        val fourClassPackage =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 4,
+                price = 1400,
+            )
+
+        val fiveClassPackage =
+            PackageType(
+                id = 2,
+                name = "5-class package",
+                totalClasses = 5,
+                validityWeeks = 5,
+                price = 1700,
+            )
+
+        var registeredPackage: PackageType? = null
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(fourClassPackage, fiveClassPackage),
+                initialDate = LocalDate(2026, 10, 9),
+                onRegister = { _, selectedPackage, _ ->
+                    registeredPackage = selectedPackage
+                },
+                onDismiss = {},
+            )
+        }
+
+        // Then: unselected options are initially hidden
+        onNodeWithText("5-class package")
+            .assertDoesNotExist()
+
+        // When
+        onNodeWithText("Package")
+            .performClick()
+
+        // Then
+        onNodeWithText("5-class package")
+            .assertIsDisplayed()
+
+        // When
+        onNodeWithText("5-class package")
+            .performClick()
+
+        // Then: the selected package is displayed and the menu is closed
+        onNodeWithText("5-class package")
+            .assertIsDisplayed()
+
+        onNodeWithText("4-class package")
+            .assertDoesNotExist()
+
+        // When
+        onNode(hasSetTextAction())
+            .performTextInput("Anna Smith")
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            fiveClassPackage,
+            registeredPackage,
+        )
     }
 }

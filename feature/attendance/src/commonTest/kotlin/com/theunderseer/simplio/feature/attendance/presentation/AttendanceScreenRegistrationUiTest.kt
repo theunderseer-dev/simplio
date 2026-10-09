@@ -148,9 +148,6 @@ class AttendanceScreenRegistrationUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        onNodeWithText("4-class package")
-            .performClick()
-
         onNodeWithText("Register")
             .performClick()
 

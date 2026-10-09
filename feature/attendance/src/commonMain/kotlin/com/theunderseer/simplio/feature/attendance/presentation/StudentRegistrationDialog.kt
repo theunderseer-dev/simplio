@@ -7,7 +7,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
@@ -41,7 +45,16 @@ fun StudentRegistrationDialog(
     }
 
     var selectedPackage by remember {
-        mutableStateOf<PackageType?>(null)
+        mutableStateOf(
+            packageTypes.firstOrNull {
+                it.totalClasses == 4 &&
+                    it.maxVisitsPerAttendance == 1
+            },
+        )
+    }
+
+    var isPackageMenuExpanded by remember {
+        mutableStateOf(false)
     }
 
     var selectedDate by remember(initialDate) {
@@ -90,13 +103,49 @@ fun StudentRegistrationDialog(
                     )
                 }
 
-                packageTypes.forEach { packageType ->
-                    TextButton(
-                        onClick = {
-                            selectedPackage = packageType
+                ExposedDropdownMenuBox(
+                    expanded = isPackageMenuExpanded,
+                    onExpandedChange = {
+                        isPackageMenuExpanded = it
+                    },
+                ) {
+                    OutlinedTextField(
+                        value = selectedPackage?.name.orEmpty(),
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = {
+                            Text("Package")
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = isPackageMenuExpanded,
+                            )
+                        },
+                        modifier =
+                        Modifier.menuAnchor(
+                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                            enabled = packageTypes.isNotEmpty(),
+                        ),
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = isPackageMenuExpanded,
+                        onDismissRequest = {
+                            isPackageMenuExpanded = false
                         },
                     ) {
-                        Text(packageType.name)
+                        packageTypes.forEach { packageType ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(packageType.name)
+                                },
+                                onClick = {
+                                    selectedPackage = packageType
+                                    isPackageMenuExpanded = false
+                                },
+                            )
+                        }
                     }
                 }
             }
