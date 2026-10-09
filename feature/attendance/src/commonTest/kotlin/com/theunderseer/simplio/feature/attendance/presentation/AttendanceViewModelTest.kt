@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -693,7 +694,12 @@ class AttendanceViewModelTest {
         // Then
         val after = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
         val expectedPackage =
-            studentPackage.copy(attendanceDates = setOf(firstAttendance))
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = mapOf(firstAttendance to 1),
+                ),
+            )
         val expectedAttendance =
             Attendance(
                 entries = listOf(

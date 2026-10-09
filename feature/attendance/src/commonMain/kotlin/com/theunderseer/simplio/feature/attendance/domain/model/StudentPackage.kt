@@ -9,10 +9,16 @@ data class StudentPackage(
     val studentId: Int,
     val packageType: PackageType,
     val startedOn: LocalDate,
-    val attendanceDates: Set<LocalDate> = setOf(startedOn),
+    val attendanceHistory: AttendanceHistory =
+        AttendanceHistory(
+            visitsByDate = mapOf(startedOn to 1),
+        ),
 ) {
+    val attendanceDates: Set<LocalDate>
+        get() = attendanceHistory.visitsByDate.keys
+
     val usedClasses: Int
-        get() = attendanceDates.size
+        get() = attendanceHistory.usedClasses
 
     val expiresOn: LocalDate
         get() =

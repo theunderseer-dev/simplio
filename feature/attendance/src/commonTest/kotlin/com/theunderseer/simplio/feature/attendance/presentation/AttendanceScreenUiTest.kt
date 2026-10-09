@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -39,11 +40,14 @@ class AttendanceScreenUiTest {
                 studentId = 1,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 10, 1),
-                    LocalDate(2026, 10, 3),
-                    LocalDate(2026, 10, 5),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 1) to 1,
+                        LocalDate(2026, 10, 3) to 1,
+                        LocalDate(2026, 10, 5) to 1,
+                    ),
                 ),
             )
 
@@ -170,11 +174,14 @@ class AttendanceScreenUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 1) to 1,
+                                        LocalDate(2026, 10, 3) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -232,11 +239,14 @@ class AttendanceScreenUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 1) to 1,
+                                        LocalDate(2026, 10, 3) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -275,7 +285,13 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
-            attendanceDates = setOf(LocalDate(2026, 10, 2)),
+            attendanceHistory =
+            AttendanceHistory(
+                visitsByDate =
+                mapOf(
+                    LocalDate(2026, 10, 2) to 1,
+                ),
+            ),
         )
         val state = attendanceContentUiState(
             attendance = Attendance(
@@ -352,9 +368,13 @@ class AttendanceScreenUiTest {
                             studentId = student.id,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 2),
-                            attendanceDates = setOf(
-                                LocalDate(2026, 10, 2),
-                                LocalDate(2026, 10, 5),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 10, 2) to 1,
+                                    LocalDate(2026, 10, 5) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -410,9 +430,12 @@ class AttendanceScreenUiTest {
                                 studentId = student.id,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 2),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 2) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -465,9 +488,13 @@ class AttendanceScreenUiTest {
                                 studentId = student.id,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
-                                attendanceDates = setOf(
-                                    LocalDate(2026, 10, 2),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 2) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -535,7 +562,13 @@ class AttendanceScreenUiTest {
                 studentId = student.id,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
-                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 2) to 1,
+                    ),
+                ),
             )
 
         val state =
@@ -593,7 +626,13 @@ class AttendanceScreenUiTest {
                 studentId = student.id,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
-                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 2) to 1,
+                    ),
+                ),
             )
 
         val state =
@@ -661,9 +700,13 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
-            attendanceDates = setOf(
-                LocalDate(2026, 10, 2),
-                LocalDate(2026, 10, 5),
+            attendanceHistory =
+            AttendanceHistory(
+                visitsByDate =
+                mapOf(
+                    LocalDate(2026, 10, 2) to 1,
+                    LocalDate(2026, 10, 5) to 1,
+                ),
             ),
         )
         val state = attendanceContentUiState(

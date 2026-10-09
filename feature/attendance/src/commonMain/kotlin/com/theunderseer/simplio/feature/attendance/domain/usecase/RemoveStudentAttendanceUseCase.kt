@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
@@ -33,7 +34,12 @@ class RemoveStudentAttendanceUseCase(
             RemoveStudentAttendanceResult.Success(
                 studentPackage =
                 studentPackage.copy(
-                    attendanceDates = studentPackage.attendanceDates - attendanceDate,
+                    attendanceHistory =
+                    AttendanceHistory(
+                        visitsByDate =
+                        studentPackage.attendanceHistory.visitsByDate -
+                            attendanceDate,
+                    ),
                 ),
             )
         }

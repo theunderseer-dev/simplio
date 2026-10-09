@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceE
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -682,7 +683,14 @@ class RoomStudentPackageRepositoryTest {
         // Then: the remaining history and package details are preserved
         val expectedPackage =
             studentPackage.copy(
-                attendanceDates = setOf(firstAttendance, lastAttendance),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        firstAttendance to 1,
+                        lastAttendance to 1,
+                    ),
+                ),
             )
         val reloadedPackage =
             assertNotNull(repository.getLatestPackageForStudent(studentId))
@@ -698,7 +706,14 @@ class RoomStudentPackageRepositoryTest {
         // And: the same date remains recorded for another package
         assertEquals(
             otherStudentPackage.copy(
-                attendanceDates = setOf(firstAttendance, attendanceToRemove),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        firstAttendance to 1,
+                        attendanceToRemove to 1,
+                    ),
+                ),
             ),
             repository.getLatestPackageForStudent(otherStudentId),
         )

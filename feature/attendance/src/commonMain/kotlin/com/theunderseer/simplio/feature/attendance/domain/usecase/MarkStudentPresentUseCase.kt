@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
@@ -35,7 +36,12 @@ class MarkStudentPresentUseCase(
 
             val updatedPackage =
                 studentPackage.copy(
-                    attendanceDates = studentPackage.attendanceDates + attendanceDate,
+                    attendanceHistory =
+                    AttendanceHistory(
+                        visitsByDate =
+                        studentPackage.attendanceHistory.visitsByDate +
+                            (attendanceDate to 1),
+                    ),
                 )
 
             repository.recordAttendance(updatedPackage.id, attendanceDate)

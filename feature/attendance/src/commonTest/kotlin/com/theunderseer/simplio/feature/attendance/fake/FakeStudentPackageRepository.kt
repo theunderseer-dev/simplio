@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.fake
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -54,10 +55,16 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
         val currentPackage = storedPackages[index]
 
+        val visitsByDate = currentPackage.attendanceHistory.visitsByDate
+
         storedPackages[index] =
             currentPackage.copy(
-                attendanceDates =
-                currentPackage.attendanceDates + attendedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    visitsByDate +
+                        (attendedOn to (visitsByDate[attendedOn] ?: 1)),
+                ),
             )
 
         storedRecordedAttendances +=
@@ -81,8 +88,12 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
         storedPackages[index] =
             currentPackage.copy(
-                attendanceDates =
-                currentPackage.attendanceDates - attendedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    currentPackage.attendanceHistory.visitsByDate -
+                        attendedOn,
+                ),
             )
     }
 
@@ -98,7 +109,10 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = startedOn,
-                attendanceDates = attendanceDates,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = attendanceDates.associateWith { 1 },
+                ),
             )
 
         storedPackages += studentPackage

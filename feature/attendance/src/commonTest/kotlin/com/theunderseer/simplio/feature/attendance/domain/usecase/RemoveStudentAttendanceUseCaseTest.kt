@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
@@ -61,7 +62,14 @@ class RemoveStudentAttendanceUseCaseTest {
         val success = assertIs<RemoveStudentAttendanceResult.Success>(result)
         val expectedPackage =
             studentPackage.copy(
-                attendanceDates = setOf(firstAttendance, lastAttendance),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        firstAttendance to 1,
+                        lastAttendance to 1,
+                    ),
+                ),
             )
 
         assertEquals(
@@ -124,7 +132,10 @@ class RemoveStudentAttendanceUseCaseTest {
             )
         val expectedPackage =
             studentPackage.copy(
-                attendanceDates = setOf(firstAttendance),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = mapOf(firstAttendance to 1),
+                ),
             )
 
         // When
@@ -188,7 +199,12 @@ class RemoveStudentAttendanceUseCaseTest {
         // Then
         val success = assertIs<RemoveStudentAttendanceResult.Success>(result)
         val expectedPackage =
-            studentPackage.copy(attendanceDates = remainingDates)
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = remainingDates.associateWith { 1 },
+                ),
+            )
 
         assertEquals(expectedPackage, success.studentPackage)
         assertEquals(4, success.studentPackage.usedClasses)
@@ -230,7 +246,12 @@ class RemoveStudentAttendanceUseCaseTest {
         // Then
         val success = assertIs<RemoveStudentAttendanceResult.Success>(result)
         val expectedPackage =
-            studentPackage.copy(attendanceDates = setOf(firstAttendance))
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = mapOf(firstAttendance to 1),
+                ),
+            )
 
         assertEquals(expectedPackage, success.studentPackage)
         assertTrue(success.studentPackage.isExpiredOn(attendanceToRemove))
@@ -271,7 +292,12 @@ class RemoveStudentAttendanceUseCaseTest {
         assertEquals(1, transactionRunner.runCount)
         assertIs<RemoveStudentAttendanceResult.Success>(result)
         assertEquals(
-            studentPackage.copy(attendanceDates = setOf(firstAttendance)),
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate = mapOf(firstAttendance to 1),
+                ),
+            ),
             repository.getLatestPackageForStudent(studentPackage.studentId),
         )
     }
