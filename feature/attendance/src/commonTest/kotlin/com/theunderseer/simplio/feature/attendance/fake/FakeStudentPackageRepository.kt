@@ -43,7 +43,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         .filter { it.studentId == studentId }
         .maxByOrNull { it.startedOn }
 
-    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
+    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
         val index =
             storedPackages.indexOfFirst {
                 it.id == packageId
@@ -54,7 +54,6 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         }
 
         val currentPackage = storedPackages[index]
-
         val visitsByDate = currentPackage.attendanceHistory.visitsByDate
 
         storedPackages[index] =
@@ -63,7 +62,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 AttendanceHistory(
                     visitsByDate =
                     visitsByDate +
-                        (attendedOn to (visitsByDate[attendedOn] ?: 1)),
+                        (attendedOn to (visitsByDate[attendedOn] ?: visitCount)),
                 ),
             )
 
@@ -71,6 +70,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
             RecordedAttendance(
                 packageId = packageId,
                 attendedOn = attendedOn,
+                visitCount = visitCount,
             )
     }
 
@@ -121,4 +121,4 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
     }
 }
 
-data class RecordedAttendance(val packageId: Int, val attendedOn: LocalDate)
+data class RecordedAttendance(val packageId: Int, val attendedOn: LocalDate, val visitCount: Int = 1)

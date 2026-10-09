@@ -9,7 +9,7 @@ interface StudentPackageRepository {
 
     suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage?
 
-    suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate)
+    suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int = 1)
 
     suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate)
 }

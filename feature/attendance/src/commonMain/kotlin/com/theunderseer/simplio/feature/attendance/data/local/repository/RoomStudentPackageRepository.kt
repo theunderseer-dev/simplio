@@ -53,11 +53,12 @@ class RoomStudentPackageRepository(
         )
     }
 
-    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
+    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
         attendanceDao.insert(
             AttendanceEntity(
                 packageId = packageId,
                 attendedOnEpochDay = attendedOn.toEpochDays(),
+                visitCount = visitCount,
             ),
         )
     }
