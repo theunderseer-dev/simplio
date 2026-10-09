@@ -7,24 +7,26 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class StudentPackageTest {
+    private val duoPackageType =
+        PackageType(
+            id = 3,
+            name = "Duo 8 · Special rate",
+            totalClasses = 8,
+            validityWeeks = 4,
+            price = 2400,
+            maxVisitsPerAttendance = 2,
+        )
+
     @Test
     fun `used classes reflect visits in attendance history`() {
         // Given
         val startedOn = LocalDate(2026, 10, 5)
-        val packageType =
-            PackageType(
-                id = 3,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-            )
 
         val studentPackage =
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = packageType,
+                packageType = duoPackageType,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -51,19 +53,11 @@ class StudentPackageTest {
         // Given
         val startedOn = LocalDate(2026, 10, 5)
         val lastAttendance = LocalDate(2026, 10, 16)
-        val packageType =
-            PackageType(
-                id = 3,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-            )
         val studentPackage =
             StudentPackage(
                 id = 1,
                 studentId = 7,
-                packageType = packageType,
+                packageType = duoPackageType,
                 startedOn = startedOn,
                 attendanceHistory =
                 AttendanceHistory(
@@ -93,5 +87,114 @@ class StudentPackageTest {
 
         // Then
         assertTrue(completedPackage.isCompleted)
+    }
+
+    @Test
+    fun `paired package allows only one visit when one class remains`() {
+        // Given
+        val startedOn = LocalDate(2026, 10, 5)
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = 7,
+                packageType = duoPackageType,
+                startedOn = startedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        startedOn to 2,
+                        LocalDate(2026, 10, 9) to 2,
+                        LocalDate(2026, 10, 12) to 2,
+                        LocalDate(2026, 10, 16) to 1,
+                    ),
+                ),
+            )
+
+        // Then
+        assertEquals(1, studentPackage.remainingClasses)
+        assertTrue(studentPackage.allowsVisitCount(1))
+        assertFalse(studentPackage.allowsVisitCount(2))
+    }
+
+    @Test
+    fun `paired package allows one or two visits when two classes remain`() {
+        // Given
+        val startedOn = LocalDate(2026, 10, 5)
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = 7,
+                packageType = duoPackageType,
+                startedOn = startedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        startedOn to 2,
+                        LocalDate(2026, 10, 9) to 2,
+                        LocalDate(2026, 10, 12) to 2,
+                    ),
+                ),
+            )
+
+        // Then
+        assertEquals(2, studentPackage.remainingClasses)
+        assertTrue(studentPackage.allowsVisitCount(1))
+        assertTrue(studentPackage.allowsVisitCount(2))
+    }
+
+    @Test
+    fun `completed package does not allow further visits`() {
+        // Given
+        val startedOn = LocalDate(2026, 10, 5)
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = 7,
+                packageType = duoPackageType,
+                startedOn = startedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        startedOn to 2,
+                        LocalDate(2026, 10, 9) to 2,
+                        LocalDate(2026, 10, 12) to 2,
+                        LocalDate(2026, 10, 16) to 2,
+                    ),
+                ),
+            )
+
+        // Then
+        assertEquals(0, studentPackage.remainingClasses)
+        assertFalse(studentPackage.allowsVisitCount(1))
+        assertFalse(studentPackage.allowsVisitCount(2))
+        assertFalse(studentPackage.allowsVisitCount(0))
+    }
+
+    @Test
+    fun `individual package rejects two visits even when enough classes remain`() {
+        // Given
+        val packageType =
+            PackageType(
+                id = 1,
+                name = "4-class package",
+                totalClasses = 4,
+                validityWeeks = 4,
+                price = 1400,
+            )
+        val studentPackage =
+            StudentPackage(
+                id = 1,
+                studentId = 7,
+                packageType = packageType,
+                startedOn = LocalDate(2026, 10, 5),
+            )
+
+        // Then
+        assertEquals(3, studentPackage.remainingClasses)
+        assertTrue(studentPackage.allowsVisitCount(1))
+        assertFalse(studentPackage.allowsVisitCount(2))
     }
 }
