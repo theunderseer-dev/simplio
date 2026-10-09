@@ -904,4 +904,52 @@ class RoomStudentPackageRepositoryTest {
 
         assertEquals(3, reloadedPackage.usedClasses)
     }
+
+    @Test
+    fun `reading purchased package preserves maximum visits per attendance`() = runTest {
+        // Given
+        val studentId =
+            database.studentDao().insert(
+                StudentEntity(fullName = "Anna & John"),
+            ).toInt()
+
+        val packageTypeId =
+            database.packageTypeDao().insert(
+                PackageTypeEntity(
+                    name = "Duo 8 · Special rate",
+                    totalClasses = 8,
+                    validityWeeks = 4,
+                    price = 2400,
+                    maxVisitsPerAttendance = 2,
+                ),
+            ).toInt()
+
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        repository.create(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = LocalDate(2026, 10, 5),
+        )
+
+        // When
+        val reloadedPackage =
+            assertNotNull(
+                repository.getLatestPackageForStudent(studentId),
+            )
+
+        // Then
+        assertEquals(
+            packageType,
+            reloadedPackage.packageType,
+        )
+    }
 }

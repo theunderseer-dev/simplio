@@ -17,6 +17,7 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
         totalClasses = totalClasses,
         validityWeeks = validityWeeks,
         price = price,
+        maxVisitsPerAttendance = maxVisitsPerAttendance,
     ),
     startedOn =
     LocalDate.fromEpochDays(

@@ -24,6 +24,7 @@ class RoomStudentPackageRepository(
                 validityWeeks = packageType.validityWeeks,
                 price = packageType.price,
                 startedOnEpochDay = startedOn.toEpochDays(),
+                maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
             )
 
         val id = studentPackageDao.insert(entity).toInt()

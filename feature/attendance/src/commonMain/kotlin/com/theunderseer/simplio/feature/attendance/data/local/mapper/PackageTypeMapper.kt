@@ -9,4 +9,5 @@ fun PackageTypeEntity.toDomain(): PackageType = PackageType(
     totalClasses = totalClasses,
     validityWeeks = validityWeeks,
     price = price,
+    maxVisitsPerAttendance = maxVisitsPerAttendance,
 )

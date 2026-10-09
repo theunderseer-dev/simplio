@@ -6,7 +6,9 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 fun createAttendanceDatabase(path: String): AttendanceDatabase = Room
     .databaseBuilder<AttendanceDatabase>(
         name = path,
+    ).setDriver(BundledSQLiteDriver())
+    .addMigrations(
+        AttendanceMigration1To2,
+        AttendanceMigration2To3,
     )
-    .setDriver(BundledSQLiteDriver())
-    .addMigrations(AttendanceMigration1To2)
     .build()

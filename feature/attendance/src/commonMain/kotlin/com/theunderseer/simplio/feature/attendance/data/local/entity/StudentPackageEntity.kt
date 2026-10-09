@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -36,4 +37,7 @@ data class StudentPackageEntity(
     val validityWeeks: Int,
     val price: Int,
     val startedOnEpochDay: Long,
+
+    @ColumnInfo(defaultValue = "1")
+    val maxVisitsPerAttendance: Int = 1,
 )
