@@ -730,4 +730,70 @@ class RoomStudentPackageRepositoryTest {
             repository.getLatestPackageForStudent(studentId),
         )
     }
+
+    @Test
+    fun `reading package preserves visit counts for each attendance date`() = runTest {
+        // Given
+        val studentId =
+            database.studentDao().insert(
+                StudentEntity(fullName = "Anna & John"),
+            ).toInt()
+
+        val packageTypeId =
+            database.packageTypeDao().insert(
+                PackageTypeEntity(
+                    name = "Duo 8 · Special rate",
+                    totalClasses = 8,
+                    validityWeeks = 4,
+                    price = 2400,
+                ),
+            ).toInt()
+
+        val packageType =
+            PackageType(
+                id = packageTypeId,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+            )
+
+        val startedOn = LocalDate(2026, 10, 5)
+        val secondAttendance = LocalDate(2026, 10, 9)
+
+        val studentPackage =
+            repository.create(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = startedOn,
+            )
+
+        database.attendanceDao().insert(
+            AttendanceEntity(
+                packageId = studentPackage.id,
+                attendedOnEpochDay = secondAttendance.toEpochDays(),
+                visitCount = 2,
+            ),
+        )
+
+        // When
+        val reloadedPackage =
+            assertNotNull(
+                repository.getLatestPackageForStudent(studentId),
+            )
+
+        // Then
+        assertEquals(
+            mapOf(
+                startedOn to 1,
+                secondAttendance to 2,
+            ),
+            reloadedPackage.attendanceHistory.visitsByDate,
+        )
+
+        assertEquals(
+            3,
+            reloadedPackage.usedClasses,
+        )
+    }
 }

@@ -26,7 +26,7 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
     AttendanceHistory(
         visitsByDate =
         attendance.associate {
-            LocalDate.fromEpochDays(it.attendedOnEpochDay) to 1
+            LocalDate.fromEpochDays(it.attendedOnEpochDay) to it.visitCount
         },
     ),
 )

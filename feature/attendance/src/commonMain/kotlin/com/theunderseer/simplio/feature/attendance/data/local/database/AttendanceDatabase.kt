@@ -18,7 +18,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
         StudentPackageEntity::class,
         AttendanceEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {
