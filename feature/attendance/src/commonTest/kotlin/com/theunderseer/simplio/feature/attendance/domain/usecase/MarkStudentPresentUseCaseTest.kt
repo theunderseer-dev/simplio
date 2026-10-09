@@ -1,5 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
@@ -20,6 +22,15 @@ class MarkStudentPresentUseCaseTest {
     private lateinit var transactionRunner: FakeTransactionRunner
     private val studentId = 1
     private val packageType = testFiveClassPackage()
+    private val duoPackageType =
+        PackageType(
+            id = 2,
+            name = "Duo 8 · Special rate",
+            totalClasses = 8,
+            validityWeeks = 4,
+            price = 2400,
+            maxVisitsPerAttendance = 2,
+        )
 
     @BeforeTest
     fun setUp() {
@@ -363,6 +374,293 @@ class MarkStudentPresentUseCaseTest {
         assertEquals(
             1,
             transactionRunner.runCount,
+        )
+    }
+
+    @Test
+    fun `marking paired attendance records two visits for selected date`() = runTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 5)
+        val nextAttendance = LocalDate(2026, 10, 9)
+
+        val studentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = duoPackageType,
+                startedOn = firstAttendance,
+            )
+
+        // When
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = nextAttendance,
+                visitCount = 2,
+            )
+
+        // Then
+        val success =
+            assertIs<MarkStudentPresentResult.Success>(result)
+
+        val expectedPackage =
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        firstAttendance to 1,
+                        nextAttendance to 2,
+                    ),
+                ),
+            )
+
+        assertEquals(
+            expectedPackage,
+            success.studentPackage,
+        )
+
+        assertEquals(
+            3,
+            success.studentPackage.usedClasses,
+        )
+
+        assertEquals(
+            expectedPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        assertEquals(
+            listOf(
+                RecordedAttendance(
+                    packageId = studentPackage.id,
+                    attendedOn = nextAttendance,
+                    visitCount = 2,
+                ),
+            ),
+            repository.recordedAttendances,
+        )
+    }
+
+    @Test
+    fun `marking two visits for individual package is rejected without changes`() = runTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 5)
+        val nextAttendance = LocalDate(2026, 10, 9)
+
+        val studentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = packageType,
+                startedOn = firstAttendance,
+            )
+
+        assertEquals(
+            4,
+            studentPackage.remainingClasses,
+        )
+
+        // When
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = nextAttendance,
+                visitCount = 2,
+            )
+
+        // Then
+        assertIs<MarkStudentPresentResult.InvalidVisitCount>(result)
+
+        assertEquals(
+            studentPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        assertTrue(
+            repository.recordedAttendances.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `marking two visits when only one remains is rejected without changes`() = runTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val nextAttendance = LocalDate(2026, 10, 26)
+
+        val studentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = duoPackageType,
+                startedOn = firstAttendance,
+                attendanceDates =
+                setOf(
+                    firstAttendance,
+                    LocalDate(2026, 10, 5),
+                    LocalDate(2026, 10, 9),
+                    LocalDate(2026, 10, 12),
+                    LocalDate(2026, 10, 16),
+                    LocalDate(2026, 10, 19),
+                    LocalDate(2026, 10, 23),
+                ),
+            )
+
+        assertEquals(
+            1,
+            studentPackage.remainingClasses,
+        )
+
+        // When
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = nextAttendance,
+                visitCount = 2,
+            )
+
+        // Then
+        assertIs<MarkStudentPresentResult.InsufficientRemainingVisits>(result)
+
+        assertEquals(
+            studentPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        assertTrue(
+            repository.recordedAttendances.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `marking one remaining visit completes paired package`() = runTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val finalAttendance = LocalDate(2026, 10, 26)
+
+        val previousDates =
+            setOf(
+                firstAttendance,
+                LocalDate(2026, 10, 5),
+                LocalDate(2026, 10, 9),
+                LocalDate(2026, 10, 12),
+                LocalDate(2026, 10, 16),
+                LocalDate(2026, 10, 19),
+                LocalDate(2026, 10, 23),
+            )
+
+        val studentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = duoPackageType,
+                startedOn = firstAttendance,
+                attendanceDates = previousDates,
+            )
+
+        assertEquals(1, studentPackage.remainingClasses)
+        assertFalse(studentPackage.isCompleted)
+
+        // When
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = finalAttendance,
+                visitCount = 1,
+            )
+
+        // Then
+        val success =
+            assertIs<MarkStudentPresentResult.Success>(result)
+
+        val expectedPackage =
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    (previousDates + finalAttendance)
+                        .associateWith { 1 },
+                ),
+            )
+
+        assertEquals(expectedPackage, success.studentPackage)
+        assertEquals(8, success.studentPackage.usedClasses)
+        assertEquals(0, success.studentPackage.remainingClasses)
+        assertTrue(success.studentPackage.isCompleted)
+
+        assertEquals(
+            expectedPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        assertEquals(
+            listOf(
+                RecordedAttendance(
+                    packageId = studentPackage.id,
+                    attendedOn = finalAttendance,
+                    visitCount = 1,
+                ),
+            ),
+            repository.recordedAttendances,
+        )
+    }
+
+    @Test
+    fun `repeating paired attendance preserves two visits without another repository write`() = runTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 5)
+        val attendedOn = LocalDate(2026, 10, 9)
+
+        val studentPackage =
+            repository.seed(
+                studentId = studentId,
+                packageType = duoPackageType,
+                startedOn = firstAttendance,
+            )
+
+        repository.recordAttendance(
+            packageId = studentPackage.id,
+            attendedOn = attendedOn,
+            visitCount = 2,
+        )
+
+        val expectedPackage =
+            studentPackage.copy(
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        firstAttendance to 1,
+                        attendedOn to 2,
+                    ),
+                ),
+            )
+
+        // When
+        val result =
+            markStudentPresent(
+                studentId = studentId,
+                attendanceDate = attendedOn,
+                visitCount = 1,
+            )
+
+        // Then
+        val success =
+            assertIs<MarkStudentPresentResult.Success>(result)
+
+        assertEquals(expectedPackage, success.studentPackage)
+        assertEquals(3, success.studentPackage.usedClasses)
+
+        assertEquals(
+            expectedPackage,
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        assertEquals(
+            listOf(
+                RecordedAttendance(
+                    packageId = studentPackage.id,
+                    attendedOn = attendedOn,
+                    visitCount = 2,
+                ),
+            ),
+            repository.recordedAttendances,
         )
     }
 }
