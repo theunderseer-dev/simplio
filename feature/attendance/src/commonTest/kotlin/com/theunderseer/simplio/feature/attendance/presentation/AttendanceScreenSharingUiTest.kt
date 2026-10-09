@@ -30,7 +30,7 @@ class AttendanceScreenSharingUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -85,7 +85,7 @@ class AttendanceScreenSharingUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = { text ->
                     copiedText = text
@@ -117,7 +117,7 @@ class AttendanceScreenSharingUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -147,7 +147,7 @@ class AttendanceScreenSharingUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },

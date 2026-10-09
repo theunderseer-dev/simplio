@@ -52,7 +52,7 @@ class AttendanceScreenCheckAvailabilityUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { studentId, date ->

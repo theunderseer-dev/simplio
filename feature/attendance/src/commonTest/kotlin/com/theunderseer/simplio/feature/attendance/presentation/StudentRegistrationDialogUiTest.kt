@@ -4,6 +4,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -19,7 +21,16 @@ import kotlin.test.assertEquals
 class StudentRegistrationDialogUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val packageType = testFourClassPackage()
+    private val singlePackage = testFourClassPackage()
+    val duoPackage =
+        PackageType(
+            id = 3,
+            name = "Duo 8 · Special rate",
+            totalClasses = 8,
+            validityWeeks = 4,
+            price = 2400,
+            maxVisitsPerAttendance = 2,
+        )
 
     @Test
     fun `displays student registration form`() = runComposeUiTest {
@@ -34,7 +45,7 @@ class StudentRegistrationDialogUiTest {
             StudentRegistrationDialog(
                 packageTypes = packageTypes,
                 initialDate = registeredDate,
-                onRegister = { _, _, _ -> },
+                onRegister = { _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -71,7 +82,7 @@ class StudentRegistrationDialogUiTest {
             StudentRegistrationDialog(
                 packageTypes = packageTypes,
                 initialDate = today,
-                onRegister = { _, _, _ -> },
+                onRegister = { _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -98,7 +109,7 @@ class StudentRegistrationDialogUiTest {
             StudentRegistrationDialog(
                 packageTypes = listOf(packageType),
                 initialDate = registeredDate,
-                onRegister = { fullName, selectedPackage, _ ->
+                onRegister = { fullName, selectedPackage, _, _ ->
                     registeredName = fullName
                     registeredPackage = selectedPackage
                 },
@@ -133,9 +144,9 @@ class StudentRegistrationDialogUiTest {
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(packageType),
+                packageTypes = listOf(singlePackage),
                 initialDate = LocalDate(2026, 10, 6),
-                onRegister = { _, _, date ->
+                onRegister = { _, _, date, _ ->
                     registeredOn = date
                 },
                 onDismiss = {},
@@ -170,9 +181,9 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(packageType),
+                packageTypes = listOf(singlePackage),
                 initialDate = today,
-                onRegister = { _, _, _ -> },
+                onRegister = { _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -191,9 +202,9 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(packageType),
+                packageTypes = listOf(singlePackage),
                 initialDate = today,
-                onRegister = { _, _, _ -> },
+                onRegister = { _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -242,7 +253,7 @@ class StudentRegistrationDialogUiTest {
             StudentRegistrationDialog(
                 packageTypes = listOf(fiveClassPackage, fourClassPackage),
                 initialDate = LocalDate(2026, 10, 9),
-                onRegister = { _, selectedPackage, _ ->
+                onRegister = { _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
                 onDismiss = {},
@@ -299,7 +310,7 @@ class StudentRegistrationDialogUiTest {
             StudentRegistrationDialog(
                 packageTypes = listOf(fourClassPackage, fiveClassPackage),
                 initialDate = LocalDate(2026, 10, 9),
-                onRegister = { _, selectedPackage, _ ->
+                onRegister = { _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
                 onDismiss = {},
@@ -340,6 +351,124 @@ class StudentRegistrationDialogUiTest {
         assertEquals(
             fiveClassPackage,
             registeredPackage,
+        )
+    }
+
+    @Test
+    fun `selecting duo package defaults first attendance to two people`() = runComposeUiTest {
+        // Given
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(singlePackage, duoPackage),
+                initialDate = today,
+                onRegister = { _, _, _, _ -> },
+                onDismiss = {},
+            )
+        }
+
+        // Then: the individual package requires no visit count selection
+        onNodeWithText("1 person")
+            .assertDoesNotExist()
+
+        onNodeWithText("2 people")
+            .assertDoesNotExist()
+
+        // When
+        onNodeWithText("Package")
+            .performClick()
+
+        onNodeWithText("Duo 8 · Special rate")
+            .performClick()
+
+        // Then
+        onNodeWithText("1 person")
+            .assertIsDisplayed()
+
+        onNodeWithText("2 people")
+            .assertIsDisplayed()
+            .assertIsSelected()
+    }
+
+    @Test
+    fun `provides one visit when one person is selected for paired registration`() = runComposeUiTest {
+        // Given
+        var registeredVisitCount: Int? = null
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(singlePackage, duoPackage),
+                initialDate = today,
+                onRegister = { _, _, _, visitCount ->
+                    registeredVisitCount = visitCount
+                },
+                onDismiss = {},
+            )
+        }
+
+        onNodeWithText("Package")
+            .performClick()
+
+        onNodeWithText("Duo 8 · Special rate")
+            .performClick()
+
+        // When
+        onNodeWithText("1 person")
+            .performClick()
+
+        // Then
+        onNodeWithText("1 person")
+            .assertIsSelected()
+
+        onNodeWithText("2 people")
+            .assertIsNotSelected()
+
+        // When
+        onNode(hasSetTextAction())
+            .performTextInput("Anna & John")
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            1,
+            registeredVisitCount,
+        )
+    }
+
+    @Test
+    fun `provides two visits by default when paired student is registered`() = runComposeUiTest {
+        // Given
+        var registeredVisitCount: Int? = null
+
+        setContent {
+            StudentRegistrationDialog(
+                packageTypes = listOf(singlePackage, duoPackage),
+                initialDate = today,
+                onRegister = { _, _, _, visitCount ->
+                    registeredVisitCount = visitCount
+                },
+                onDismiss = {},
+            )
+        }
+
+        // When
+        onNodeWithText("Package")
+            .performClick()
+
+        onNodeWithText("Duo 8 · Special rate")
+            .performClick()
+
+        onNode(hasSetTextAction())
+            .performTextInput("Anna & John")
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            2,
+            registeredVisitCount,
         )
     }
 }

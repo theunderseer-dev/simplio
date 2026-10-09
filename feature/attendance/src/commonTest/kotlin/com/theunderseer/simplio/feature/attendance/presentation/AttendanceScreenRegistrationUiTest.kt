@@ -31,7 +31,7 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -92,7 +92,7 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -119,7 +119,7 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, date ->
+                onRegisterStudent = { _, _, date, _ ->
                     registeredOn = date
                 },
                 onDeleteStudent = {},
@@ -155,6 +155,62 @@ class AttendanceScreenRegistrationUiTest {
         assertEquals(
             LocalDate(2026, 10, 3),
             registeredOn,
+        )
+    }
+
+    @Test
+    fun `provides two visits when paired student is registered`() = runComposeUiTest {
+        // Given
+        val pairedPackage =
+            PackageType(
+                id = 3,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        val state =
+            emptyAttendanceState(
+                packageTypes = listOf(packageType, pairedPackage),
+            )
+
+        var registeredVisitCount: Int? = null
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _, visitCount ->
+                    registeredVisitCount = visitCount
+                },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
+            )
+        }
+
+        // When
+        onNodeWithText("Add Student")
+            .performClick()
+
+        onNodeWithText("Package")
+            .performClick()
+
+        onNodeWithText("Duo 8 · Special rate")
+            .performClick()
+
+        onNode(hasSetTextAction())
+            .performTextInput("Anna & John")
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            2,
+            registeredVisitCount,
         )
     }
 

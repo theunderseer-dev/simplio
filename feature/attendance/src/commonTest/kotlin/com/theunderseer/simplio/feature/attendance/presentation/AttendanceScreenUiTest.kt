@@ -75,7 +75,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -109,7 +109,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -136,7 +136,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -194,7 +194,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -259,7 +259,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -310,7 +310,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { studentId, date ->
@@ -388,7 +388,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -448,7 +448,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -509,7 +509,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -590,7 +590,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -654,7 +654,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },
@@ -725,7 +725,7 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _ -> },

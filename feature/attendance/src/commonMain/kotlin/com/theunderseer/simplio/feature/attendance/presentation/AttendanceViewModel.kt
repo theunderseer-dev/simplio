@@ -71,13 +71,14 @@ class AttendanceViewModel(
         loadAttendance()
     }
 
-    fun registerStudent(fullName: String, packageType: PackageType, registeredOn: LocalDate) {
+    fun registerStudent(fullName: String, packageType: PackageType, registeredOn: LocalDate, visitCount: Int = 1) {
         viewModelScope.launch {
             try {
                 registerStudentUseCase(
                     fullName = fullName,
                     packageType = packageType,
                     registeredOn = registeredOn,
+                    visitCount = visitCount,
                 )
 
                 refreshAttendance()

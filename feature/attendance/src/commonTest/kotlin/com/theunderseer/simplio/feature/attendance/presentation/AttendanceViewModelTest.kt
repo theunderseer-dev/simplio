@@ -796,6 +796,97 @@ class AttendanceViewModelTest {
         )
     }
 
+    @Test
+    fun `registers paired student with two visits and refreshes attendance`() = runViewModelTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+
+        val pairedPackage =
+            PackageType(
+                id = 3,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        val registeredOn = LocalDate(2026, 10, 3)
+
+        val viewModel =
+            AttendanceViewModel(
+                getAttendanceUseCase =
+                GetAttendanceUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                getPackageTypesUseCase =
+                createGetPackageTypesUseCase(
+                    packageTypes = listOf(pairedPackage),
+                ),
+                registerStudentUseCase =
+                createRegisterStudentUseCase(
+                    studentRepository = studentRepository,
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                markStudentPresentUseCase =
+                createMarkStudentPresentUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                removeStudentAttendanceUseCase =
+                createRemoveStudentAttendanceUseCase(
+                    studentPackageRepository = studentPackageRepository,
+                ),
+                deleteStudentUseCase =
+                DeleteStudentUseCase(
+                    studentRepository = studentRepository,
+                ),
+                currentDates = flowOf(today),
+            )
+
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        // When
+        viewModel.registerStudent(
+            fullName = "Anna & John",
+            packageType = pairedPackage,
+            registeredOn = registeredOn,
+            visitCount = 2,
+        )
+
+        advanceUntilIdle()
+
+        // Then
+        val state =
+            assertIs<AttendanceUiState.Content>(
+                viewModel.uiState.value,
+            )
+
+        val registeredStudent = state.attendance.entries.single()
+        val studentPackage = registeredStudent.studentPackage
+
+        assertEquals("Anna & John", registeredStudent.student.fullName)
+        assertEquals(pairedPackage, studentPackage.packageType)
+        assertEquals(registeredOn, studentPackage.startedOn)
+
+        assertEquals(
+            mapOf(registeredOn to 2),
+            studentPackage.attendanceHistory.visitsByDate,
+        )
+
+        assertEquals(2, studentPackage.usedClasses)
+        assertEquals(6, studentPackage.remainingClasses)
+
+        assertEquals(
+            studentPackage,
+            studentPackageRepository.getLatestPackageForStudent(
+                registeredStudent.student.id,
+            ),
+        )
+    }
+
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
             packageTypeRepository = object : PackageTypeRepository {
