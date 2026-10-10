@@ -547,12 +547,14 @@ class RenewStudentPackageUseCaseIntegrationTest {
                     studentId: Int,
                     packageType: PackageType,
                     startedOn: LocalDate,
+                    visitCount: Int,
                 ): StudentPackage {
                     val studentPackage =
                         roomRepository.create(
                             studentId = studentId,
                             packageType = packageType,
                             startedOn = startedOn,
+                            visitCount = visitCount,
                         )
 
                     createdPackageId = studentPackage.id

@@ -10,6 +10,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -184,10 +185,13 @@ class GetAttendanceUseCaseIntegrationTest {
                             studentId = studentId,
                             packageType = packageType,
                             startedOn = latestStartedOn,
-                            attendanceDates =
-                            setOf(
-                                latestStartedOn,
-                                secondAttendanceDate,
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    latestStartedOn to 1,
+                                    secondAttendanceDate to 1,
+                                ),
                             ),
                         ),
                     ),

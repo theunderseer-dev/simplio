@@ -61,6 +61,7 @@ fun main() {
                     },
                     onMarkStudentPresent = attendanceViewModel::markStudentPresent,
                     onRemoveStudentAttendance = attendanceViewModel::removeStudentAttendance,
+                    onClearMarkStudentPresentState = attendanceViewModel::clearMarkStudentPresentState,
                 )
             }
         }

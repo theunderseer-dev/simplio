@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.fake
 
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -18,13 +19,20 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
     private var nextId = (initialPackages.maxOfOrNull { it.id } ?: 0) + 1
 
-    override suspend fun create(studentId: Int, packageType: PackageType, startedOn: LocalDate): StudentPackage =
-        addPackage(
-            studentId = studentId,
-            packageType = packageType,
-            startedOn = startedOn,
-            attendanceDates = setOf(startedOn),
-        )
+    override suspend fun create(
+        studentId: Int,
+        packageType: PackageType,
+        startedOn: LocalDate,
+        visitCount: Int,
+    ): StudentPackage = addPackage(
+        studentId = studentId,
+        packageType = packageType,
+        startedOn = startedOn,
+        attendanceHistory =
+        AttendanceHistory(
+            visitsByDate = mapOf(startedOn to visitCount),
+        ),
+    )
 
     fun seed(
         studentId: Int,
@@ -35,14 +43,17 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId = studentId,
         packageType = packageType,
         startedOn = startedOn,
-        attendanceDates = attendanceDates,
+        attendanceHistory =
+        AttendanceHistory(
+            visitsByDate = attendanceDates.associateWith { 1 },
+        ),
     )
 
     override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? = storedPackages
         .filter { it.studentId == studentId }
         .maxByOrNull { it.startedOn }
 
-    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
+    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
         val index =
             storedPackages.indexOfFirst {
                 it.id == packageId
@@ -53,17 +64,23 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         }
 
         val currentPackage = storedPackages[index]
+        val visitsByDate = currentPackage.attendanceHistory.visitsByDate
 
         storedPackages[index] =
             currentPackage.copy(
-                attendanceDates =
-                currentPackage.attendanceDates + attendedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    visitsByDate +
+                        (attendedOn to (visitsByDate[attendedOn] ?: visitCount)),
+                ),
             )
 
         storedRecordedAttendances +=
             RecordedAttendance(
                 packageId = packageId,
                 attendedOn = attendedOn,
+                visitCount = visitCount,
             )
     }
 
@@ -81,8 +98,12 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
         storedPackages[index] =
             currentPackage.copy(
-                attendanceDates =
-                currentPackage.attendanceDates - attendedOn,
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    currentPackage.attendanceHistory.visitsByDate -
+                        attendedOn,
+                ),
             )
     }
 
@@ -90,7 +111,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId: Int,
         packageType: PackageType,
         startedOn: LocalDate,
-        attendanceDates: Set<LocalDate>,
+        attendanceHistory: AttendanceHistory,
     ): StudentPackage {
         val studentPackage =
             StudentPackage(
@@ -98,7 +119,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = startedOn,
-                attendanceDates = attendanceDates,
+                attendanceHistory = attendanceHistory,
             )
 
         storedPackages += studentPackage
@@ -107,4 +128,4 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
     }
 }
 
-data class RecordedAttendance(val packageId: Int, val attendedOn: LocalDate)
+data class RecordedAttendance(val packageId: Int, val attendedOn: LocalDate, val visitCount: Int = 1)

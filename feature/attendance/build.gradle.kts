@@ -13,12 +13,6 @@ kotlin {
     jvm("desktop")
 
     sourceSets {
-        val desktopTest by getting {
-            dependencies {
-                implementation(compose.desktop.currentOs)
-            }
-        }
-
         commonMain {
             dependencies {
                 api(libs.androidx.room.runtime)
@@ -39,6 +33,13 @@ kotlin {
                 implementation(libs.compose.ui.test)
             }
         }
+
+        val desktopTest by getting {
+            dependencies {
+                implementation(compose.desktop.currentOs)
+                implementation(libs.androidx.room.testing)
+            }
+        }
     }
 }
 
@@ -48,6 +49,12 @@ dependencies {
 
 room {
     schemaDirectory("$projectDir/schemas")
+}
+
+val roomSchemaDirectory: String = layout.projectDirectory.dir("schemas").asFile.absolutePath
+
+tasks.withType<Test>().configureEach {
+    systemProperty("simplio.room.schemaDirectory", roomSchemaDirectory)
 }
 
 ktlint {

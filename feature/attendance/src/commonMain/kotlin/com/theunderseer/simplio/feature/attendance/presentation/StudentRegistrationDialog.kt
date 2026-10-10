@@ -3,24 +3,34 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -33,7 +43,7 @@ import kotlin.time.Instant
 fun StudentRegistrationDialog(
     packageTypes: List<PackageType>,
     initialDate: LocalDate,
-    onRegister: (String, PackageType, LocalDate) -> Unit,
+    onRegister: (String, PackageType, LocalDate, Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var fullName by remember {
@@ -41,7 +51,25 @@ fun StudentRegistrationDialog(
     }
 
     var selectedPackage by remember {
-        mutableStateOf<PackageType?>(null)
+        mutableStateOf(
+            packageTypes.firstOrNull {
+                it.totalClasses == 4 &&
+                    it.maxVisitsPerAttendance == 1
+            },
+        )
+    }
+
+    val isPairedPackage =
+        selectedPackage?.maxVisitsPerAttendance == 2
+
+    var selectedVisitCount by remember(selectedPackage) {
+        mutableIntStateOf(
+            if (isPairedPackage) 2 else 1,
+        )
+    }
+
+    var isPackageMenuExpanded by remember {
+        mutableStateOf(false)
     }
 
     var selectedDate by remember(initialDate) {
@@ -90,13 +118,89 @@ fun StudentRegistrationDialog(
                     )
                 }
 
-                packageTypes.forEach { packageType ->
-                    TextButton(
-                        onClick = {
-                            selectedPackage = packageType
+                ExposedDropdownMenuBox(
+                    expanded = isPackageMenuExpanded,
+                    onExpandedChange = {
+                        isPackageMenuExpanded = it
+                    },
+                ) {
+                    OutlinedTextField(
+                        value = selectedPackage?.name.orEmpty(),
+                        onValueChange = {},
+                        readOnly = true,
+                        singleLine = true,
+                        label = {
+                            Text("Package")
+                        },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(
+                                expanded = isPackageMenuExpanded,
+                            )
+                        },
+                        modifier =
+                        Modifier.menuAnchor(
+                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                            enabled = packageTypes.isNotEmpty(),
+                        ),
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = isPackageMenuExpanded,
+                        onDismissRequest = {
+                            isPackageMenuExpanded = false
                         },
                     ) {
-                        Text(packageType.name)
+                        packageTypes.forEach { packageType ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(packageType.name)
+                                },
+                                onClick = {
+                                    selectedPackage = packageType
+                                    isPackageMenuExpanded = false
+                                },
+                            )
+                        }
+                    }
+
+                    if (isPairedPackage) {
+                        Column(
+                            modifier = Modifier.padding(top = 16.dp),
+                        ) {
+                            Text("People attending")
+
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier.padding(top = 8.dp),
+                            ) {
+                                SegmentedButton(
+                                    selected = selectedVisitCount == 1,
+                                    onClick = {
+                                        selectedVisitCount = 1
+                                    },
+                                    shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = 0,
+                                        count = 2,
+                                    ),
+                                ) {
+                                    Text("1 person")
+                                }
+
+                                SegmentedButton(
+                                    selected = selectedVisitCount == 2,
+                                    onClick = {
+                                        selectedVisitCount = 2
+                                    },
+                                    shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = 1,
+                                        count = 2,
+                                    ),
+                                ) {
+                                    Text("2 people")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -111,6 +215,7 @@ fun StudentRegistrationDialog(
                         fullName.trim(),
                         checkNotNull(selectedPackage),
                         selectedDate,
+                        selectedVisitCount,
                     )
                 },
             ) {

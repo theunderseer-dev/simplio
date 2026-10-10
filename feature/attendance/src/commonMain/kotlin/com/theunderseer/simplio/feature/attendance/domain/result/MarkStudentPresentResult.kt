@@ -10,4 +10,8 @@ sealed interface MarkStudentPresentResult {
     data class PackageExpired(val studentPackage: StudentPackage) : MarkStudentPresentResult
 
     data object PackageNotFound : MarkStudentPresentResult
+
+    data object InvalidVisitCount : MarkStudentPresentResult
+
+    data object InsufficientRemainingVisits : MarkStudentPresentResult
 }

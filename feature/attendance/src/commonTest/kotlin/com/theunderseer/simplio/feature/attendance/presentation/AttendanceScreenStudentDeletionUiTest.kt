@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -41,9 +42,12 @@ class AttendanceScreenStudentDeletionUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -57,11 +61,13 @@ class AttendanceScreenStudentDeletionUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+
             )
         }
 
@@ -91,9 +97,12 @@ class AttendanceScreenStudentDeletionUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -108,13 +117,15 @@ class AttendanceScreenStudentDeletionUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = { studentId ->
                     deletedStudentId = studentId
                 },
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+
             )
         }
 

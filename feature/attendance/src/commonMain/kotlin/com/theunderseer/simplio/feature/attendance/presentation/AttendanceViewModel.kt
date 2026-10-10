@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
@@ -37,11 +38,17 @@ class AttendanceViewModel(
             AttendanceDataState.Loading,
         )
 
+    private val markAttendanceState =
+        MutableStateFlow<MarkStudentPresentUiState>(
+            MarkStudentPresentUiState.Idle,
+        )
+
     val uiState: StateFlow<AttendanceUiState> =
         combine(
             attendanceData,
             currentDates,
-        ) { data, currentDate ->
+            markAttendanceState,
+        ) { data, currentDate, markState ->
             when (data) {
                 AttendanceDataState.Loading ->
                     AttendanceUiState.Loading
@@ -51,6 +58,8 @@ class AttendanceViewModel(
                         attendance = data.attendance,
                         packageTypes = data.packageTypes,
                         currentDate = currentDate,
+                    ).copy(
+                        markStudentPresentState = markState,
                     )
 
                 is AttendanceDataState.Error ->
@@ -71,13 +80,14 @@ class AttendanceViewModel(
         loadAttendance()
     }
 
-    fun registerStudent(fullName: String, packageType: PackageType, registeredOn: LocalDate) {
+    fun registerStudent(fullName: String, packageType: PackageType, registeredOn: LocalDate, visitCount: Int = 1) {
         viewModelScope.launch {
             try {
                 registerStudentUseCase(
                     fullName = fullName,
                     packageType = packageType,
                     registeredOn = registeredOn,
+                    visitCount = visitCount,
                 )
 
                 refreshAttendance()
@@ -94,20 +104,56 @@ class AttendanceViewModel(
         }
     }
 
-    fun markStudentPresent(studentId: Int, attendanceDate: LocalDate) {
+    fun markStudentPresent(studentId: Int, attendanceDate: LocalDate, visitCount: Int = 1) {
+        if (markAttendanceState.value == MarkStudentPresentUiState.Saving) {
+            return
+        }
+
+        markAttendanceState.value = MarkStudentPresentUiState.Saving
+
         viewModelScope.launch {
             try {
-                markStudentPresentUseCase(
-                    studentId = studentId,
-                    attendanceDate = attendanceDate,
-                )
+                val result =
+                    markStudentPresentUseCase(
+                        studentId = studentId,
+                        attendanceDate = attendanceDate,
+                        visitCount = visitCount,
+                    )
 
-                refreshAttendance()
+                val errorMessage =
+                    when (result) {
+                        is MarkStudentPresentResult.Success -> {
+                            refreshAttendance()
+                            markAttendanceState.value = MarkStudentPresentUiState.Success
+                            return@launch
+                        }
+
+                        is MarkStudentPresentResult.PackageCompleted ->
+                            "Student package is completed"
+
+                        is MarkStudentPresentResult.PackageExpired ->
+                            "Student package has expired"
+
+                        MarkStudentPresentResult.PackageNotFound ->
+                            "Student package for student $studentId not found"
+
+                        MarkStudentPresentResult.InvalidVisitCount ->
+                            "Visit count is not allowed for this package"
+
+                        MarkStudentPresentResult.InsufficientRemainingVisits ->
+                            "Not enough visits remaining"
+                    }
+
+                markAttendanceState.value =
+                    MarkStudentPresentUiState.Error(
+                        message = errorMessage,
+                    )
             } catch (exception: CancellationException) {
+                markAttendanceState.value = MarkStudentPresentUiState.Idle
                 throw exception
             } catch (exception: Exception) {
-                attendanceData.value =
-                    AttendanceDataState.Error(
+                markAttendanceState.value =
+                    MarkStudentPresentUiState.Error(
                         message =
                         exception.message
                             ?: "Failed to mark student present",
@@ -170,6 +216,12 @@ class AttendanceViewModel(
                         message = exception.message ?: "Failed to delete student",
                     )
             }
+        }
+    }
+
+    fun clearMarkStudentPresentState() {
+        if (markAttendanceState.value != MarkStudentPresentUiState.Saving) {
+            markAttendanceState.value = MarkStudentPresentUiState.Idle
         }
     }
 

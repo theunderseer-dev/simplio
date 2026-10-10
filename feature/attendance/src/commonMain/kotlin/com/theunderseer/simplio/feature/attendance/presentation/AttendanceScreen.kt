@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
@@ -20,6 +21,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +47,12 @@ import kotlinx.datetime.LocalDate
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    onRegisterStudent: (String, PackageType, LocalDate) -> Unit,
+    onRegisterStudent: (String, PackageType, LocalDate, Int) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
-    onMarkStudentPresent: (Int, LocalDate) -> Unit,
+    onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
     onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
+    onClearMarkStudentPresentState: () -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -72,6 +75,15 @@ fun AttendanceScreen(
 
     when (state) {
         is AttendanceUiState.Content -> {
+            val markState = state.markStudentPresentState
+
+            LaunchedEffect(markState) {
+                if (markState == MarkStudentPresentUiState.Success) {
+                    attendanceDatePickerStudentId = null
+                    onClearMarkStudentPresentState()
+                }
+            }
+
             Scaffold(
                 snackbarHost = {
                     SnackbarHost(
@@ -110,15 +122,17 @@ fun AttendanceScreen(
 
                                 when (row.checkState) {
                                     AttendanceCheckState.Pending -> {
+                                        onClearMarkStudentPresentState()
                                         attendanceDatePickerStudentId = student.id
                                     }
 
                                     AttendanceCheckState.Checked -> {
-                                        attendanceRemovalRequest = AttendanceRemovalRequest(
-                                            studentId = student.id,
-                                            studentName = student.fullName,
-                                            attendanceDate = state.latestClassDate,
-                                        )
+                                        attendanceRemovalRequest =
+                                            AttendanceRemovalRequest(
+                                                studentId = student.id,
+                                                studentName = student.fullName,
+                                                attendanceDate = state.latestClassDate,
+                                            )
                                     }
                                 }
                             }
@@ -131,11 +145,12 @@ fun AttendanceScreen(
                 StudentRegistrationDialog(
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
-                    onRegister = { fullName, packageType, registeredOn ->
+                    onRegister = { fullName, packageType, registeredOn, visitCount ->
                         onRegisterStudent(
                             fullName,
                             packageType,
                             registeredOn,
+                            visitCount,
                         )
                         showRegistrationDialog = false
                     },
@@ -146,18 +161,30 @@ fun AttendanceScreen(
             }
 
             attendanceDatePickerStudentId?.let { studentId ->
+                val studentPackage =
+                    state.attendance.entries
+                        .first { it.student.id == studentId }
+                        .studentPackage
+
                 AttendanceDatePickerDialog(
                     initialDate = state.latestClassDate,
                     currentDate = state.currentDate,
-                    onConfirm = { selectedDate ->
+                    maxVisitsPerAttendance =
+                    studentPackage.packageType.maxVisitsPerAttendance,
+                    remainingClasses = studentPackage.remainingClasses,
+                    isSaving = markState == MarkStudentPresentUiState.Saving,
+                    errorMessage =
+                    (markState as? MarkStudentPresentUiState.Error)?.message,
+                    onConfirm = { selectedDate, visitCount ->
                         onMarkStudentPresent(
                             studentId,
                             selectedDate,
+                            visitCount,
                         )
-                        attendanceDatePickerStudentId = null
                     },
                     onDismiss = {
                         attendanceDatePickerStudentId = null
+                        onClearMarkStudentPresentState()
                     },
                 )
             }
@@ -228,7 +255,21 @@ fun AttendanceScreen(
 
         AttendanceUiState.Loading -> Unit
 
-        is AttendanceUiState.Error -> Unit
+        is AttendanceUiState.Error -> {
+            Box(
+                modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = state.message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+        }
     }
 }
 

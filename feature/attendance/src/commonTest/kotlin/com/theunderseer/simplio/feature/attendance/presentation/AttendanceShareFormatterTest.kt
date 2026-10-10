@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -30,11 +31,14 @@ class AttendanceShareFormatterTest {
                             studentId = 1,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
-                            attendanceDates =
-                            setOf(
-                                LocalDate(2026, 10, 1),
-                                LocalDate(2026, 10, 3),
-                                LocalDate(2026, 10, 5),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 10, 1) to 1,
+                                    LocalDate(2026, 10, 3) to 1,
+                                    LocalDate(2026, 10, 5) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -74,12 +78,15 @@ class AttendanceShareFormatterTest {
                             studentId = 1,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
-                            attendanceDates =
-                            setOf(
-                                LocalDate(2026, 10, 1),
-                                LocalDate(2026, 10, 2),
-                                LocalDate(2026, 10, 3),
-                                LocalDate(2026, 10, 4),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 10, 1) to 1,
+                                    LocalDate(2026, 10, 2) to 1,
+                                    LocalDate(2026, 10, 3) to 1,
+                                    LocalDate(2026, 10, 4) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -119,10 +126,13 @@ class AttendanceShareFormatterTest {
                             studentId = 1,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 8, 1),
-                            attendanceDates =
-                            setOf(
-                                LocalDate(2026, 8, 1),
-                                LocalDate(2026, 8, 8),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 8, 1) to 1,
+                                    LocalDate(2026, 8, 8) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -162,10 +172,13 @@ class AttendanceShareFormatterTest {
                             studentId = 1,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
-                            attendanceDates =
-                            setOf(
-                                LocalDate(2026, 10, 1),
-                                LocalDate(2026, 10, 3),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 10, 1) to 1,
+                                    LocalDate(2026, 10, 3) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -181,10 +194,13 @@ class AttendanceShareFormatterTest {
                             studentId = 2,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 8, 1),
-                            attendanceDates =
-                            setOf(
-                                LocalDate(2026, 8, 1),
-                                LocalDate(2026, 8, 8),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 8, 1) to 1,
+                                    LocalDate(2026, 8, 8) to 1,
+                                ),
                             ),
                         ),
                     ),

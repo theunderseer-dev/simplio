@@ -14,7 +14,12 @@ class RoomStudentPackageRepository(
     private val studentPackageDao: StudentPackageDao,
     private val attendanceDao: AttendanceDao,
 ) : StudentPackageRepository {
-    override suspend fun create(studentId: Int, packageType: PackageType, startedOn: LocalDate): StudentPackage {
+    override suspend fun create(
+        studentId: Int,
+        packageType: PackageType,
+        startedOn: LocalDate,
+        visitCount: Int,
+    ): StudentPackage {
         val entity =
             StudentPackageEntity(
                 studentId = studentId,
@@ -24,6 +29,7 @@ class RoomStudentPackageRepository(
                 validityWeeks = packageType.validityWeeks,
                 price = packageType.price,
                 startedOnEpochDay = startedOn.toEpochDays(),
+                maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
             )
 
         val id = studentPackageDao.insert(entity).toInt()
@@ -31,6 +37,7 @@ class RoomStudentPackageRepository(
             AttendanceEntity(
                 packageId = id,
                 attendedOnEpochDay = startedOn.toEpochDays(),
+                visitCount = visitCount,
             )
 
         attendanceDao.insert(firstAttendance)
@@ -53,11 +60,12 @@ class RoomStudentPackageRepository(
         )
     }
 
-    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
+    override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
         attendanceDao.insert(
             AttendanceEntity(
                 packageId = packageId,
                 attendedOnEpochDay = attendedOn.toEpochDays(),
+                visitCount = visitCount,
             ),
         )
     }

@@ -7,4 +7,8 @@ fun createAttendanceDatabase(path: String): AttendanceDatabase = Room
     .databaseBuilder<AttendanceDatabase>(
         name = path,
     ).setDriver(BundledSQLiteDriver())
+    .addMigrations(
+        AttendanceMigration1To2,
+        AttendanceMigration2To3,
+    )
     .build()

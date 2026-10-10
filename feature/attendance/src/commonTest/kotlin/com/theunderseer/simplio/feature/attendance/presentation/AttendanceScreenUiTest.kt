@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -8,14 +9,17 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -29,6 +33,15 @@ class AttendanceScreenUiTest {
     private val today = LocalDate(2026, 10, 5)
 
     private val packageType = testFourClassPackage()
+    private val duoPackage =
+        PackageType(
+            id = 3,
+            name = "Duo 8 · Special rate",
+            totalClasses = 8,
+            validityWeeks = 4,
+            price = 2400,
+            maxVisitsPerAttendance = 2,
+        )
 
     @Test
     fun `displays registered student attendance`() = runComposeUiTest {
@@ -39,11 +52,14 @@ class AttendanceScreenUiTest {
                 studentId = 1,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 10, 1),
-                    LocalDate(2026, 10, 3),
-                    LocalDate(2026, 10, 5),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 1) to 1,
+                        LocalDate(2026, 10, 3) to 1,
+                        LocalDate(2026, 10, 5) to 1,
+                    ),
                 ),
             )
 
@@ -71,11 +87,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -105,11 +122,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -132,11 +150,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -170,11 +189,14 @@ class AttendanceScreenUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 1) to 1,
+                                        LocalDate(2026, 10, 3) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -187,11 +209,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -232,11 +255,14 @@ class AttendanceScreenUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 1),
-                                    LocalDate(2026, 10, 3),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 1) to 1,
+                                        LocalDate(2026, 10, 3) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -249,11 +275,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -264,47 +291,71 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `confirms attendance with student id and selected date and closes picker`() = runComposeUiTest {
+    fun `keeps attendance picker open while saving and closes after success`() = runComposeUiTest {
         // Given
         val student = Student(
             id = 7,
             fullName = "Anna Smith",
         )
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val selectedDate = LocalDate(2026, 10, 5)
+
         val studentPackage = StudentPackage(
             id = 1,
             studentId = student.id,
             packageType = packageType,
-            startedOn = LocalDate(2026, 10, 2),
-            attendanceDates = setOf(LocalDate(2026, 10, 2)),
+            startedOn = firstAttendance,
+            attendanceHistory = AttendanceHistory(
+                visitsByDate = mapOf(firstAttendance to 1),
+            ),
         )
-        val state = attendanceContentUiState(
-            attendance = Attendance(
-                entries = listOf(
-                    RegisteredStudent(
-                        student = student,
-                        studentPackage = studentPackage,
+
+        val state = mutableStateOf(
+            attendanceContentUiState(
+                attendance = Attendance(
+                    entries = listOf(
+                        RegisteredStudent(
+                            student = student,
+                            studentPackage = studentPackage,
+                        ),
                     ),
                 ),
+                packageTypes = listOf(packageType),
+                currentDate = LocalDate(2026, 10, 9),
             ),
-            packageTypes = listOf(packageType),
-            currentDate = LocalDate(2026, 10, 9),
         )
-        val confirmedAttendance = mutableListOf<Pair<Int, LocalDate>>()
+
+        val confirmedAttendance =
+            mutableListOf<Triple<Int, LocalDate, Int>>()
 
         setContent {
             AttendanceScreen(
-                state = state,
-                onRegisterStudent = { _, _, _ -> },
+                state = state.value,
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { studentId, date ->
-                    confirmedAttendance += studentId to date
+                onMarkStudentPresent = { studentId, date, visitCount ->
+                    confirmedAttendance += Triple(
+                        studentId,
+                        date,
+                        visitCount,
+                    )
+                    state.value = state.value.copy(
+                        markStudentPresentState =
+                        MarkStudentPresentUiState.Saving,
+                    )
                 },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {
+                    state.value = state.value.copy(
+                        markStudentPresentState =
+                        MarkStudentPresentUiState.Idle,
+                    )
+                },
             )
         }
 
-        // When: picker is opened and a past class date is selected
+        // When: a past class date is selected
         onNodeWithContentDescription("Mark Anna Smith present")
             .performClick()
 
@@ -314,24 +365,48 @@ class AttendanceScreenUiTest {
         )
             .performClick()
 
-        // Then: attendance is not submitted yet
-        assertEquals(
-            emptyList(),
-            confirmedAttendance,
-        )
+        // Then: selection alone does not submit attendance
+        assertEquals(emptyList(), confirmedAttendance)
 
-        // When
+        // When: attendance is submitted
         onNodeWithText("OK")
             .performClick()
 
-        // Then
+        // Then: the selected date and visit count are dispatched
         assertEquals(
-            listOf(student.id to LocalDate(2026, 10, 5)),
+            listOf(Triple(student.id, selectedDate, 1)),
             confirmedAttendance,
         )
 
+        // And: the picker remains open while saving
+        onNodeWithText("Select attendance date")
+            .assertIsDisplayed()
+
+        onNodeWithText("Saving...")
+            .assertIsNotEnabled()
+
+        onNodeWithText("Cancel")
+            .assertIsNotEnabled()
+
+        // When: saving succeeds
+        runOnIdle {
+            state.value = state.value.copy(
+                markStudentPresentState =
+                MarkStudentPresentUiState.Success,
+            )
+        }
+
+        // Then: the picker closes
         onNodeWithText("Select attendance date")
             .assertDoesNotExist()
+
+        // And: the handled result is cleared
+        runOnIdle {
+            assertEquals(
+                MarkStudentPresentUiState.Idle,
+                state.value.markStudentPresentState,
+            )
+        }
     }
 
     @Test
@@ -352,9 +427,13 @@ class AttendanceScreenUiTest {
                             studentId = student.id,
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 2),
-                            attendanceDates = setOf(
-                                LocalDate(2026, 10, 2),
-                                LocalDate(2026, 10, 5),
+                            attendanceHistory =
+                            AttendanceHistory(
+                                visitsByDate =
+                                mapOf(
+                                    LocalDate(2026, 10, 2) to 1,
+                                    LocalDate(2026, 10, 5) to 1,
+                                ),
                             ),
                         ),
                     ),
@@ -368,11 +447,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -410,9 +490,12 @@ class AttendanceScreenUiTest {
                                 studentId = student.id,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 2),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 2) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -425,11 +508,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -465,9 +549,13 @@ class AttendanceScreenUiTest {
                                 studentId = student.id,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
-                                attendanceDates = setOf(
-                                    LocalDate(2026, 10, 2),
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 2) to 1,
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -482,13 +570,14 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removedAttendance += studentId to date
                 },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -535,7 +624,13 @@ class AttendanceScreenUiTest {
                 studentId = student.id,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
-                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 2) to 1,
+                    ),
+                ),
             )
 
         val state =
@@ -557,11 +652,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -593,7 +689,13 @@ class AttendanceScreenUiTest {
                 studentId = student.id,
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
-                attendanceDates = setOf(LocalDate(2026, 10, 2)),
+                attendanceHistory =
+                AttendanceHistory(
+                    visitsByDate =
+                    mapOf(
+                        LocalDate(2026, 10, 2) to 1,
+                    ),
+                ),
             )
 
         val state =
@@ -615,11 +717,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -661,9 +764,13 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
-            attendanceDates = setOf(
-                LocalDate(2026, 10, 2),
-                LocalDate(2026, 10, 5),
+            attendanceHistory =
+            AttendanceHistory(
+                visitsByDate =
+                mapOf(
+                    LocalDate(2026, 10, 2) to 1,
+                    LocalDate(2026, 10, 5) to 1,
+                ),
             ),
         )
         val state = attendanceContentUiState(
@@ -682,11 +789,12 @@ class AttendanceScreenUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -710,6 +818,331 @@ class AttendanceScreenUiTest {
 
         onNodeWithText("Select attendance date")
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun `provides two visits when duo attendance is confirmed`() = runComposeUiTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val attendanceDate = LocalDate(2026, 10, 5)
+        val studentId = 7
+
+        val state =
+            attendanceContentUiState(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = studentId,
+                                fullName = "Anna & John",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = studentId,
+                                packageType = duoPackage,
+                                startedOn = firstAttendance,
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(firstAttendance to 2),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(duoPackage),
+                currentDate = attendanceDate,
+            )
+
+        val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { id, date, visitCount ->
+                    markedAttendance += Triple(id, date, visitCount)
+                },
+                onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna & John present")
+            .performClick()
+
+        // Then: opening the dialog does not dispatch attendance
+        onNodeWithText("2 people")
+            .assertIsSelected()
+
+        assertEquals(emptyList(), markedAttendance)
+
+        // When
+        onNodeWithText("OK")
+            .performClick()
+
+        // Then
+        assertEquals(
+            listOf(Triple(studentId, attendanceDate, 2)),
+            markedAttendance,
+        )
+    }
+
+    @Test
+    fun `provides one visit when duo package has only one visit remaining`() = runComposeUiTest {
+        // Given
+        val firstAttendance = LocalDate(2026, 9, 21)
+        val attendanceDate = LocalDate(2026, 10, 5)
+        val studentId = 7
+
+        val state =
+            attendanceContentUiState(
+                attendance =
+                Attendance(
+                    entries =
+                    listOf(
+                        RegisteredStudent(
+                            student =
+                            Student(
+                                id = studentId,
+                                fullName = "Anna & John",
+                            ),
+                            studentPackage =
+                            StudentPackage(
+                                id = 1,
+                                studentId = studentId,
+                                packageType = duoPackage,
+                                startedOn = firstAttendance,
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        firstAttendance to 2,
+                                        LocalDate(2026, 9, 25) to 2,
+                                        LocalDate(2026, 9, 28) to 2,
+                                        LocalDate(2026, 10, 2) to 1,
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(duoPackage),
+                currentDate = attendanceDate,
+            )
+
+        val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { id, date, visitCount ->
+                    markedAttendance += Triple(id, date, visitCount)
+                },
+                onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+            )
+        }
+
+        // When
+        onNodeWithContentDescription("Mark Anna & John present")
+            .performClick()
+
+        // Then
+        onNodeWithText("1 person")
+            .assertIsSelected()
+
+        onNodeWithText("2 people")
+            .assertIsNotEnabled()
+
+        onNodeWithText("Only 1 visit remaining.")
+            .assertIsDisplayed()
+
+        assertEquals(emptyList(), markedAttendance)
+
+        // When
+        onNodeWithText("OK")
+            .performClick()
+
+        // Then
+        assertEquals(
+            listOf(Triple(studentId, attendanceDate, 1)),
+            markedAttendance,
+        )
+    }
+
+    @Test
+    fun `displays attendance error message`() = runComposeUiTest {
+        // Given
+        val message = "Not enough visits remaining"
+
+        val state =
+            AttendanceUiState.Error(
+                message = message,
+            )
+
+        // When
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { _, _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+            )
+        }
+
+        // Then
+        onNodeWithText(message)
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `shows mark error inside picker and preserves selection for retry`() = runComposeUiTest {
+        // Given
+        val student = Student(
+            id = 7,
+            fullName = "Anna & John",
+        )
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val selectedDate = LocalDate(2026, 10, 5)
+        val errorMessage = "Failed to mark student present"
+
+        val studentPackage = StudentPackage(
+            id = 1,
+            studentId = student.id,
+            packageType = duoPackage,
+            startedOn = firstAttendance,
+            attendanceHistory = AttendanceHistory(
+                visitsByDate = mapOf(firstAttendance to 2),
+            ),
+        )
+
+        val state = mutableStateOf(
+            attendanceContentUiState(
+                attendance = Attendance(
+                    entries = listOf(
+                        RegisteredStudent(
+                            student = student,
+                            studentPackage = studentPackage,
+                        ),
+                    ),
+                ),
+                packageTypes = listOf(duoPackage),
+                currentDate = LocalDate(2026, 10, 9),
+            ),
+        )
+
+        val confirmedAttendance =
+            mutableListOf<Triple<Int, LocalDate, Int>>()
+
+        setContent {
+            AttendanceScreen(
+                state = state.value,
+                onRegisterStudent = { _, _, _, _ -> },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { studentId, date, visitCount ->
+                    confirmedAttendance += Triple(
+                        studentId,
+                        date,
+                        visitCount,
+                    )
+                    state.value = state.value.copy(
+                        markStudentPresentState =
+                        MarkStudentPresentUiState.Saving,
+                    )
+                },
+                onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {
+                    state.value = state.value.copy(
+                        markStudentPresentState =
+                        MarkStudentPresentUiState.Idle,
+                    )
+                },
+            )
+        }
+
+        // When: a date and one person are selected
+        onNodeWithContentDescription("Mark Anna & John present")
+            .performClick()
+
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        )
+            .performClick()
+
+        onNodeWithText("1 person")
+            .performClick()
+
+        onNodeWithText("OK")
+            .performClick()
+
+        // And: saving fails
+        runOnIdle {
+            state.value = state.value.copy(
+                markStudentPresentState =
+                MarkStudentPresentUiState.Error(
+                    message = errorMessage,
+                ),
+            )
+        }
+
+        // Then: the picker remains open with an inline error
+        onNodeWithText("Select attendance date")
+            .assertIsDisplayed()
+
+        onNode(
+            hasText(errorMessage) and hasAnyAncestor(isDialog()),
+        )
+            .assertIsDisplayed()
+
+        onNodeWithText("1 person")
+            .assertIsSelected()
+
+        onNodeWithText("OK")
+            .assertIsEnabled()
+
+        assertEquals(
+            listOf(Triple(student.id, selectedDate, 1)),
+            confirmedAttendance,
+        )
+
+        // When: the same selection is submitted again
+        onNodeWithText("OK")
+            .performClick()
+
+        // Then: both the date and visit count are preserved
+        assertEquals(
+            listOf(
+                Triple(student.id, selectedDate, 1),
+                Triple(student.id, selectedDate, 1),
+            ),
+            confirmedAttendance,
+        )
+
+        // And: the previous error disappears while retrying
+        onNodeWithText(errorMessage)
+            .assertDoesNotExist()
+
+        onNodeWithText("Saving...")
+            .assertIsNotEnabled()
+
+        onNodeWithText("Select attendance date")
+            .assertIsDisplayed()
     }
 
     private fun emptyAttendanceState(

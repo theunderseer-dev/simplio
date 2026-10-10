@@ -561,10 +561,11 @@ class MarkStudentPresentUseCaseIntegrationTest {
 
         val failingRepository =
             object : StudentPackageRepository by roomRepository {
-                override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate) {
+                override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
                     roomRepository.recordAttendance(
                         packageId = packageId,
                         attendedOn = attendedOn,
+                        visitCount = visitCount,
                     )
 
                     attendanceWasPersisted = true

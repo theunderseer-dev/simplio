@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -30,11 +31,12 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -72,9 +74,12 @@ class AttendanceScreenRegistrationUiTest {
                                 studentId = 1,
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 5),
-                                attendanceDates =
-                                setOf(
-                                    LocalDate(2026, 10, 5),
+                                attendanceHistory =
+                                AttendanceHistory(
+                                    visitsByDate =
+                                    mapOf(
+                                        LocalDate(2026, 10, 5) to 1,
+                                    ),
                                 ),
                             ),
                         ),
@@ -88,11 +93,12 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, _ -> },
+                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -115,13 +121,14 @@ class AttendanceScreenRegistrationUiTest {
         setContent {
             AttendanceScreen(
                 state = state,
-                onRegisterStudent = { _, _, date ->
+                onRegisterStudent = { _, _, date, _ ->
                     registeredOn = date
                 },
                 onDeleteStudent = {},
                 onCopyAttendance = {},
-                onMarkStudentPresent = { _, _ -> },
+                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -144,9 +151,6 @@ class AttendanceScreenRegistrationUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        onNodeWithText("4-class package")
-            .performClick()
-
         onNodeWithText("Register")
             .performClick()
 
@@ -154,6 +158,63 @@ class AttendanceScreenRegistrationUiTest {
         assertEquals(
             LocalDate(2026, 10, 3),
             registeredOn,
+        )
+    }
+
+    @Test
+    fun `provides two visits when duo student is registered`() = runComposeUiTest {
+        // Given
+        val duoPackage =
+            PackageType(
+                id = 3,
+                name = "Duo 8 · Special rate",
+                totalClasses = 8,
+                validityWeeks = 4,
+                price = 2400,
+                maxVisitsPerAttendance = 2,
+            )
+
+        val state =
+            emptyAttendanceState(
+                packageTypes = listOf(packageType, duoPackage),
+            )
+
+        var registeredVisitCount: Int? = null
+
+        setContent {
+            AttendanceScreen(
+                state = state,
+                onRegisterStudent = { _, _, _, visitCount ->
+                    registeredVisitCount = visitCount
+                },
+                onDeleteStudent = {},
+                onCopyAttendance = {},
+                onMarkStudentPresent = { _, _, _ -> },
+                onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
+            )
+        }
+
+        // When
+        onNodeWithText("Add Student")
+            .performClick()
+
+        onNodeWithText("Package")
+            .performClick()
+
+        onNodeWithText("Duo 8 · Special rate")
+            .performClick()
+
+        onNode(hasSetTextAction())
+            .performTextInput("Anna & John")
+
+        onNodeWithText("Register")
+            .performClick()
+
+        // Then
+        assertEquals(
+            2,
+            registeredVisitCount,
         )
     }
 
