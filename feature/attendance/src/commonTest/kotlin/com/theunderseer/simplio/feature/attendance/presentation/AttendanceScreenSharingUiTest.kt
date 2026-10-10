@@ -36,6 +36,7 @@ class AttendanceScreenSharingUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -94,6 +95,7 @@ class AttendanceScreenSharingUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -125,7 +127,7 @@ class AttendanceScreenSharingUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
-
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -157,7 +159,7 @@ class AttendanceScreenSharingUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
-
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 

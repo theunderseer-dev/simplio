@@ -67,7 +67,7 @@ class AttendanceScreenStudentDeletionUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
-
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -125,7 +125,7 @@ class AttendanceScreenStudentDeletionUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
-
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 

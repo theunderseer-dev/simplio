@@ -43,12 +43,18 @@ class AttendanceViewModel(
             MarkStudentPresentUiState.Idle,
         )
 
+    private val removeAttendanceState =
+        MutableStateFlow<RemoveStudentAttendanceUiState>(
+            RemoveStudentAttendanceUiState.Idle,
+        )
+
     val uiState: StateFlow<AttendanceUiState> =
         combine(
             attendanceData,
             currentDates,
             markAttendanceState,
-        ) { data, currentDate, markState ->
+            removeAttendanceState,
+        ) { data, currentDate, markState, removeState ->
             when (data) {
                 AttendanceDataState.Loading ->
                     AttendanceUiState.Loading
@@ -60,6 +66,7 @@ class AttendanceViewModel(
                         currentDate = currentDate,
                     ).copy(
                         markStudentPresentState = markState,
+                        removeStudentAttendanceState = removeState,
                     )
 
                 is AttendanceDataState.Error ->
@@ -163,6 +170,12 @@ class AttendanceViewModel(
     }
 
     fun removeStudentAttendance(studentId: Int, attendanceDate: LocalDate) {
+        if (removeAttendanceState.value == RemoveStudentAttendanceUiState.Saving) {
+            return
+        }
+
+        removeAttendanceState.value = RemoveStudentAttendanceUiState.Saving
+
         viewModelScope.launch {
             try {
                 val result =
@@ -172,26 +185,30 @@ class AttendanceViewModel(
                     )
 
                 when (result) {
-                    is RemoveStudentAttendanceResult.Success ->
+                    is RemoveStudentAttendanceResult.Success -> {
                         refreshAttendance()
+                        removeAttendanceState.value =
+                            RemoveStudentAttendanceUiState.Success
+                    }
 
                     RemoveStudentAttendanceResult.FirstAttendanceCannotBeRemoved ->
-                        attendanceData.value =
-                            AttendanceDataState.Error(
+                        removeAttendanceState.value =
+                            RemoveStudentAttendanceUiState.Error(
                                 message = "The first attendance cannot be removed",
                             )
 
                     RemoveStudentAttendanceResult.PackageNotFound ->
-                        attendanceData.value =
-                            AttendanceDataState.Error(
+                        removeAttendanceState.value =
+                            RemoveStudentAttendanceUiState.Error(
                                 message = "Student package for student $studentId not found",
                             )
                 }
             } catch (exception: CancellationException) {
+                removeAttendanceState.value = RemoveStudentAttendanceUiState.Idle
                 throw exception
             } catch (exception: Exception) {
-                attendanceData.value =
-                    AttendanceDataState.Error(
+                removeAttendanceState.value =
+                    RemoveStudentAttendanceUiState.Error(
                         message =
                         exception.message
                             ?: "Failed to remove student attendance",
@@ -222,6 +239,12 @@ class AttendanceViewModel(
     fun clearMarkStudentPresentState() {
         if (markAttendanceState.value != MarkStudentPresentUiState.Saving) {
             markAttendanceState.value = MarkStudentPresentUiState.Idle
+        }
+    }
+
+    fun clearRemoveStudentAttendanceState() {
+        if (removeAttendanceState.value != RemoveStudentAttendanceUiState.Saving) {
+            removeAttendanceState.value = RemoveStudentAttendanceUiState.Idle
         }
     }
 

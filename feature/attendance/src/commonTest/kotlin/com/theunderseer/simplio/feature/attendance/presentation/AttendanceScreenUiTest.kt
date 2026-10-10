@@ -93,6 +93,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -128,6 +129,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -156,6 +158,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -169,7 +172,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `shows attendance dates when classes count is clicked`() = runComposeUiTest {
+    fun `shows package history when classes count is clicked`() = runComposeUiTest {
         // Given
         val state =
             attendanceContentUiState(
@@ -215,6 +218,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -223,11 +227,11 @@ class AttendanceScreenUiTest {
             .performClick()
 
         // Then
-        onNodeWithText("Attendance dates")
+        onNodeWithText("Package history")
             .assertIsDisplayed()
 
         onNode(
-            hasTestTag("attendance-dates-menu") and
+            hasTestTag("package-history-menu") and
                 hasAnyDescendant(hasText("1. Oct 1")) and
                 hasAnyDescendant(hasText("2. Oct 3")) and
                 hasAnyDescendant(hasText("3. Oct 5")),
@@ -281,12 +285,13 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
         // Then
         onNodeWithContentDescription(
-            "View attendance dates for Anna Smith",
+            "View package history for Anna Smith",
         ).assertIsDisplayed()
     }
 
@@ -352,6 +357,7 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Idle,
                     )
                 },
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -453,6 +459,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -514,6 +521,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -527,7 +535,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `confirms attendance removal with student id and date and closes dialog`() = runComposeUiTest {
+    fun `requests attendance removal with student id and date`() = runComposeUiTest {
         // Given
         val student =
             Student(
@@ -578,6 +586,7 @@ class AttendanceScreenUiTest {
                     removedAttendance += studentId to date
                 },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -606,7 +615,7 @@ class AttendanceScreenUiTest {
         )
 
         onNodeWithText("Remove attendance?")
-            .assertDoesNotExist()
+            .assertIsDisplayed()
     }
 
     @Test
@@ -658,6 +667,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -723,6 +733,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -795,6 +806,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -871,6 +883,7 @@ class AttendanceScreenUiTest {
                 },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -951,6 +964,7 @@ class AttendanceScreenUiTest {
                 },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1001,6 +1015,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1072,6 +1087,7 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Idle,
                     )
                 },
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 

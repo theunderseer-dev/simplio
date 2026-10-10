@@ -37,6 +37,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -99,6 +101,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -129,6 +133,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -192,6 +198,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
