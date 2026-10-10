@@ -61,6 +61,7 @@ class AttendanceScreenCheckAvailabilityUiTest {
                 onRemoveStudentAttendance = { studentId, date ->
                     removedAttendance += studentId to date
                 },
+                onClearMarkStudentPresentState = {},
             )
         }
 

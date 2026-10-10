@@ -15,6 +15,7 @@ sealed interface AttendanceUiState {
         val currentDate: LocalDate,
         val latestClassDate: LocalDate,
         val rows: List<StudentAttendanceUiState>,
+        val markStudentPresentState: MarkStudentPresentUiState = MarkStudentPresentUiState.Idle,
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState

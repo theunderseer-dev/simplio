@@ -36,6 +36,7 @@ class AttendanceScreenRegistrationUiTest {
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -97,6 +98,7 @@ class AttendanceScreenRegistrationUiTest {
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -126,6 +128,7 @@ class AttendanceScreenRegistrationUiTest {
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 
@@ -188,6 +191,7 @@ class AttendanceScreenRegistrationUiTest {
                 onCopyAttendance = {},
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
+                onClearMarkStudentPresentState = {},
             )
         }
 

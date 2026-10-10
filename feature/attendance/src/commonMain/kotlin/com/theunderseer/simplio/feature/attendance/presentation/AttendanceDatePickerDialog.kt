@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
@@ -37,17 +38,19 @@ internal fun AttendanceDatePickerDialog(
     currentDate: LocalDate,
     maxVisitsPerAttendance: Int,
     remainingClasses: Int,
+    isSaving: Boolean = false,
+    errorMessage: String? = null,
     onConfirm: (LocalDate, Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val isPairedPackage = maxVisitsPerAttendance == 2
+    val isDuoPackage = maxVisitsPerAttendance == 2
 
     var selectedVisitCount by remember(
         maxVisitsPerAttendance,
         remainingClasses,
     ) {
         mutableIntStateOf(
-            if (isPairedPackage && remainingClasses >= 2) 2 else 1,
+            if (isDuoPackage && remainingClasses >= 2) 2 else 1,
         )
     }
 
@@ -101,26 +104,31 @@ internal fun AttendanceDatePickerDialog(
         } ?: false
 
     DatePickerDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            if (!isSaving) {
+                onDismiss()
+            }
+        },
         confirmButton = {
             TextButton(
-                enabled = canConfirm && canConfirmVisitCount,
+                enabled = canConfirm && canConfirmVisitCount && !isSaving,
                 onClick = {
                     selectedDate?.let { date ->
                         onConfirm(date, selectedVisitCount)
                     }
                 },
             ) {
-                Text(text = "OK")
+                Text(
+                    text = if (isSaving) "Saving..." else "OK",
+                )
             }
         },
         dismissButton = {
             TextButton(
+                enabled = !isSaving,
                 onClick = onDismiss,
             ) {
-                Text(
-                    text = "Cancel",
-                )
+                Text("Cancel")
             }
         },
     ) {
@@ -145,7 +153,7 @@ internal fun AttendanceDatePickerDialog(
                 )
             }
 
-            if (isPairedPackage) {
+            if (isDuoPackage) {
                 Column(
                     modifier =
                     Modifier.padding(
@@ -163,6 +171,7 @@ internal fun AttendanceDatePickerDialog(
                             onClick = {
                                 selectedVisitCount = 1
                             },
+                            enabled = !isSaving,
                             shape =
                             SegmentedButtonDefaults.itemShape(
                                 index = 0,
@@ -177,7 +186,7 @@ internal fun AttendanceDatePickerDialog(
                             onClick = {
                                 selectedVisitCount = 2
                             },
-                            enabled = remainingClasses >= 2,
+                            enabled = remainingClasses >= 2 && !isSaving,
                             shape =
                             SegmentedButtonDefaults.itemShape(
                                 index = 1,
@@ -195,6 +204,19 @@ internal fun AttendanceDatePickerDialog(
                         )
                     }
                 }
+            }
+
+            errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier =
+                    Modifier.padding(
+                        horizontal = 24.dp,
+                        vertical = 8.dp,
+                    ),
+                )
             }
         }
     }
