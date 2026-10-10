@@ -23,6 +23,9 @@ kotlin {
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.foundation)
                 implementation(libs.compose.material3)
+                implementation(libs.koin.core)
+                implementation(libs.koin.core.viewmodel)
+                implementation(libs.koin.compose.viewmodel)
             }
         }
 
