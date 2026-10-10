@@ -2,7 +2,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.mapper
 
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import kotlinx.datetime.LocalDate
@@ -24,7 +24,7 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
         startedOnEpochDay,
     ),
     attendanceHistory =
-    AttendanceHistory(
+    PackageAttendanceHistory(
         visitsByDate =
         attendance.associate {
             LocalDate.fromEpochDays(it.attendedOnEpochDay) to it.visitCount

@@ -5,12 +5,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class AttendanceHistoryTest {
+class PackageAttendanceHistoryTest {
     @Test
     fun `used classes count visits rather than attendance dates`() {
         // Given
         val history =
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
                     LocalDate(2026, 10, 5) to 2,
@@ -32,7 +32,7 @@ class AttendanceHistoryTest {
     fun `rejects zero visits for an attendance date`() {
         // When / Then
         assertFailsWith<IllegalArgumentException> {
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
                     LocalDate(2026, 10, 5) to 2,
@@ -46,7 +46,7 @@ class AttendanceHistoryTest {
     fun `rejects negative visits for an attendance date`() {
         // When / Then
         assertFailsWith<IllegalArgumentException> {
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
                     LocalDate(2026, 10, 5) to 2,
@@ -57,7 +57,7 @@ class AttendanceHistoryTest {
     }
 
     @Test
-    fun `preserves attendance history when source map changes`() {
+    fun `preserves package attendance history when source map changes`() {
         // Given
         val firstDate = LocalDate(2026, 10, 5)
         val secondDate = LocalDate(2026, 10, 9)
@@ -68,7 +68,7 @@ class AttendanceHistoryTest {
             )
 
         val history =
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate = source,
             )
 

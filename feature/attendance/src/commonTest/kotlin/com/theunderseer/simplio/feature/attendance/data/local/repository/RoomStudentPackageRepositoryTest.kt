@@ -7,7 +7,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceE
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -712,7 +712,7 @@ class RoomStudentPackageRepositoryTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         firstAttendance to 1,
@@ -750,7 +750,7 @@ class RoomStudentPackageRepositoryTest {
         val expectedOtherPackage =
             otherStudentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         firstAttendance to 1,

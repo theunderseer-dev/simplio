@@ -1,6 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.fake
 
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -28,8 +28,8 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId = studentId,
         packageType = packageType,
         startedOn = startedOn,
-        attendanceHistory =
-        AttendanceHistory(
+        packageAttendanceHistory =
+        PackageAttendanceHistory(
             visitsByDate = mapOf(startedOn to visitCount),
         ),
     )
@@ -43,8 +43,8 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId = studentId,
         packageType = packageType,
         startedOn = startedOn,
-        attendanceHistory =
-        AttendanceHistory(
+        packageAttendanceHistory =
+        PackageAttendanceHistory(
             visitsByDate = attendanceDates.associateWith { 1 },
         ),
     )
@@ -69,7 +69,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         storedPackages[index] =
             currentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     visitsByDate +
                         (attendedOn to (visitsByDate[attendedOn] ?: visitCount)),
@@ -99,7 +99,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         storedPackages[index] =
             currentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     currentPackage.attendanceHistory.visitsByDate -
                         attendedOn,
@@ -111,7 +111,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         studentId: Int,
         packageType: PackageType,
         startedOn: LocalDate,
-        attendanceHistory: AttendanceHistory,
+        packageAttendanceHistory: PackageAttendanceHistory,
     ): StudentPackage {
         val studentPackage =
             StudentPackage(
@@ -119,7 +119,7 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 studentId = studentId,
                 packageType = packageType,
                 startedOn = startedOn,
-                attendanceHistory = attendanceHistory,
+                attendanceHistory = packageAttendanceHistory,
             )
 
         storedPackages += studentPackage

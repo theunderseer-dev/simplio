@@ -19,7 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -53,7 +53,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 1),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 1) to 1,
@@ -190,7 +190,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 1) to 1,
@@ -235,7 +235,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `exposes attendance count as attendance history action`() = runComposeUiTest {
+    fun `exposes attendance count as package attendance history action`() = runComposeUiTest {
         // Given
         val state =
             attendanceContentUiState(
@@ -256,7 +256,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 1) to 1,
@@ -305,7 +305,7 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = packageType,
             startedOn = firstAttendance,
-            attendanceHistory = AttendanceHistory(
+            attendanceHistory = PackageAttendanceHistory(
                 visitsByDate = mapOf(firstAttendance to 1),
             ),
         )
@@ -428,7 +428,7 @@ class AttendanceScreenUiTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 2),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 10, 2) to 1,
@@ -491,7 +491,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 2) to 1,
@@ -550,7 +550,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 2) to 1,
@@ -625,7 +625,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 2) to 1,
@@ -690,7 +690,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 2) to 1,
@@ -765,7 +765,7 @@ class AttendanceScreenUiTest {
             packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
             attendanceHistory =
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
                     LocalDate(2026, 10, 2) to 1,
@@ -846,7 +846,7 @@ class AttendanceScreenUiTest {
                                 packageType = duoPackage,
                                 startedOn = firstAttendance,
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(firstAttendance to 2),
                                 ),
@@ -921,7 +921,7 @@ class AttendanceScreenUiTest {
                                 packageType = duoPackage,
                                 startedOn = firstAttendance,
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         firstAttendance to 2,
@@ -1025,7 +1025,7 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = duoPackage,
             startedOn = firstAttendance,
-            attendanceHistory = AttendanceHistory(
+            attendanceHistory = PackageAttendanceHistory(
                 visitsByDate = mapOf(firstAttendance to 2),
             ),
         )

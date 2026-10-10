@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -32,7 +32,7 @@ class AttendanceShareFormatterTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 10, 1) to 1,
@@ -79,7 +79,7 @@ class AttendanceShareFormatterTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 10, 1) to 1,
@@ -127,7 +127,7 @@ class AttendanceShareFormatterTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 8, 1),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 8, 1) to 1,
@@ -173,7 +173,7 @@ class AttendanceShareFormatterTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 1),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 10, 1) to 1,
@@ -195,7 +195,7 @@ class AttendanceShareFormatterTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 8, 1),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 8, 1) to 1,

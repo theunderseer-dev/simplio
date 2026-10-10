@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -66,7 +66,7 @@ class AttendanceScreenSharingUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 1) to 1,
