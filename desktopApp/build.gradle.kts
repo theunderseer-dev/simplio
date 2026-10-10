@@ -32,6 +32,8 @@ kotlin {
                 implementation(libs.kotlinx.coroutinesSwing)
                 implementation(libs.compose.uiToolingPreview)
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.koin.core)
+                implementation(libs.androidx.lifecycle.viewmodel.compose)
             }
         }
 
