@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
@@ -31,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -53,6 +55,7 @@ fun AttendanceScreen(
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
     onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
     onClearMarkStudentPresentState: () -> Unit,
+    onClearRemoveStudentAttendanceState: () -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -76,11 +79,19 @@ fun AttendanceScreen(
     when (state) {
         is AttendanceUiState.Content -> {
             val markState = state.markStudentPresentState
+            val removeState = state.removeStudentAttendanceState
 
             LaunchedEffect(markState) {
                 if (markState == MarkStudentPresentUiState.Success) {
                     attendanceDatePickerStudentId = null
                     onClearMarkStudentPresentState()
+                }
+            }
+
+            LaunchedEffect(removeState) {
+                if (removeState == RemoveStudentAttendanceUiState.Success) {
+                    attendanceRemovalRequest = null
+                    onClearRemoveStudentAttendanceState()
                 }
             }
 
@@ -127,6 +138,8 @@ fun AttendanceScreen(
                                     }
 
                                     AttendanceCheckState.Checked -> {
+                                        onClearRemoveStudentAttendanceState()
+
                                         attendanceRemovalRequest =
                                             AttendanceRemovalRequest(
                                                 studentId = student.id,
@@ -136,6 +149,18 @@ fun AttendanceScreen(
                                     }
                                 }
                             }
+                        },
+                        onRemoveStudentAttendanceClick = { row, date ->
+                            val student = row.registeredStudent.student
+
+                            onClearRemoveStudentAttendanceState()
+
+                            attendanceRemovalRequest =
+                                AttendanceRemovalRequest(
+                                    studentId = student.id,
+                                    studentName = student.fullName,
+                                    attendanceDate = date,
+                                )
                         },
                     )
                 }
@@ -193,15 +218,18 @@ fun AttendanceScreen(
                 AttendanceRemovalDialog(
                     studentName = request.studentName,
                     attendanceDate = request.attendanceDate,
+                    isSaving = removeState == RemoveStudentAttendanceUiState.Saving,
+                    errorMessage =
+                    (removeState as? RemoveStudentAttendanceUiState.Error)?.message,
                     onConfirm = {
                         onRemoveStudentAttendance(
                             request.studentId,
                             request.attendanceDate,
                         )
-                        attendanceRemovalRequest = null
                     },
                     onDismiss = {
                         attendanceRemovalRequest = null
+                        onClearRemoveStudentAttendanceState()
                     },
                 )
             }
@@ -280,6 +308,7 @@ private fun AttendanceContent(
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: () -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
+    onRemoveStudentAttendanceClick: (StudentAttendanceUiState, LocalDate) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(
@@ -301,6 +330,9 @@ private fun AttendanceContent(
                         onDeleteStudentClick(
                             row.registeredStudent.student.id,
                         )
+                    },
+                    onRemoveAttendanceClick = { date ->
+                        onRemoveStudentAttendanceClick(row, date)
                     },
                 )
 
@@ -338,12 +370,17 @@ private fun AttendanceContent(
 }
 
 @Composable
-private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: () -> Unit, onDeleteClick: () -> Unit) {
+private fun StudentAttendanceRow(
+    row: StudentAttendanceUiState,
+    onCheckClick: () -> Unit,
+    onDeleteClick: () -> Unit,
+    onRemoveAttendanceClick: (LocalDate) -> Unit,
+) {
     val registeredStudent = row.registeredStudent
     val studentPackage =
         registeredStudent.studentPackage
 
-    var showAttendanceDates by remember {
+    var showPackageHistory by remember {
         mutableStateOf(false)
     }
 
@@ -380,10 +417,10 @@ private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: ()
                         interactionSource = attendanceInteractionSource,
                     )
                     .clickable {
-                        showAttendanceDates = true
+                        showPackageHistory = true
                     }.semantics {
                         contentDescription =
-                            "View attendance dates for ${registeredStudent.student.fullName}"
+                            "View package history for ${registeredStudent.student.fullName}"
                     },
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration =
@@ -395,15 +432,16 @@ private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: ()
             )
 
             DropdownMenu(
-                expanded = showAttendanceDates,
+                expanded = showPackageHistory,
                 onDismissRequest = {
-                    showAttendanceDates = false
+                    showPackageHistory = false
                 },
-                modifier = Modifier.testTag("attendance-dates-menu"),
+                modifier = Modifier.testTag("package-history-menu"),
             ) {
                 Text(
-                    text = "Attendance dates",
-                    modifier = Modifier.padding(
+                    text = "Package history",
+                    modifier =
+                    Modifier.padding(
                         horizontal = 16.dp,
                         vertical = 8.dp,
                     ),
@@ -413,13 +451,47 @@ private fun StudentAttendanceRow(row: StudentAttendanceUiState, onCheckClick: ()
                 studentPackage.attendanceDates
                     .sorted()
                     .forEachIndexed { index, date ->
-                        Text(
-                            text = "${index + 1}. ${date.toDisplayDate()}",
-                            modifier = Modifier.padding(
-                                horizontal = 16.dp,
-                                vertical = 4.dp,
-                            ),
-                        )
+                        Row(
+                            modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    horizontal = 16.dp,
+                                    vertical = 4.dp,
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "${index + 1}. ${date.toDisplayDate()}",
+                                modifier = Modifier.weight(1f),
+                            )
+
+                            if (date != studentPackage.startedOn) {
+                                Text(
+                                    text = "×",
+                                    modifier =
+                                    Modifier
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClick = {
+                                                onRemoveAttendanceClick(date)
+                                            },
+                                        )
+                                        .semantics {
+                                            contentDescription =
+                                                "Remove attendance on ${date.toDisplayDate()} " +
+                                                "for ${registeredStudent.student.fullName}"
+                                        }
+                                        .padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp,
+                                        ),
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 20.sp,
+                                    lineHeight = 20.sp,
+                                )
+                            }
+                        }
                     }
             }
         }

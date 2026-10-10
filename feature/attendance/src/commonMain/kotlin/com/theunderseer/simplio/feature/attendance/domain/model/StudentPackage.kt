@@ -9,8 +9,8 @@ data class StudentPackage(
     val studentId: Int,
     val packageType: PackageType,
     val startedOn: LocalDate,
-    val attendanceHistory: AttendanceHistory =
-        AttendanceHistory(
+    val attendanceHistory: PackageAttendanceHistory =
+        PackageAttendanceHistory(
             visitsByDate = mapOf(startedOn to 1),
         ),
 ) {

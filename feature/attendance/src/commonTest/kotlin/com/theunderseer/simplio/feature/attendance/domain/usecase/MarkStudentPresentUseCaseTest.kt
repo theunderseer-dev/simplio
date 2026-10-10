@@ -1,6 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
@@ -405,7 +405,7 @@ class MarkStudentPresentUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         firstAttendance to 1,
@@ -572,7 +572,7 @@ class MarkStudentPresentUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     (previousDates + finalAttendance)
                         .associateWith { 1 },
@@ -623,7 +623,7 @@ class MarkStudentPresentUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         firstAttendance to 1,

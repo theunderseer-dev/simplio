@@ -1,6 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
@@ -63,7 +63,7 @@ class RemoveStudentAttendanceUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         firstAttendance to 1,
@@ -133,7 +133,7 @@ class RemoveStudentAttendanceUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate = mapOf(firstAttendance to 1),
                 ),
             )
@@ -201,7 +201,7 @@ class RemoveStudentAttendanceUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate = remainingDates.associateWith { 1 },
                 ),
             )
@@ -248,7 +248,7 @@ class RemoveStudentAttendanceUseCaseTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate = mapOf(firstAttendance to 1),
                 ),
             )
@@ -294,7 +294,7 @@ class RemoveStudentAttendanceUseCaseTest {
         assertEquals(
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate = mapOf(firstAttendance to 1),
                 ),
             ),

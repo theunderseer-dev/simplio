@@ -7,7 +7,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceE
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import kotlinx.coroutines.test.runTest
@@ -121,7 +121,7 @@ class AttendanceMigration2To3Test {
                     ),
                     startedOn = firstAttendance,
                     attendanceHistory =
-                    AttendanceHistory(
+                    PackageAttendanceHistory(
                         visitsByDate =
                         mapOf(
                             firstAttendance to 1,

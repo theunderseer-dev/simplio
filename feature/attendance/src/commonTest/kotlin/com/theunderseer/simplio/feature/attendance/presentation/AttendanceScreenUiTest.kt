@@ -19,7 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -53,7 +53,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 1),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 1) to 1,
@@ -93,6 +93,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -128,6 +129,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -156,6 +158,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -169,7 +172,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `shows attendance dates when classes count is clicked`() = runComposeUiTest {
+    fun `shows package history when classes count is clicked`() = runComposeUiTest {
         // Given
         val state =
             attendanceContentUiState(
@@ -190,7 +193,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 1) to 1,
@@ -215,6 +218,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -223,11 +227,11 @@ class AttendanceScreenUiTest {
             .performClick()
 
         // Then
-        onNodeWithText("Attendance dates")
+        onNodeWithText("Package history")
             .assertIsDisplayed()
 
         onNode(
-            hasTestTag("attendance-dates-menu") and
+            hasTestTag("package-history-menu") and
                 hasAnyDescendant(hasText("1. Oct 1")) and
                 hasAnyDescendant(hasText("2. Oct 3")) and
                 hasAnyDescendant(hasText("3. Oct 5")),
@@ -235,7 +239,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `exposes attendance count as attendance history action`() = runComposeUiTest {
+    fun `exposes attendance count as package attendance history action`() = runComposeUiTest {
         // Given
         val state =
             attendanceContentUiState(
@@ -256,7 +260,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 1),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 1) to 1,
@@ -281,12 +285,13 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
         // Then
         onNodeWithContentDescription(
-            "View attendance dates for Anna Smith",
+            "View package history for Anna Smith",
         ).assertIsDisplayed()
     }
 
@@ -305,7 +310,7 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = packageType,
             startedOn = firstAttendance,
-            attendanceHistory = AttendanceHistory(
+            attendanceHistory = PackageAttendanceHistory(
                 visitsByDate = mapOf(firstAttendance to 1),
             ),
         )
@@ -352,6 +357,7 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Idle,
                     )
                 },
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -428,7 +434,7 @@ class AttendanceScreenUiTest {
                             packageType = packageType,
                             startedOn = LocalDate(2026, 10, 2),
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate =
                                 mapOf(
                                     LocalDate(2026, 10, 2) to 1,
@@ -453,6 +459,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -491,7 +498,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 2) to 1,
@@ -514,6 +521,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -527,7 +535,7 @@ class AttendanceScreenUiTest {
     }
 
     @Test
-    fun `confirms attendance removal with student id and date and closes dialog`() = runComposeUiTest {
+    fun `requests attendance removal with student id and date`() = runComposeUiTest {
         // Given
         val student =
             Student(
@@ -550,7 +558,7 @@ class AttendanceScreenUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 2),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 2) to 1,
@@ -578,6 +586,7 @@ class AttendanceScreenUiTest {
                     removedAttendance += studentId to date
                 },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -606,7 +615,7 @@ class AttendanceScreenUiTest {
         )
 
         onNodeWithText("Remove attendance?")
-            .assertDoesNotExist()
+            .assertIsDisplayed()
     }
 
     @Test
@@ -625,7 +634,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 2) to 1,
@@ -658,6 +667,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -690,7 +700,7 @@ class AttendanceScreenUiTest {
                 packageType = packageType,
                 startedOn = LocalDate(2026, 10, 2),
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         LocalDate(2026, 10, 2) to 1,
@@ -723,6 +733,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -765,7 +776,7 @@ class AttendanceScreenUiTest {
             packageType = packageType,
             startedOn = LocalDate(2026, 10, 2),
             attendanceHistory =
-            AttendanceHistory(
+            PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
                     LocalDate(2026, 10, 2) to 1,
@@ -795,6 +806,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -846,7 +858,7 @@ class AttendanceScreenUiTest {
                                 packageType = duoPackage,
                                 startedOn = firstAttendance,
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(firstAttendance to 2),
                                 ),
@@ -871,6 +883,7 @@ class AttendanceScreenUiTest {
                 },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -921,7 +934,7 @@ class AttendanceScreenUiTest {
                                 packageType = duoPackage,
                                 startedOn = firstAttendance,
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         firstAttendance to 2,
@@ -951,6 +964,7 @@ class AttendanceScreenUiTest {
                 },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1001,6 +1015,7 @@ class AttendanceScreenUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1025,7 +1040,7 @@ class AttendanceScreenUiTest {
             studentId = student.id,
             packageType = duoPackage,
             startedOn = firstAttendance,
-            attendanceHistory = AttendanceHistory(
+            attendanceHistory = PackageAttendanceHistory(
                 visitsByDate = mapOf(firstAttendance to 2),
             ),
         )
@@ -1072,6 +1087,7 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Idle,
                     )
                 },
+                onClearRemoveStudentAttendanceState = {},
             )
         }
 

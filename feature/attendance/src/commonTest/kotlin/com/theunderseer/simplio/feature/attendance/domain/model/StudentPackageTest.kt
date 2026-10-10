@@ -18,7 +18,7 @@ class StudentPackageTest {
         )
 
     @Test
-    fun `used classes reflect visits in attendance history`() {
+    fun `used classes reflect visits in package attendance history`() {
         // Given
         val startedOn = LocalDate(2026, 10, 5)
 
@@ -29,7 +29,7 @@ class StudentPackageTest {
                 packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         startedOn to 2,
@@ -60,7 +60,7 @@ class StudentPackageTest {
                 packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         startedOn to 2,
@@ -78,7 +78,7 @@ class StudentPackageTest {
         val completedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     studentPackage.attendanceHistory.visitsByDate +
                         (lastAttendance to 2),
@@ -100,7 +100,7 @@ class StudentPackageTest {
                 packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         startedOn to 2,
@@ -128,7 +128,7 @@ class StudentPackageTest {
                 packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         startedOn to 2,
@@ -155,7 +155,7 @@ class StudentPackageTest {
                 packageType = duoPackage,
                 startedOn = startedOn,
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
                         startedOn to 2,

@@ -2,7 +2,7 @@ package com.theunderseer.simplio.feature.attendance.domain.model
 
 import kotlinx.datetime.LocalDate
 
-class AttendanceHistory(visitsByDate: Map<LocalDate, Int>) {
+class PackageAttendanceHistory(visitsByDate: Map<LocalDate, Int>) {
     val visitsByDate: Map<LocalDate, Int> = visitsByDate.toMap()
 
     init {
@@ -15,7 +15,7 @@ class AttendanceHistory(visitsByDate: Map<LocalDate, Int>) {
         get() = visitsByDate.values.sum()
 
     override fun equals(other: Any?): Boolean = this === other ||
-        (other is AttendanceHistory && visitsByDate == other.visitsByDate)
+        (other is PackageAttendanceHistory && visitsByDate == other.visitsByDate)
 
     override fun hashCode(): Int = visitsByDate.hashCode()
 

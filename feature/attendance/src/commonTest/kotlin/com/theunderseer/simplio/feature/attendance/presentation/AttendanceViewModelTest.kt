@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -712,7 +712,7 @@ class AttendanceViewModelTest {
         val expectedPackage =
             studentPackage.copy(
                 attendanceHistory =
-                AttendanceHistory(
+                PackageAttendanceHistory(
                     visitsByDate = mapOf(firstAttendance to 1),
                 ),
             )
@@ -741,7 +741,7 @@ class AttendanceViewModelTest {
     }
 
     @Test
-    fun `reports first attendance removal rejection and preserves stored package`() = runViewModelTest {
+    fun `keeps attendance content when first attendance removal is rejected`() = runViewModelTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
@@ -792,7 +792,8 @@ class AttendanceViewModelTest {
 
         observeUiState(viewModel)
         advanceUntilIdle()
-        assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+        val before =
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
 
         // When
         viewModel.removeStudentAttendance(
@@ -801,11 +802,21 @@ class AttendanceViewModelTest {
         )
         advanceUntilIdle()
 
-        // Then
+        // Then: the table remains available with an operation error
+        val after =
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+
         assertEquals(
-            AttendanceUiState.Error(message = "The first attendance cannot be removed"),
-            viewModel.uiState.value,
+            before.copy(
+                removeStudentAttendanceState =
+                RemoveStudentAttendanceUiState.Error(
+                    message = "The first attendance cannot be removed",
+                ),
+            ),
+            after,
         )
+
+        // And: the stored package remains unchanged
         assertEquals(
             studentPackage,
             studentPackageRepository.getLatestPackageForStudent(student.id),
@@ -1334,6 +1345,156 @@ class AttendanceViewModelTest {
         assertEquals(
             savedState.copy(
                 markStudentPresentState = MarkStudentPresentUiState.Idle,
+            ),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
+    fun `ignores repeated removal requests while saving and restores all visits for removed date`() = runViewModelTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val firstAttendance = LocalDate(2026, 10, 2)
+        val attendanceToRemove = LocalDate(2026, 10, 5)
+
+        val student = studentRepository.seed(
+            Student(
+                id = 7,
+                fullName = "Anna and John",
+            ),
+        )
+
+        val studentPackage = studentPackageRepository.create(
+            studentId = student.id,
+            packageType = duoPackage,
+            startedOn = firstAttendance,
+            visitCount = 2,
+        )
+
+        studentPackageRepository.recordAttendance(
+            packageId = studentPackage.id,
+            attendedOn = attendanceToRemove,
+            visitCount = 2,
+        )
+
+        val allowRemoval = CompletableDeferred<Unit>()
+        var removalCalls = 0
+
+        val delayedRepository =
+            object : StudentPackageRepository by studentPackageRepository {
+                override suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate) {
+                    removalCalls++
+                    allowRemoval.await()
+
+                    studentPackageRepository.removeAttendance(
+                        packageId = packageId,
+                        attendedOn = attendedOn,
+                    )
+                }
+            }
+
+        val viewModel = AttendanceViewModel(
+            getAttendanceUseCase = GetAttendanceUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            ),
+            getPackageTypesUseCase = createGetPackageTypesUseCase(
+                packageTypes = listOf(duoPackage),
+            ),
+            registerStudentUseCase = createRegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+            ),
+            markStudentPresentUseCase = createMarkStudentPresentUseCase(
+                studentPackageRepository = studentPackageRepository,
+            ),
+            removeStudentAttendanceUseCase = RemoveStudentAttendanceUseCase(
+                repository = delayedRepository,
+                transactionRunner = transactionRunner,
+            ),
+            deleteStudentUseCase = DeleteStudentUseCase(
+                studentRepository = studentRepository,
+            ),
+            currentDates = flowOf(today),
+        )
+
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        val before =
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+
+        assertEquals(
+            4,
+            before.attendance.entries.single().studentPackage.remainingClasses,
+        )
+
+        // When: removal starts and remains suspended
+        viewModel.removeStudentAttendance(
+            studentId = student.id,
+            attendanceDate = attendanceToRemove,
+        )
+        runCurrent()
+
+        val savingState =
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+
+        // Then: attendance is preserved while saving
+        assertEquals(
+            before.copy(
+                removeStudentAttendanceState = RemoveStudentAttendanceUiState.Saving,
+            ),
+            savingState,
+        )
+        assertEquals(1, removalCalls)
+
+        // When: another request and state clearing are attempted
+        viewModel.removeStudentAttendance(
+            studentId = student.id,
+            attendanceDate = attendanceToRemove,
+        )
+        viewModel.clearRemoveStudentAttendanceState()
+        runCurrent()
+
+        // Then: no second removal starts
+        assertEquals(1, removalCalls)
+        assertEquals(savingState, viewModel.uiState.value)
+
+        // When: removal finishes
+        allowRemoval.complete(Unit)
+        advanceUntilIdle()
+
+        // Then: the date is removed and both visits are restored
+        val savedState =
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+        val updatedPackage =
+            savedState.attendance.entries.single().studentPackage
+
+        assertEquals(
+            RemoveStudentAttendanceUiState.Success,
+            savedState.removeStudentAttendanceState,
+        )
+        assertEquals(
+            mapOf(firstAttendance to 2),
+            updatedPackage.attendanceHistory.visitsByDate,
+        )
+        assertEquals(2, updatedPackage.usedClasses)
+        assertEquals(6, updatedPackage.remainingClasses)
+        assertEquals(
+            updatedPackage,
+            studentPackageRepository.getLatestPackageForStudent(student.id),
+        )
+        assertEquals(1, removalCalls)
+
+        // When: the handled result is cleared
+        viewModel.clearRemoveStudentAttendanceState()
+        advanceUntilIdle()
+
+        // Then: only the operation state changes
+        assertEquals(
+            savedState.copy(
+                removeStudentAttendanceState = RemoveStudentAttendanceUiState.Idle,
             ),
             viewModel.uiState.value,
         )

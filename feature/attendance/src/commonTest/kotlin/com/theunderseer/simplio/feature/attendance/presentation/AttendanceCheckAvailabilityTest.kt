@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -74,7 +74,7 @@ class AttendanceCheckAvailabilityTest {
                             packageType = packageType,
                             startedOn = firstAttendance,
                             attendanceHistory =
-                            AttendanceHistory(
+                            PackageAttendanceHistory(
                                 visitsByDate = attendanceDates.associateWith { 1 },
                             ),
                         ),

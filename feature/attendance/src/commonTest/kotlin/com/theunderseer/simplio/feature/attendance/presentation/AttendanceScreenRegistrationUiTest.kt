@@ -9,7 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
@@ -37,6 +37,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -75,7 +77,7 @@ class AttendanceScreenRegistrationUiTest {
                                 packageType = packageType,
                                 startedOn = LocalDate(2026, 10, 5),
                                 attendanceHistory =
-                                AttendanceHistory(
+                                PackageAttendanceHistory(
                                     visitsByDate =
                                     mapOf(
                                         LocalDate(2026, 10, 5) to 1,
@@ -99,6 +101,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -129,6 +133,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
@@ -192,6 +198,8 @@ class AttendanceScreenRegistrationUiTest {
                 onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {},
+                onClearRemoveStudentAttendanceState = {},
+
             )
         }
 
