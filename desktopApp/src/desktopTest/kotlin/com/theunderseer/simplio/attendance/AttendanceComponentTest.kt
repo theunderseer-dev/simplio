@@ -279,7 +279,7 @@ class AttendanceComponentTest {
             val packageTypes = component.getPackageTypes()
 
             assertEquals(
-                2,
+                3,
                 packageTypes.size,
             )
 
@@ -303,6 +303,18 @@ class AttendanceComponentTest {
                     price = 1700,
                 ),
                 packageTypes[1],
+            )
+
+            assertEquals(
+                PackageType(
+                    id = packageTypes[2].id,
+                    name = "Duo 8 · Special rate",
+                    totalClasses = 8,
+                    validityWeeks = 4,
+                    price = 2400,
+                    maxVisitsPerAttendance = 2,
+                ),
+                packageTypes[2],
             )
         }
     }
