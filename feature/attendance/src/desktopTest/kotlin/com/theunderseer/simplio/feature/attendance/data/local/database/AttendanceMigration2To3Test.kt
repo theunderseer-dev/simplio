@@ -89,6 +89,7 @@ class AttendanceMigration2To3Test {
                 StudentEntity(
                     id = studentId,
                     fullName = "Anna Smith",
+                    groupId = 1,
                 ),
                 database.studentDao().getById(studentId),
             )

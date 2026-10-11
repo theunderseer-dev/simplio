@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.database.createAttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
@@ -51,11 +52,21 @@ class RemoveStudentAttendancePersistenceTest {
                     maxVisitsPerAttendance = 2,
                 )
 
-                val student = RoomStudentRepository(
-                    studentDao = database.studentDao(),
-                ).create(
-                    fullName = "Anna and John",
-                )
+                val groupId =
+                    database.studentGroupDao().insert(
+                        StudentGroupEntity(
+                            id = 1,
+                            name = "Group A",
+                        ),
+                    ).toInt()
+
+                val student =
+                    RoomStudentRepository(
+                        studentDao = database.studentDao(),
+                    ).create(
+                        fullName = "Anna and John",
+                        groupId = groupId,
+                    )
 
                 val repository = RoomStudentPackageRepository(
                     studentPackageDao = database.studentPackageDao(),
@@ -108,14 +119,16 @@ class RemoveStudentAttendancePersistenceTest {
 
             // And: the database is reopened
             withDatabase(databasePath) { database ->
-                val repository = RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                )
+                val repository =
+                    RoomStudentPackageRepository(
+                        studentPackageDao = database.studentPackageDao(),
+                        attendanceDao = database.attendanceDao(),
+                    )
 
-                val restoredPackage = assertNotNull(
-                    repository.getLatestPackageForStudent(studentId),
-                )
+                val restoredPackage =
+                    assertNotNull(
+                        repository.getLatestPackageForStudent(studentId),
+                    )
 
                 // Then: only registration attendance remains
                 assertEquals(

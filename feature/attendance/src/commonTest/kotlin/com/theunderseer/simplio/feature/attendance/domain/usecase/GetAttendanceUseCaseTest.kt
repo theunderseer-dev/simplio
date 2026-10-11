@@ -2,10 +2,10 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
-import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -23,22 +23,12 @@ class GetAttendanceUseCaseTest {
             FakeStudentPackageRepository()
 
         val anna =
-            studentRepository.seed(
-                Student(
-                    id = 1,
-                    fullName = "Anna Smith",
-                ),
-            )
+            studentRepository.seed(testStudent())
 
         val bob =
-            studentRepository.seed(
-                Student(
-                    id = 2,
-                    fullName = "Bob Lee",
-                ),
-            )
+            studentRepository.seed(testStudent(id = 2, fullName = "Bob Lee"))
 
-        val packageType = testFourClassPackage()
+        val packageType = testClassPackage()
 
         val annaPackage =
             studentPackageRepository.seed(
@@ -93,8 +83,7 @@ class GetAttendanceUseCaseTest {
             )
 
         // When
-        val attendance =
-            getAttendance()
+        val attendance = getAttendance()
 
         // Then
         assertEquals(
@@ -115,12 +104,7 @@ class GetAttendanceUseCaseTest {
             FakeStudentPackageRepository()
 
         val student =
-            studentRepository.seed(
-                Student(
-                    id = 1,
-                    fullName = "Anna Smith",
-                ),
-            )
+            studentRepository.seed(testStudent())
 
         val getAttendance =
             GetAttendanceUseCase(

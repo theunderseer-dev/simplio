@@ -1,10 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
-import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -14,16 +14,21 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RenewStudentPackageUseCaseTest {
+    private val studentId = 1
+
+    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
+
+    private val renewedOn = LocalDate(2026, 8, 30)
+
     @Test
     fun `renewing completed package creates a new package for existing student`() = runTest {
         // Given
         // an existing student
-        val studentId = 1
         val repository = FakeStudentPackageRepository()
 
         // And
         // a previous package is completed
-        val previousPackageType = testFiveClassPackage()
+        val previousPackageType = packageType
 
         val previousPackage =
             repository.seed(
@@ -40,9 +45,7 @@ class RenewStudentPackageUseCaseTest {
                 ),
             )
 
-        val newPackageType = testFourClassPackage(id = 2)
-
-        val renewedOn = LocalDate(2026, 8, 30)
+        val newPackageType = testClassPackage(id = 2)
 
         val transactionRunner = FakeTransactionRunner()
         val renewStudentPackage =
@@ -127,28 +130,25 @@ class RenewStudentPackageUseCaseTest {
     fun `renewing package is rejected when current package is still active`() = runTest {
         // Given
         // an existing student
-        val studentId = 1
         val repository = FakeStudentPackageRepository()
 
         // And
         // the student has an active package with unused classes
-        val currentPackageType = testFiveClassPackage()
+        val currentPackageType = packageType
 
         val currentPackage =
             repository.seed(
                 studentId = studentId,
                 packageType = currentPackageType,
-                startedOn = LocalDate(2026, 9, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 9, 1),
-                    LocalDate(2026, 9, 8),
+                startedOn = LocalDate(2026, 8, 1),
+                attendanceDates = setOf(
+                    LocalDate(2026, 8, 1),
+                    LocalDate(2026, 8, 8),
                 ),
             )
 
-        val newPackageType = testFourClassPackage(id = 2)
+        val newPackageType = testClassPackage(id = 2)
 
-        val renewedOn = LocalDate(2026, 9, 28)
         val transactionRunner = FakeTransactionRunner()
 
         val renewStudentPackage =
@@ -201,28 +201,25 @@ class RenewStudentPackageUseCaseTest {
     fun `renewing package creates a new package when current package is expired but incomplete`() = runTest {
         // Given
         // an existing student
-        val studentId = 1
         val repository = FakeStudentPackageRepository()
 
         // And
         // the student has an expired package with unused classes
-        val expiredPackageType = testFiveClassPackage()
+        val expiredPackageType = packageType
 
         val expiredPackage =
             repository.seed(
                 studentId = studentId,
                 packageType = expiredPackageType,
-                startedOn = LocalDate(2026, 8, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 8, 1),
-                    LocalDate(2026, 8, 8),
+                startedOn = LocalDate(2026, 7, 1),
+                attendanceDates = setOf(
+                    LocalDate(2026, 7, 1),
+                    LocalDate(2026, 7, 8),
                 ),
             )
 
-        val newPackageType = testFourClassPackage(id = 2)
+        val newPackageType = testClassPackage(id = 2)
 
-        val renewedOn = LocalDate(2026, 9, 28)
         val transactionRunner = FakeTransactionRunner()
 
         val renewStudentPackage =

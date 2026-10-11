@@ -12,8 +12,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -24,8 +25,8 @@ class AttendanceScreenCheckAvailabilityUiTest {
     fun `first attendance check is disabled and cannot open an attendance dialog`() = runComposeUiTest {
         // Given
         val firstAttendance = LocalDate(2026, 10, 2)
-        val student = Student(id = 7, fullName = "Anna Smith")
-        val packageType = testFourClassPackage()
+        val student = testStudent()
+        val packageType = testClassPackage()
         val state =
             attendanceContentUiState(
                 attendance =

@@ -4,7 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
-import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -23,7 +23,7 @@ class RegisterStudentUseCaseTest {
 
         // And
         // a 4-class package is available
-        val packageType = testFourClassPackage()
+        val packageType = testClassPackage()
 
         // And
         // registration is happening on a specific date
@@ -43,6 +43,7 @@ class RegisterStudentUseCaseTest {
                 fullName = studentName,
                 packageType = packageType,
                 registeredOn = registeredOn,
+                groupId = 1,
             )
 
         // Then
@@ -121,6 +122,7 @@ class RegisterStudentUseCaseTest {
                 packageType = packageType,
                 registeredOn = registeredOn,
                 visitCount = 2,
+                groupId = 1,
             )
 
         // Then
@@ -169,13 +171,45 @@ class RegisterStudentUseCaseTest {
         assertFailsWith<IllegalArgumentException> {
             registerStudent(
                 fullName = "Anna Smith",
-                packageType = testFourClassPackage(),
+                packageType = testClassPackage(),
                 registeredOn = LocalDate(2026, 10, 9),
                 visitCount = 2,
+                groupId = 1,
             )
         }
 
         assertTrue(studentRepository.students.isEmpty())
         assertTrue(studentPackageRepository.packages.isEmpty())
+    }
+
+    @Test
+    fun `registering a student preserves selected group`() = runTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val registerStudent =
+            RegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+                transactionRunner = FakeTransactionRunner(),
+            )
+
+        val selectedGroupId = 2
+
+        // When
+        val result =
+            registerStudent(
+                fullName = "Anna Smith",
+                packageType = testClassPackage(),
+                registeredOn = LocalDate(2026, 10, 9),
+                groupId = selectedGroupId,
+            )
+
+        // Then
+        assertEquals(selectedGroupId, result.student.groupId)
+        assertEquals(
+            selectedGroupId,
+            studentRepository.students.single().groupId,
+        )
     }
 }

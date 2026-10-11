@@ -8,11 +8,12 @@ class FakeStudentRepository : StudentRepository {
     val students: List<Student>
         field = mutableListOf<Student>()
 
-    override suspend fun create(fullName: String): Student {
+    override suspend fun create(fullName: String, groupId: Int): Student {
         val student =
             Student(
                 id = nextId++,
                 fullName = fullName,
+                groupId = groupId,
             )
 
         students += student

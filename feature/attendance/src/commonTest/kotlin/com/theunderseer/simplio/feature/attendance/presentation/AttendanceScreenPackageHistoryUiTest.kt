@@ -13,56 +13,26 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenPackageHistoryUiTest {
+    private val student = testStudent(id = 7)
+    private val packageType = testClassPackage()
+
+    private val firstAttendance = LocalDate(2026, 10, 2)
+    private val secondAttendance = LocalDate(2026, 10, 5)
+    private val latestAttendance = LocalDate(2026, 10, 9)
+
     @Test
     fun `shows removal actions only for attendance after registration date`() = runComposeUiTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val secondAttendance = LocalDate(2026, 10, 5)
-        val thirdAttendance = LocalDate(2026, 10, 9)
-        val packageType = testFourClassPackage()
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 7,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 11,
-                                studentId = 7,
-                                packageType = packageType,
-                                startedOn = firstAttendance,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        firstAttendance to 1,
-                                        secondAttendance to 1,
-                                        thirdAttendance to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = thirdAttendance,
-            )
+        val state = packageHistoryState()
 
         setContent {
             AttendanceScreenForTest(
@@ -138,7 +108,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: the middle date is passed instead of the latest date
         assertEquals(
-            listOf(7 to LocalDate(2026, 10, 5)),
+            listOf(student.id to secondAttendance),
             removalRequests,
         )
     }
@@ -329,7 +299,7 @@ class AttendanceScreenPackageHistoryUiTest {
         )
 
         assertEquals(
-            listOf(7 to LocalDate(2026, 10, 5)),
+            listOf(student.id to secondAttendance),
             removalRequests,
         )
 
@@ -340,8 +310,8 @@ class AttendanceScreenPackageHistoryUiTest {
         // Then: the same attendance is requested again
         assertEquals(
             listOf(
-                7 to LocalDate(2026, 10, 5),
-                7 to LocalDate(2026, 10, 5),
+                student.id to secondAttendance,
+                student.id to secondAttendance,
             ),
             removalRequests,
         )
@@ -407,7 +377,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: no additional request is dispatched; confirmation remains open
         assertEquals(
-            listOf(7 to LocalDate(2026, 10, 5)),
+            listOf(student.id to secondAttendance),
             removalRequests,
         )
 
@@ -437,38 +407,28 @@ class AttendanceScreenPackageHistoryUiTest {
         }
     }
 
-    private fun packageHistoryState(): AttendanceUiState.Content {
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val secondAttendance = LocalDate(2026, 10, 5)
-        val latestAttendance = LocalDate(2026, 10, 9)
-        val packageType = testFourClassPackage()
-
-        return attendanceContentUiState(
-            attendance = Attendance(
-                entries = listOf(
-                    RegisteredStudent(
-                        student = Student(
-                            id = 7,
-                            fullName = "Anna Smith",
-                        ),
-                        studentPackage = StudentPackage(
-                            id = 11,
-                            studentId = 7,
-                            packageType = packageType,
-                            startedOn = firstAttendance,
-                            attendanceHistory = PackageAttendanceHistory(
-                                visitsByDate = mapOf(
-                                    firstAttendance to 1,
-                                    secondAttendance to 1,
-                                    latestAttendance to 1,
-                                ),
+    private fun packageHistoryState(): AttendanceUiState.Content = attendanceContentUiState(
+        attendance = Attendance(
+            entries = listOf(
+                RegisteredStudent(
+                    student = student,
+                    studentPackage = StudentPackage(
+                        id = 11,
+                        studentId = student.id,
+                        packageType = packageType,
+                        startedOn = firstAttendance,
+                        attendanceHistory = PackageAttendanceHistory(
+                            visitsByDate = mapOf(
+                                firstAttendance to 1,
+                                secondAttendance to 1,
+                                latestAttendance to 1,
                             ),
                         ),
                     ),
                 ),
             ),
-            packageTypes = listOf(packageType),
-            currentDate = latestAttendance,
-        )
-    }
+        ),
+        packageTypes = listOf(packageType),
+        currentDate = latestAttendance,
+    )
 }

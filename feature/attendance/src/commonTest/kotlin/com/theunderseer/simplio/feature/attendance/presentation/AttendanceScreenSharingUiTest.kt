@@ -10,8 +10,9 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,7 +20,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenSharingUiTest {
     private val today = LocalDate(2026, 10, 5)
-    private val packageType = testFourClassPackage()
+    private val packageType = testClassPackage()
 
     @Test
     fun `displays copy attendance action`() = runComposeUiTest {
@@ -48,11 +49,7 @@ class AttendanceScreenSharingUiTest {
                     entries =
                     listOf(
                         RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
+                            student = testStudent(),
                             studentPackage =
                             StudentPackage(
                                 id = 1,
@@ -100,10 +97,7 @@ class AttendanceScreenSharingUiTest {
     @Test
     fun `shows copy confirmation after copy action`() = runComposeUiTest {
         // Given
-        val state =
-            emptyAttendanceState(
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = emptyAttendanceState()
 
         setContent {
             AttendanceScreenForTest(
@@ -125,10 +119,7 @@ class AttendanceScreenSharingUiTest {
         // Given
         mainClock.autoAdvance = false
 
-        val state =
-            emptyAttendanceState(
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = emptyAttendanceState()
 
         setContent {
             AttendanceScreenForTest(

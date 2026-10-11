@@ -134,6 +134,7 @@ class AttendanceMigration1To2Test {
                 StudentEntity(
                     id = studentId,
                     fullName = "Anna Smith",
+                    groupId = 1,
                 ),
                 persistedStudent,
             )

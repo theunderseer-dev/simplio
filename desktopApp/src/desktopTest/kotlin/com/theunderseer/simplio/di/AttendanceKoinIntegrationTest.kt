@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.theunderseer.simplio.database.prepareSimplioDatabasePath
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -41,6 +42,11 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 class AttendanceKoinIntegrationTest {
+    private val studentGroup = StudentGroupEntity(
+        id = 1,
+        name = "Group A",
+    )
+
     @Test
     fun `attendance graph wires registration to persistent database`() = runTest {
         withAttendanceKoin { koin ->
@@ -56,6 +62,7 @@ class AttendanceKoinIntegrationTest {
                     fullName = "Anna Smith",
                     packageType = packageType,
                     registeredOn = registeredOn,
+                    groupId = studentGroup.id,
                 )
 
             // Then
@@ -99,6 +106,8 @@ class AttendanceKoinIntegrationTest {
                 listOf(registeredOn.toEpochDays()),
                 attendance.map { it.attendedOnEpochDay },
             )
+
+            assertEquals(studentGroup.id, persistedStudent.groupId)
         }
     }
 
@@ -116,6 +125,7 @@ class AttendanceKoinIntegrationTest {
                     fullName = "Anna Smith",
                     packageType = packageType,
                     registeredOn = LocalDate(2026, 8, 1),
+                    groupId = studentGroup.id,
                 )
 
             val renewedOn = LocalDate(2026, 10, 1)
@@ -178,6 +188,7 @@ class AttendanceKoinIntegrationTest {
                     fullName = "Anna Smith",
                     packageType = packageType,
                     registeredOn = registeredOn,
+                    groupId = studentGroup.id,
                 )
 
             val attendanceDate = LocalDate(2026, 10, 3)
@@ -301,6 +312,7 @@ class AttendanceKoinIntegrationTest {
                     fullName = "Anna Smith",
                     packageType = packageType,
                     registeredOn = LocalDate(2026, 10, 2),
+                    groupId = studentGroup.id,
                 )
 
             // When
@@ -345,6 +357,7 @@ class AttendanceKoinIntegrationTest {
                         fullName = "Anna Smith",
                         packageType = packageType,
                         registeredOn = LocalDate(2026, 10, 2),
+                        groupId = studentGroup.id,
                     )
 
                 val viewModelStore = ViewModelStore()
@@ -431,6 +444,11 @@ class AttendanceKoinIntegrationTest {
                 }
 
             try {
+                application.koin
+                    .get<AttendanceDatabase>()
+                    .studentGroupDao()
+                    .insert(studentGroup)
+
                 block(application.koin)
             } finally {
                 application.close()

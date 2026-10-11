@@ -10,10 +10,13 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,11 +25,13 @@ import kotlin.test.assertEquals
 class AttendanceScreenRegistrationUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val packageType = testFourClassPackage()
+    private val packageType = testClassPackage()
+
+    private val studentGroups = testStudentGroups()
 
     @Test
     fun `opens student registration dialog when add student is clicked`() = runComposeUiTest {
-        val state = emptyAttendanceState(packageTypes = listOf(packageType))
+        val state = emptyAttendanceState()
 
         setContent {
             AttendanceScreenForTest(
@@ -50,6 +55,7 @@ class AttendanceScreenRegistrationUiTest {
     @Test
     fun `displays add student action when attendance has students`() = runComposeUiTest {
         // Given
+        val student = testStudent()
         val state =
             attendanceContentUiState(
                 attendance =
@@ -57,23 +63,17 @@ class AttendanceScreenRegistrationUiTest {
                     entries =
                     listOf(
                         RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
+                            student = student,
                             studentPackage =
                             StudentPackage(
                                 id = 1,
-                                studentId = 1,
+                                studentId = student.id,
                                 packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 5),
+                                startedOn = today,
                                 attendanceHistory =
                                 PackageAttendanceHistory(
                                     visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
+                                    mapOf(today to 1),
                                 ),
                             ),
                         ),
@@ -98,18 +98,14 @@ class AttendanceScreenRegistrationUiTest {
     @Test
     fun `provides selected registration date when student is registered`() = runComposeUiTest {
         // Given
-        val state =
-            emptyAttendanceState(
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = emptyAttendanceState()
 
         var registeredOn: LocalDate? = null
 
         setContent {
             AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, date, _ ->
+                onRegisterStudent = { _, _, _, date, _ ->
                     registeredOn = date
                 },
             )
@@ -117,6 +113,9 @@ class AttendanceScreenRegistrationUiTest {
 
         // When
         onNodeWithText("Add Student")
+            .performClick()
+
+        onNodeWithText("Group A")
             .performClick()
 
         onNodeWithContentDescription("Registration date")
@@ -147,27 +146,21 @@ class AttendanceScreenRegistrationUiTest {
     @Test
     fun `provides two visits when duo student is registered`() = runComposeUiTest {
         // Given
-        val duoPackage =
-            PackageType(
-                id = 3,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
+        val duoPackage = testClassPackage(
+            id = 3,
+            plan = PackagePlan.DUO_SPECIAL,
+        )
 
-        val state =
-            emptyAttendanceState(
-                packageTypes = listOf(packageType, duoPackage),
-            )
+        val state = emptyAttendanceState(
+            packageTypes = listOf(packageType, duoPackage),
+        )
 
         var registeredVisitCount: Int? = null
 
         setContent {
             AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, visitCount ->
+                onRegisterStudent = { _, _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
             )
@@ -175,6 +168,9 @@ class AttendanceScreenRegistrationUiTest {
 
         // When
         onNodeWithText("Add Student")
+            .performClick()
+
+        onNodeWithText("Group A")
             .performClick()
 
         onNodeWithText("Package")
@@ -197,11 +193,13 @@ class AttendanceScreenRegistrationUiTest {
     }
 
     private fun emptyAttendanceState(
-        packageTypes: List<PackageType> = emptyList(),
+        packageTypes: List<PackageType> = listOf(packageType),
         currentDate: LocalDate = today,
     ): AttendanceUiState.Content = attendanceContentUiState(
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
         currentDate = currentDate,
+    ).copy(
+        studentGroups = studentGroups,
     )
 }

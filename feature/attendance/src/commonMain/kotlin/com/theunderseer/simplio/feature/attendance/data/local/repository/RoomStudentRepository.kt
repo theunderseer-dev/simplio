@@ -7,14 +7,14 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 
 class RoomStudentRepository(private val studentDao: StudentDao) : StudentRepository {
-    override suspend fun create(fullName: String): Student {
+    override suspend fun create(fullName: String, groupId: Int): Student {
         val entity =
             StudentEntity(
                 fullName = fullName,
+                groupId = groupId,
             )
 
-        val id =
-            studentDao.insert(entity)
+        val id = studentDao.insert(entity)
 
         return entity
             .copy(id = id.toInt())

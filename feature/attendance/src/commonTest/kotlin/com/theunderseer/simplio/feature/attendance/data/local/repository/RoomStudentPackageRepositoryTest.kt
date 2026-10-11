@@ -4,11 +4,15 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -22,14 +26,18 @@ import kotlin.test.assertTrue
 class RoomStudentPackageRepositoryTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var repository: RoomStudentPackageRepository
+    private val startedOn = LocalDate(2026, 10, 5)
+    private val nextAttendance = LocalDate(2026, 10, 9)
 
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(testStudentGroupEntity())
 
         repository =
             RoomStudentPackageRepository(
@@ -50,36 +58,11 @@ class RoomStudentPackageRepositoryTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+                .insert(testStudentEntity()).toInt()
 
         // And
         // an existing package type
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            )
-
-        val startedOn = LocalDate(2026, 9, 30)
+        val packageType = seedPackageType(plan = PackagePlan.FIVE_CLASSES)
 
         // When
         val studentPackage =
@@ -197,25 +180,11 @@ class RoomStudentPackageRepositoryTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+                .insert(testStudentEntity()).toInt()
 
         // And
         // the current package type has updated terms
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 5,
-                        price = 2000,
-                    ),
-                ).toInt()
+        val currentPackageType = seedPackageType(plan = PackagePlan.FIVE_CLASSES)
 
         // And
         // the student has a newer package with historical purchase terms
@@ -227,7 +196,7 @@ class RoomStudentPackageRepositoryTest {
                 .insert(
                     StudentPackageEntity(
                         studentId = studentId,
-                        packageTypeId = packageTypeId,
+                        packageTypeId = currentPackageType.id,
                         packageName = "5-class package",
                         totalClasses = 5,
                         validityWeeks = 6,
@@ -243,7 +212,7 @@ class RoomStudentPackageRepositoryTest {
             .insert(
                 StudentPackageEntity(
                     studentId = studentId,
-                    packageTypeId = packageTypeId,
+                    packageTypeId = currentPackageType.id,
                     packageName = "5-class package",
                     totalClasses = 5,
                     validityWeeks = 6,
@@ -304,7 +273,7 @@ class RoomStudentPackageRepositoryTest {
         // the historical package snapshot is restored
         assertEquals(
             PackageType(
-                id = packageTypeId,
+                id = currentPackageType.id,
                 name = "5-class package",
                 totalClasses = 5,
                 validityWeeks = 6,
@@ -346,44 +315,21 @@ class RoomStudentPackageRepositoryTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+                .insert(testStudentEntity()).toInt()
 
         // And
         // an existing package type
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
+        val packageType = seedPackageType(
+            plan = PackagePlan.FIVE_CLASSES,
+        )
 
-        // And
-        // an existing student package
-        val startedOn = LocalDate(2026, 9, 1)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        val packageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = packageType,
+                startedOnEpochDay = startedOn.toEpochDays(),
+            ),
+        ).toInt()
 
         // And
         // its initial attendance already exists
@@ -394,12 +340,10 @@ class RoomStudentPackageRepositoryTest {
             ),
         )
 
-        val attendedOn = LocalDate(2026, 9, 8)
-
         // When
         repository.recordAttendance(
             packageId = packageId,
-            attendedOn = attendedOn,
+            attendedOn = nextAttendance,
         )
 
         // Then
@@ -417,7 +361,7 @@ class RoomStudentPackageRepositoryTest {
         assertEquals(
             setOf(
                 startedOn.toEpochDays(),
-                attendedOn.toEpochDays(),
+                nextAttendance.toEpochDays(),
             ),
             persistedAttendance
                 .map { it.attendedOnEpochDay }
@@ -437,33 +381,8 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recording duplicate attendance preserves original visit count`() = runTest {
         // Given
-        val studentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Anna & John"),
-            ).toInt()
-
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                ),
-            ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
-
-        val startedOn = LocalDate(2026, 10, 5)
-        val attendedOn = LocalDate(2026, 10, 9)
+        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
@@ -474,14 +393,14 @@ class RoomStudentPackageRepositoryTest {
 
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendedOn,
+            attendedOn = nextAttendance,
             visitCount = 2,
         )
 
         // When
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendedOn,
+            attendedOn = nextAttendance,
             visitCount = 1,
         )
 
@@ -495,7 +414,7 @@ class RoomStudentPackageRepositoryTest {
                 ),
                 AttendanceEntity(
                     packageId = studentPackage.id,
-                    attendedOnEpochDay = attendedOn.toEpochDays(),
+                    attendedOnEpochDay = nextAttendance.toEpochDays(),
                     visitCount = 2,
                 ),
             ),
@@ -510,7 +429,7 @@ class RoomStudentPackageRepositoryTest {
         assertEquals(
             mapOf(
                 startedOn to 1,
-                attendedOn to 2,
+                nextAttendance to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -528,11 +447,7 @@ class RoomStudentPackageRepositoryTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+                .insert(testStudentEntity()).toInt()
 
         // When
         val studentPackage =
@@ -547,43 +462,19 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recorded attendance is returned when package is read again`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+        val studentId = database.studentDao().insert(testStudentEntity()).toInt()
 
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
+        val packageType = seedPackageType(
+            plan = PackagePlan.FIVE_CLASSES,
+        )
 
-        val startedOn = LocalDate(2026, 9, 25)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        val packageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = packageType,
+                startedOnEpochDay = startedOn.toEpochDays(),
+            ),
+        ).toInt()
 
         database.attendanceDao().insert(
             AttendanceEntity(
@@ -592,12 +483,10 @@ class RoomStudentPackageRepositoryTest {
             ),
         )
 
-        val attendanceDate = LocalDate(2026, 9, 27)
-
         // When
         repository.recordAttendance(
             packageId = packageId,
-            attendedOn = attendanceDate,
+            attendedOn = nextAttendance,
         )
 
         val reloadedPackage =
@@ -614,7 +503,7 @@ class RoomStudentPackageRepositoryTest {
         assertEquals(
             setOf(
                 startedOn,
-                attendanceDate,
+                nextAttendance,
             ),
             reloadedPackage.attendanceDates,
         )
@@ -628,39 +517,12 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `removing attendance restores all visits for requested date and preserves other history`() = runTest {
         // Given
-        val studentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Anna & John"),
-            ).toInt()
-
-        val otherStudentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Other couple"),
-            ).toInt()
-
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                ),
-            ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
-
+        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val otherStudentId = database.studentDao().insert(testStudentEntity(fullName = "Other couple")).toInt()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
         val firstAttendance = LocalDate(2026, 10, 2)
-        val attendanceToRemove = LocalDate(2026, 10, 5)
-        val lastAttendance = LocalDate(2026, 10, 9)
+        val attendanceToRemove = startedOn
+        val lastAttendance = nextAttendance
 
         val studentPackage =
             repository.create(
@@ -780,32 +642,8 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `reading package preserves visit counts for each attendance date`() = runTest {
         // Given
-        val studentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Anna & John"),
-            ).toInt()
-
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                ),
-            ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-            )
-
-        val startedOn = LocalDate(2026, 10, 5)
-        val secondAttendance = LocalDate(2026, 10, 9)
+        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
@@ -817,7 +655,7 @@ class RoomStudentPackageRepositoryTest {
         database.attendanceDao().insert(
             AttendanceEntity(
                 packageId = studentPackage.id,
-                attendedOnEpochDay = secondAttendance.toEpochDays(),
+                attendedOnEpochDay = nextAttendance.toEpochDays(),
                 visitCount = 2,
             ),
         )
@@ -832,7 +670,7 @@ class RoomStudentPackageRepositoryTest {
         assertEquals(
             mapOf(
                 startedOn to 1,
-                secondAttendance to 2,
+                nextAttendance to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -846,33 +684,8 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recording attendance persists requested visit count`() = runTest {
         // Given
-        val studentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Anna & John"),
-            ).toInt()
-
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                ),
-            ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
-
-        val startedOn = LocalDate(2026, 10, 5)
-        val attendedOn = LocalDate(2026, 10, 9)
+        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
@@ -884,7 +697,7 @@ class RoomStudentPackageRepositoryTest {
         // When
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendedOn,
+            attendedOn = nextAttendance,
             visitCount = 2,
         )
 
@@ -897,7 +710,7 @@ class RoomStudentPackageRepositoryTest {
         assertEquals(
             mapOf(
                 startedOn to 1,
-                attendedOn to 2,
+                nextAttendance to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -908,36 +721,13 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `reading purchased package preserves maximum visits per attendance`() = runTest {
         // Given
-        val studentId =
-            database.studentDao().insert(
-                StudentEntity(fullName = "Anna & John"),
-            ).toInt()
-
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                    maxVisitsPerAttendance = 2,
-                ),
-            ).toInt()
-
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
+        val studentId = database.studentDao().insert(testStudentEntity()).toInt()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         repository.create(
             studentId = studentId,
             packageType = packageType,
-            startedOn = LocalDate(2026, 10, 5),
+            startedOn = startedOn,
         )
 
         // When
@@ -951,5 +741,15 @@ class RoomStudentPackageRepositoryTest {
             packageType,
             reloadedPackage.packageType,
         )
+    }
+
+    private suspend fun seedPackageType(plan: PackagePlan): PackageType {
+        val template = testClassPackage(plan = plan)
+
+        val id = database.packageTypeDao().insert(
+            testPackageTypeEntity(packageType = template),
+        ).toInt()
+
+        return template.copy(id = id)
     }
 }

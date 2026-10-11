@@ -49,7 +49,7 @@ import kotlinx.datetime.LocalDate
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    onRegisterStudent: (String, PackageType, LocalDate, Int) -> Unit,
+    onRegisterStudent: (String, Int, PackageType, LocalDate, Int) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
@@ -168,11 +168,13 @@ fun AttendanceScreen(
 
             if (showRegistrationDialog) {
                 StudentRegistrationDialog(
+                    studentGroups = state.studentGroups,
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
-                    onRegister = { fullName, packageType, registeredOn, visitCount ->
+                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount ->
                         onRegisterStudent(
                             fullName,
+                            groupId,
                             packageType,
                             registeredOn,
                             visitCount,

@@ -6,4 +6,5 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Student
 fun StudentEntity.toDomain(): Student = Student(
     id = id,
     fullName = fullName,
+    groupId = groupId,
 )
