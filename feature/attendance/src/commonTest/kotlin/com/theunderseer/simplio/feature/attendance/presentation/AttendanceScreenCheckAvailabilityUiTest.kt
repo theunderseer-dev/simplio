@@ -50,20 +50,14 @@ class AttendanceScreenCheckAvailabilityUiTest {
         val removedAttendance = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
                 onMarkStudentPresent = { studentId, date, _ ->
                     markedAttendance += studentId to date
                 },
                 onRemoveStudentAttendance = { studentId, date ->
                     removedAttendance += studentId to date
                 },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
-
             )
         }
 

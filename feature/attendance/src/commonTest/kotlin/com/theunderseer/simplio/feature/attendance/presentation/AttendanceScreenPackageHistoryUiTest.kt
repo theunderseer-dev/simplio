@@ -65,15 +65,8 @@ class AttendanceScreenPackageHistoryUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -110,17 +103,11 @@ class AttendanceScreenPackageHistoryUiTest {
         val removalRequests = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = packageHistoryState(),
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removalRequests += studentId to date
                 },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -162,17 +149,11 @@ class AttendanceScreenPackageHistoryUiTest {
         val removalRequests = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = packageHistoryState(),
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removalRequests += studentId to date
                 },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -206,12 +187,8 @@ class AttendanceScreenPackageHistoryUiTest {
         val screenState = mutableStateOf(packageHistoryState())
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = screenState.value,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     val currentState = screenState.value
 
@@ -243,7 +220,6 @@ class AttendanceScreenPackageHistoryUiTest {
                         removeStudentAttendanceState = RemoveStudentAttendanceUiState.Success,
                     )
                 },
-                onClearMarkStudentPresentState = {},
                 onClearRemoveStudentAttendanceState = {
                     screenState.value = screenState.value.copy(
                         removeStudentAttendanceState = RemoveStudentAttendanceUiState.Idle,
@@ -302,12 +278,8 @@ class AttendanceScreenPackageHistoryUiTest {
         val errorMessage = "Failed to remove attendance"
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = screenState.value,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removalRequests += studentId to date
 
@@ -318,7 +290,6 @@ class AttendanceScreenPackageHistoryUiTest {
                         ),
                     )
                 },
-                onClearMarkStudentPresentState = {},
                 onClearRemoveStudentAttendanceState = {
                     screenState.value = screenState.value.copy(
                         removeStudentAttendanceState = RemoveStudentAttendanceUiState.Idle,
@@ -386,12 +357,8 @@ class AttendanceScreenPackageHistoryUiTest {
         val removalRequests = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = screenState.value,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removalRequests += studentId to date
 
@@ -400,7 +367,6 @@ class AttendanceScreenPackageHistoryUiTest {
                         RemoveStudentAttendanceUiState.Saving,
                     )
                 },
-                onClearMarkStudentPresentState = {},
                 onClearRemoveStudentAttendanceState = {
                     screenState.value = screenState.value.copy(
                         removeStudentAttendanceState =

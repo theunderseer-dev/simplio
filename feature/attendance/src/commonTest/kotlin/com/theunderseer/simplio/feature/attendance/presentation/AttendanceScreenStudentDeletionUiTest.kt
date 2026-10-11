@@ -59,15 +59,8 @@ class AttendanceScreenStudentDeletionUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -115,17 +108,11 @@ class AttendanceScreenStudentDeletionUiTest {
         var deletedStudentId: Int? = null
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
                 onDeleteStudent = { studentId ->
                     deletedStudentId = studentId
                 },
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
