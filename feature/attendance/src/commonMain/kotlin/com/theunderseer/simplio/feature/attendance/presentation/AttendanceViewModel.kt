@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGroupsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
@@ -27,6 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 class AttendanceViewModel(
     private val getAttendanceUseCase: GetAttendanceUseCase,
     private val getPackageTypesUseCase: GetPackageTypesUseCase,
+    private val getStudentGroupsUseCase: GetStudentGroupsUseCase,
     private val registerStudentUseCase: RegisterStudentUseCase,
     private val markStudentPresentUseCase: MarkStudentPresentUseCase,
     private val removeStudentAttendanceUseCase: RemoveStudentAttendanceUseCase,
@@ -65,6 +68,7 @@ class AttendanceViewModel(
                         packageTypes = data.packageTypes,
                         currentDate = currentDate,
                     ).copy(
+                        studentGroups = data.studentGroups,
                         markStudentPresentState = markState,
                         removeStudentAttendanceState = removeState,
                     )
@@ -277,13 +281,18 @@ class AttendanceViewModel(
             AttendanceDataState.Content(
                 attendance = getAttendanceUseCase(),
                 packageTypes = getPackageTypesUseCase(),
+                studentGroups = getStudentGroupsUseCase(),
             )
     }
 
     private sealed interface AttendanceDataState {
         data object Loading : AttendanceDataState
 
-        data class Content(val attendance: Attendance, val packageTypes: List<PackageType>) : AttendanceDataState
+        data class Content(
+            val attendance: Attendance,
+            val packageTypes: List<PackageType>,
+            val studentGroups: List<StudentGroup>,
+        ) : AttendanceDataState
 
         data class Error(val message: String) : AttendanceDataState
     }

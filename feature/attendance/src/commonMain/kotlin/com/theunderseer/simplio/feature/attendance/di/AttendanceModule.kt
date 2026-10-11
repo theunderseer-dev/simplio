@@ -2,17 +2,21 @@ package com.theunderseer.simplio.feature.attendance.di
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGroupsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
@@ -29,6 +33,10 @@ val attendanceModule = module {
 
     single {
         get<AttendanceDatabase>().studentPackageDao()
+    }
+
+    single {
+        get<AttendanceDatabase>().studentGroupDao()
     }
 
     single {
@@ -52,6 +60,12 @@ val attendanceModule = module {
         )
     }
 
+    single<StudentGroupRepository> {
+        RoomStudentGroupRepository(
+            studentGroupDao = get(),
+        )
+    }
+
     single<PackageTypeRepository> {
         RoomPackageTypeRepository(
             packageTypeDao = get(),
@@ -71,6 +85,13 @@ val attendanceModule = module {
         )
     }
 
+    single {
+        StudentGroupSeeder(
+            studentGroupDao = get(),
+            transactionRunner = get(),
+        )
+    }
+
     factory {
         GetAttendanceUseCase(
             studentRepository = get(),
@@ -81,6 +102,12 @@ val attendanceModule = module {
     factory {
         GetPackageTypesUseCase(
             packageTypeRepository = get(),
+        )
+    }
+
+    factory {
+        GetStudentGroupsUseCase(
+            repository = get(),
         )
     }
 
@@ -123,6 +150,7 @@ val attendanceModule = module {
         AttendanceViewModel(
             getAttendanceUseCase = get(),
             getPackageTypesUseCase = get(),
+            getStudentGroupsUseCase = get(),
             registerStudentUseCase = get(),
             markStudentPresentUseCase = get(),
             removeStudentAttendanceUseCase = get(),

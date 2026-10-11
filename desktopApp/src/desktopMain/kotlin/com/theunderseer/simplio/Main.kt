@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.theunderseer.simplio.database.prepareSimplioDatabasePath
 import com.theunderseer.simplio.di.desktopAttendanceModule
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,10 @@ fun main() {
         runBlocking {
             koinApplication.koin
                 .get<PackageTypeSeeder>()
+                .seedDefaults()
+
+            koinApplication.koin
+                .get<StudentGroupSeeder>()
                 .seedDefaults()
         }
 
