@@ -15,7 +15,6 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -23,8 +22,6 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class StudentRegistrationDialogUiTest {
     private val today = LocalDate(2026, 10, 5)
-
-    private val studentGroups = testStudentGroups()
 
     private val fourClassPackage = testClassPackage()
 
@@ -51,13 +48,7 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `displays student registration form`() = runComposeUiTest {
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = individualPackages,
-                initialDate = today,
-                onRegister = { _, _, _, _, _ -> },
-                onDismiss = {},
-            )
+            StudentRegistrationDialogForTest(packageTypes = individualPackages)
         }
 
         onNodeWithText("Add Student")
@@ -83,12 +74,8 @@ class StudentRegistrationDialogUiTest {
     fun `displays initial registration date`() = runComposeUiTest {
         // When
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _, _, _ -> },
-                onDismiss = {},
+            StudentRegistrationDialogForTest(
+                initialDate = LocalDate(2026, 10, 5),
             )
         }
 
@@ -107,15 +94,12 @@ class StudentRegistrationDialogUiTest {
         var registeredPackage: PackageType? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
+            StudentRegistrationDialogForTest(
                 packageTypes = listOf(fiveClassPackage),
-                initialDate = today,
                 onRegister = { fullName, _, selectedPackage, _, _ ->
                     registeredName = fullName
                     registeredPackage = selectedPackage
                 },
-                onDismiss = {},
             )
         }
 
@@ -152,14 +136,10 @@ class StudentRegistrationDialogUiTest {
         var registeredOn: LocalDate? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
+            StudentRegistrationDialogForTest(
                 onRegister = { _, _, _, date, _ ->
                     registeredOn = date
                 },
-                onDismiss = {},
             )
         }
 
@@ -193,13 +173,7 @@ class StudentRegistrationDialogUiTest {
     fun `opens date picker when registration date is clicked`() = runComposeUiTest {
         // Given
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _, _, _ -> },
-                onDismiss = {},
-            )
+            StudentRegistrationDialogForTest()
         }
 
         // When
@@ -215,13 +189,7 @@ class StudentRegistrationDialogUiTest {
     fun `updates registration date after selecting past date`() = runComposeUiTest {
         // Given
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = listOf(fourClassPackage),
-                initialDate = today,
-                onRegister = { _, _, _, _, _ -> },
-                onDismiss = {},
-            )
+            StudentRegistrationDialogForTest()
         }
 
         // When
@@ -254,14 +222,11 @@ class StudentRegistrationDialogUiTest {
         var registeredPackage: PackageType? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
+            StudentRegistrationDialogForTest(
                 packageTypes = listOf(fiveClassPackage, fourClassPackage),
-                initialDate = today,
                 onRegister = { _, _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
-                onDismiss = {},
             )
         }
 
@@ -297,14 +262,11 @@ class StudentRegistrationDialogUiTest {
         var registeredPackage: PackageType? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
+            StudentRegistrationDialogForTest(
                 packageTypes = individualPackages,
-                initialDate = today,
                 onRegister = { _, _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
-                onDismiss = {},
             )
         }
 
@@ -352,13 +314,7 @@ class StudentRegistrationDialogUiTest {
     fun `selecting duo package defaults first attendance to two people`() = runComposeUiTest {
         // Given
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
-                packageTypes = packagesWithDuo,
-                initialDate = today,
-                onRegister = { _, _, _, _, _ -> },
-                onDismiss = {},
-            )
+            StudentRegistrationDialogForTest(packageTypes = packagesWithDuo)
         }
 
         // Then: the individual package requires no visit count selection
@@ -390,14 +346,11 @@ class StudentRegistrationDialogUiTest {
         var registeredVisitCount: Int? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
+            StudentRegistrationDialogForTest(
                 packageTypes = packagesWithDuo,
-                initialDate = today,
                 onRegister = { _, _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
-                onDismiss = {},
             )
         }
 
@@ -441,14 +394,11 @@ class StudentRegistrationDialogUiTest {
         var registeredVisitCount: Int? = null
 
         setContent {
-            StudentRegistrationDialog(
-                studentGroups = studentGroups,
+            StudentRegistrationDialogForTest(
                 packageTypes = packagesWithDuo,
-                initialDate = today,
                 onRegister = { _, _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
-                onDismiss = {},
             )
         }
 
