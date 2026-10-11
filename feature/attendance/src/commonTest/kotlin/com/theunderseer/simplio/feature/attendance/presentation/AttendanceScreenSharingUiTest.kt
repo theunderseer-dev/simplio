@@ -28,15 +28,8 @@ class AttendanceScreenSharingUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -85,17 +78,11 @@ class AttendanceScreenSharingUiTest {
         var copiedText: String? = null
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
                 onCopyAttendance = { text ->
                     copiedText = text
                 },
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -119,15 +106,8 @@ class AttendanceScreenSharingUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -151,15 +131,8 @@ class AttendanceScreenSharingUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 

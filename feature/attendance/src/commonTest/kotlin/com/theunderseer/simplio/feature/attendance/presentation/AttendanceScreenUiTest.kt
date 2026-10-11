@@ -85,15 +85,8 @@ class AttendanceScreenUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -121,15 +114,8 @@ class AttendanceScreenUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -150,15 +136,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -210,15 +189,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -277,15 +249,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -334,11 +299,8 @@ class AttendanceScreenUiTest {
             mutableListOf<Triple<Int, LocalDate, Int>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state.value,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
                 onMarkStudentPresent = { studentId, date, visitCount ->
                     confirmedAttendance += Triple(
                         studentId,
@@ -350,14 +312,12 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Saving,
                     )
                 },
-                onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {
                     state.value = state.value.copy(
                         markStudentPresentState =
                         MarkStudentPresentUiState.Idle,
                     )
                 },
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -451,15 +411,8 @@ class AttendanceScreenUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -513,15 +466,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -576,17 +522,11 @@ class AttendanceScreenUiTest {
         val removedAttendance = mutableListOf<Pair<Int, LocalDate>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
                 onRemoveStudentAttendance = { studentId, date ->
                     removedAttendance += studentId to date
                 },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -659,15 +599,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -725,15 +658,8 @@ class AttendanceScreenUiTest {
             )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -798,15 +724,8 @@ class AttendanceScreenUiTest {
         )
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -873,17 +792,11 @@ class AttendanceScreenUiTest {
         val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
                 onMarkStudentPresent = { id, date, visitCount ->
                     markedAttendance += Triple(id, date, visitCount)
                 },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -954,17 +867,11 @@ class AttendanceScreenUiTest {
         val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
                 onMarkStudentPresent = { id, date, visitCount ->
                     markedAttendance += Triple(id, date, visitCount)
                 },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1007,15 +914,8 @@ class AttendanceScreenUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 
@@ -1064,11 +964,8 @@ class AttendanceScreenUiTest {
             mutableListOf<Triple<Int, LocalDate, Int>>()
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state.value,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
                 onMarkStudentPresent = { studentId, date, visitCount ->
                     confirmedAttendance += Triple(
                         studentId,
@@ -1080,14 +977,12 @@ class AttendanceScreenUiTest {
                         MarkStudentPresentUiState.Saving,
                     )
                 },
-                onRemoveStudentAttendance = { _, _ -> },
                 onClearMarkStudentPresentState = {
                     state.value = state.value.copy(
                         markStudentPresentState =
                         MarkStudentPresentUiState.Idle,
                     )
                 },
-                onClearRemoveStudentAttendanceState = {},
             )
         }
 

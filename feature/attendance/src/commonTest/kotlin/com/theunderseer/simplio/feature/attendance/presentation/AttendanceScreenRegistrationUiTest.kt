@@ -29,16 +29,8 @@ class AttendanceScreenRegistrationUiTest {
         val state = emptyAttendanceState(packageTypes = listOf(packageType))
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
-
             )
         }
 
@@ -93,16 +85,8 @@ class AttendanceScreenRegistrationUiTest {
 
         // When
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
-                onRegisterStudent = { _, _, _, _ -> },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
-
             )
         }
 
@@ -123,18 +107,11 @@ class AttendanceScreenRegistrationUiTest {
         var registeredOn: LocalDate? = null
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
                 onRegisterStudent = { _, _, date, _ ->
                     registeredOn = date
                 },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
-
             )
         }
 
@@ -188,18 +165,11 @@ class AttendanceScreenRegistrationUiTest {
         var registeredVisitCount: Int? = null
 
         setContent {
-            AttendanceScreen(
+            AttendanceScreenForTest(
                 state = state,
                 onRegisterStudent = { _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
-                onDeleteStudent = {},
-                onCopyAttendance = {},
-                onMarkStudentPresent = { _, _, _ -> },
-                onRemoveStudentAttendance = { _, _ -> },
-                onClearMarkStudentPresentState = {},
-                onClearRemoveStudentAttendanceState = {},
-
             )
         }
 
