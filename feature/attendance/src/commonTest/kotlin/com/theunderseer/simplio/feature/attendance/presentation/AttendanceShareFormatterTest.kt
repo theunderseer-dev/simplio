@@ -5,12 +5,17 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class AttendanceShareFormatterTest {
-    private val packageType = testFourClassPackage()
+    private val student = testStudent()
+    private val packageType = testClassPackage()
+
+    private val today = LocalDate(2026, 10, 6)
 
     @Test
     fun `formats active student for sharing`() {
@@ -20,11 +25,7 @@ class AttendanceShareFormatterTest {
                 entries =
                 listOf(
                     RegisteredStudent(
-                        student =
-                        Student(
-                            id = 1,
-                            fullName = "Anna Smith",
-                        ),
+                        student = student,
                         studentPackage =
                         StudentPackage(
                             id = 1,
@@ -49,7 +50,7 @@ class AttendanceShareFormatterTest {
         val result =
             formatAttendanceForSharing(
                 attendance = attendance,
-                currentDate = LocalDate(2026, 10, 6),
+                currentDate = today,
             )
 
         // Then
@@ -67,11 +68,7 @@ class AttendanceShareFormatterTest {
                 entries =
                 listOf(
                     RegisteredStudent(
-                        student =
-                        Student(
-                            id = 1,
-                            fullName = "Anna Smith",
-                        ),
+                        student = student,
                         studentPackage =
                         StudentPackage(
                             id = 1,
@@ -97,7 +94,7 @@ class AttendanceShareFormatterTest {
         val result =
             formatAttendanceForSharing(
                 attendance = attendance,
-                currentDate = LocalDate(2026, 10, 6),
+                currentDate = today,
             )
 
         // Then
@@ -115,11 +112,7 @@ class AttendanceShareFormatterTest {
                 entries =
                 listOf(
                     RegisteredStudent(
-                        student =
-                        Student(
-                            id = 1,
-                            fullName = "Anna Smith",
-                        ),
+                        student = student,
                         studentPackage =
                         StudentPackage(
                             id = 1,
@@ -143,7 +136,7 @@ class AttendanceShareFormatterTest {
         val result =
             formatAttendanceForSharing(
                 attendance = attendance,
-                currentDate = LocalDate(2026, 10, 6),
+                currentDate = today,
             )
 
         // Then
@@ -161,11 +154,7 @@ class AttendanceShareFormatterTest {
                 entries =
                 listOf(
                     RegisteredStudent(
-                        student =
-                        Student(
-                            id = 1,
-                            fullName = "Anna Smith",
-                        ),
+                        student = student,
                         studentPackage =
                         StudentPackage(
                             id = 1,
@@ -187,6 +176,7 @@ class AttendanceShareFormatterTest {
                         Student(
                             id = 2,
                             fullName = "John Doe",
+                            groupId = 1,
                         ),
                         studentPackage =
                         StudentPackage(
@@ -211,7 +201,7 @@ class AttendanceShareFormatterTest {
         val result =
             formatAttendanceForSharing(
                 attendance = attendance,
-                currentDate = LocalDate(2026, 10, 6),
+                currentDate = today,
             )
 
         // Then

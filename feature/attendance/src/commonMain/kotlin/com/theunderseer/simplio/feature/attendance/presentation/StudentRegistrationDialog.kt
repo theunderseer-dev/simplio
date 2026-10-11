@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -41,13 +42,18 @@ import kotlin.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StudentRegistrationDialog(
+    studentGroups: List<StudentGroup>,
     packageTypes: List<PackageType>,
     initialDate: LocalDate,
-    onRegister: (String, PackageType, LocalDate, Int) -> Unit,
+    onRegister: (String, Int, PackageType, LocalDate, Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var fullName by remember {
         mutableStateOf("")
+    }
+
+    var selectedGroupId by remember(studentGroups) {
+        mutableStateOf<Int?>(null)
     }
 
     var selectedPackage by remember {
@@ -94,6 +100,32 @@ fun StudentRegistrationDialog(
                         Text("Full name")
                     },
                 )
+
+                Column(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                ) {
+                    Text("Group")
+
+                    SingleChoiceSegmentedButtonRow(
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        studentGroups.forEachIndexed { index, group ->
+                            SegmentedButton(
+                                selected = selectedGroupId == group.id,
+                                onClick = {
+                                    selectedGroupId = group.id
+                                },
+                                shape =
+                                SegmentedButtonDefaults.itemShape(
+                                    index = index,
+                                    count = studentGroups.size,
+                                ),
+                            ) {
+                                Text(group.name)
+                            }
+                        }
+                    }
+                }
 
                 Box {
                     OutlinedTextField(
@@ -209,10 +241,12 @@ fun StudentRegistrationDialog(
             Button(
                 enabled =
                 fullName.isNotBlank() &&
+                    selectedGroupId != null &&
                     selectedPackage != null,
                 onClick = {
                     onRegister(
                         fullName.trim(),
+                        checkNotNull(selectedGroupId),
                         checkNotNull(selectedPackage),
                         selectedDate,
                         selectedVisitCount,

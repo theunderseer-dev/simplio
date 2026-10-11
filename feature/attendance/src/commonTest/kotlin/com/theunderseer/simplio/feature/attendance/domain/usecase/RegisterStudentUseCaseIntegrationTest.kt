@@ -8,11 +8,11 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageType
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
-import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -27,13 +27,17 @@ class RegisterStudentUseCaseIntegrationTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var registerStudent: RegisterStudentUseCase
 
+    private val groupId = 1
+
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(testStudentGroupEntity())
 
         registerStudent =
             RegisterStudentUseCase(
@@ -61,7 +65,7 @@ class RegisterStudentUseCaseIntegrationTest {
     @Test
     fun `registering student persists student package and first attendance`() = runTest {
         // Given
-        val packageTemplate = testFourClassPackage()
+        val packageTemplate = testClassPackage()
 
         val packageTypeId =
             database
@@ -75,7 +79,7 @@ class RegisterStudentUseCaseIntegrationTest {
                     ),
                 ).toInt()
 
-        val packageType = testFiveClassPackage(id = packageTypeId)
+        val packageType = packageTemplate.copy(id = packageTypeId)
 
         val registeredOn = LocalDate(2026, 9, 30)
 
@@ -85,6 +89,7 @@ class RegisterStudentUseCaseIntegrationTest {
                 fullName = "Anna Smith",
                 packageType = packageType,
                 registeredOn = registeredOn,
+                groupId = groupId,
             )
 
         // Then
@@ -94,11 +99,11 @@ class RegisterStudentUseCaseIntegrationTest {
             "Anna Smith",
             registeredStudent.student.fullName,
         )
+        assertEquals(groupId, registeredStudent.student.groupId)
 
         val persistedStudent =
             assertNotNull(
-                database
-                    .studentDao()
+                database.studentDao()
                     .getById(registeredStudent.student.id),
             )
 
@@ -106,6 +111,7 @@ class RegisterStudentUseCaseIntegrationTest {
             "Anna Smith",
             persistedStudent.fullName,
         )
+        assertEquals(groupId, persistedStudent.groupId)
 
         // And
         // the package is persisted for the created student
@@ -173,7 +179,7 @@ class RegisterStudentUseCaseIntegrationTest {
     fun `failed registration rolls back created student`() = runTest {
         // Given
         // a package type that does not exist in Room
-        val packageType = testFiveClassPackage(999)
+        val packageType = testClassPackage(id = 999, plan = PackagePlan.FIVE_CLASSES)
 
         val registeredOn = LocalDate(2026, 9, 30)
 
@@ -191,10 +197,11 @@ class RegisterStudentUseCaseIntegrationTest {
 
         val studentRepository =
             object : StudentRepository by roomStudentRepository {
-                override suspend fun create(fullName: String): Student {
+                override suspend fun create(fullName: String, groupId: Int): Student {
                     val student =
                         roomStudentRepository.create(
                             fullName = fullName,
+                            groupId = groupId,
                         )
 
                     studentWasCreated = true
@@ -223,6 +230,7 @@ class RegisterStudentUseCaseIntegrationTest {
                 fullName = "Anna Smith",
                 packageType = packageType,
                 registeredOn = registeredOn,
+                groupId = groupId,
             )
         }
 
@@ -252,15 +260,7 @@ class RegisterStudentUseCaseIntegrationTest {
                 ),
             ).toInt()
 
-        val packageType =
-            PackageType(
-                id = packageTypeId,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
+        val packageType = testClassPackage(id = packageTypeId, plan = PackagePlan.DUO_SPECIAL)
 
         val registeredOn = LocalDate(2026, 10, 9)
 
@@ -271,6 +271,7 @@ class RegisterStudentUseCaseIntegrationTest {
                 packageType = packageType,
                 registeredOn = registeredOn,
                 visitCount = 2,
+                groupId = groupId,
             )
 
         // Then

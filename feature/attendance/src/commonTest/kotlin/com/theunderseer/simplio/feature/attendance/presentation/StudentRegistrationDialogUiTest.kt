@@ -12,7 +12,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,31 +24,38 @@ import kotlin.test.assertEquals
 class StudentRegistrationDialogUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val singlePackage = testFourClassPackage()
-    val duoPackage =
-        PackageType(
-            id = 3,
-            name = "Duo 8 · Special rate",
-            totalClasses = 8,
-            validityWeeks = 4,
-            price = 2400,
-            maxVisitsPerAttendance = 2,
-        )
+    private val studentGroups = testStudentGroups()
+
+    private val fourClassPackage = testClassPackage()
+
+    private val fiveClassPackage = testClassPackage(
+        id = 2,
+        plan = PackagePlan.FIVE_CLASSES,
+    )
+
+    private val duoPackage = testClassPackage(
+        id = 3,
+        plan = PackagePlan.DUO_SPECIAL,
+    )
+
+    private val individualPackages = listOf(
+        fourClassPackage,
+        fiveClassPackage,
+    )
+
+    private val packagesWithDuo = listOf(
+        fourClassPackage,
+        duoPackage,
+    )
 
     @Test
     fun `displays student registration form`() = runComposeUiTest {
-        val packageTypes = listOf(
-            testFourClassPackage(),
-            testFiveClassPackage(),
-        )
-
-        val registeredDate = LocalDate(2026, 10, 5)
-
         setContent {
             StudentRegistrationDialog(
-                packageTypes = packageTypes,
-                initialDate = registeredDate,
-                onRegister = { _, _, _, _ -> },
+                studentGroups = studentGroups,
+                packageTypes = individualPackages,
+                initialDate = today,
+                onRegister = { _, _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -71,18 +81,13 @@ class StudentRegistrationDialogUiTest {
 
     @Test
     fun `displays initial registration date`() = runComposeUiTest {
-        // Given
-        val today =
-            LocalDate(2026, 10, 5)
-
-        val packageTypes = listOf(testFourClassPackage())
-
         // When
         setContent {
             StudentRegistrationDialog(
-                packageTypes = packageTypes,
+                studentGroups = studentGroups,
+                packageTypes = listOf(fourClassPackage),
                 initialDate = today,
-                onRegister = { _, _, _, _ -> },
+                onRegister = { _, _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -98,24 +103,24 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registers student with entered name and selected package`() = runComposeUiTest {
         // Given
-        val packageType = testFiveClassPackage()
-
-        val registeredDate = LocalDate(2026, 10, 5)
-
         var registeredName: String? = null
         var registeredPackage: PackageType? = null
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(packageType),
-                initialDate = registeredDate,
-                onRegister = { fullName, selectedPackage, _, _ ->
+                studentGroups = studentGroups,
+                packageTypes = listOf(fiveClassPackage),
+                initialDate = today,
+                onRegister = { fullName, _, selectedPackage, _, _ ->
                     registeredName = fullName
                     registeredPackage = selectedPackage
                 },
                 onDismiss = {},
             )
         }
+
+        onNodeWithText("Group A")
+            .performClick()
 
         // When
         onNode(hasSetTextAction())
@@ -135,6 +140,10 @@ class StudentRegistrationDialogUiTest {
         onNodeWithText("Register")
             .assertIsEnabled()
             .performClick()
+
+        // Then
+        assertEquals("Anna Smith", registeredName)
+        assertEquals(fiveClassPackage, registeredPackage)
     }
 
     @Test
@@ -144,9 +153,10 @@ class StudentRegistrationDialogUiTest {
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage),
-                initialDate = LocalDate(2026, 10, 6),
-                onRegister = { _, _, date, _ ->
+                studentGroups = studentGroups,
+                packageTypes = listOf(fourClassPackage),
+                initialDate = today,
+                onRegister = { _, _, _, date, _ ->
                     registeredOn = date
                 },
                 onDismiss = {},
@@ -154,6 +164,9 @@ class StudentRegistrationDialogUiTest {
         }
 
         // When
+        onNodeWithText("Group A")
+            .performClick()
+
         onNodeWithContentDescription("Registration date")
             .performClick()
 
@@ -181,9 +194,10 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage),
+                studentGroups = studentGroups,
+                packageTypes = listOf(fourClassPackage),
                 initialDate = today,
-                onRegister = { _, _, _, _ -> },
+                onRegister = { _, _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -202,9 +216,10 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage),
+                studentGroups = studentGroups,
+                packageTypes = listOf(fourClassPackage),
                 initialDate = today,
-                onRegister = { _, _, _, _ -> },
+                onRegister = { _, _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -229,31 +244,21 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registration uses four class package by default regardless of list order`() = runComposeUiTest {
         // Given
-        val fourClassPackage =
-            PackageType(
-                id = 7,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 4,
-                price = 1400,
-            )
+        val fourClassPackage = testClassPackage(id = 7)
 
-        val fiveClassPackage =
-            PackageType(
-                id = 1,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 5,
-                price = 1700,
-            )
+        val fiveClassPackage = testClassPackage(
+            id = 1,
+            plan = PackagePlan.FIVE_CLASSES,
+        )
 
         var registeredPackage: PackageType? = null
 
         setContent {
             StudentRegistrationDialog(
+                studentGroups = studentGroups,
                 packageTypes = listOf(fiveClassPackage, fourClassPackage),
-                initialDate = LocalDate(2026, 10, 9),
-                onRegister = { _, selectedPackage, _, _ ->
+                initialDate = today,
+                onRegister = { _, _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
                 onDismiss = {},
@@ -261,6 +266,9 @@ class StudentRegistrationDialogUiTest {
         }
 
         // Then: name is still required
+        onNodeWithText("Group A")
+            .performClick()
+
         onNodeWithText("Register")
             .assertIsNotEnabled()
 
@@ -286,31 +294,14 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registers student with package selected from dropdown`() = runComposeUiTest {
         // Given
-        val fourClassPackage =
-            PackageType(
-                id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 4,
-                price = 1400,
-            )
-
-        val fiveClassPackage =
-            PackageType(
-                id = 2,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 5,
-                price = 1700,
-            )
-
         var registeredPackage: PackageType? = null
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(fourClassPackage, fiveClassPackage),
-                initialDate = LocalDate(2026, 10, 9),
-                onRegister = { _, selectedPackage, _, _ ->
+                studentGroups = studentGroups,
+                packageTypes = individualPackages,
+                initialDate = today,
+                onRegister = { _, _, selectedPackage, _, _ ->
                     registeredPackage = selectedPackage
                 },
                 onDismiss = {},
@@ -318,6 +309,9 @@ class StudentRegistrationDialogUiTest {
         }
 
         // Then: unselected options are initially hidden
+        onNodeWithText("Group A")
+            .performClick()
+
         onNodeWithText("5-class package")
             .assertDoesNotExist()
 
@@ -359,9 +353,10 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage, duoPackage),
+                studentGroups = studentGroups,
+                packageTypes = packagesWithDuo,
                 initialDate = today,
-                onRegister = { _, _, _, _ -> },
+                onRegister = { _, _, _, _, _ -> },
                 onDismiss = {},
             )
         }
@@ -396,14 +391,18 @@ class StudentRegistrationDialogUiTest {
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage, duoPackage),
+                studentGroups = studentGroups,
+                packageTypes = packagesWithDuo,
                 initialDate = today,
-                onRegister = { _, _, _, visitCount ->
+                onRegister = { _, _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
                 onDismiss = {},
             )
         }
+
+        onNodeWithText("Group A")
+            .performClick()
 
         onNodeWithText("Package")
             .performClick()
@@ -443,9 +442,10 @@ class StudentRegistrationDialogUiTest {
 
         setContent {
             StudentRegistrationDialog(
-                packageTypes = listOf(singlePackage, duoPackage),
+                studentGroups = studentGroups,
+                packageTypes = packagesWithDuo,
                 initialDate = today,
-                onRegister = { _, _, _, visitCount ->
+                onRegister = { _, _, _, _, visitCount ->
                     registeredVisitCount = visitCount
                 },
                 onDismiss = {},
@@ -453,6 +453,9 @@ class StudentRegistrationDialogUiTest {
         }
 
         // When
+        onNodeWithText("Group A")
+            .performClick()
+
         onNodeWithText("Package")
             .performClick()
 

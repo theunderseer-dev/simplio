@@ -9,8 +9,9 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,7 +20,9 @@ import kotlin.test.assertEquals
 class AttendanceScreenStudentDeletionUiTest {
     private val today = LocalDate(2026, 10, 5)
 
-    private val packageType = testFourClassPackage()
+    private val student = testStudent()
+
+    private val packageType = testClassPackage()
 
     @Test
     fun `shows delete action for registered student`() = runComposeUiTest {
@@ -31,23 +34,16 @@ class AttendanceScreenStudentDeletionUiTest {
                     entries =
                     listOf(
                         RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
+                            student = student,
                             studentPackage =
                             StudentPackage(
                                 id = 1,
-                                studentId = 1,
+                                studentId = student.id,
                                 packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 5),
+                                startedOn = today,
                                 attendanceHistory =
                                 PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
+                                    visitsByDate = mapOf(today to 1),
                                 ),
                             ),
                         ),
@@ -79,23 +75,16 @@ class AttendanceScreenStudentDeletionUiTest {
                     entries =
                     listOf(
                         RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
+                            student = student,
                             studentPackage =
                             StudentPackage(
                                 id = 1,
-                                studentId = 1,
+                                studentId = student.id,
                                 packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 5),
+                                startedOn = today,
                                 attendanceHistory =
                                 PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
+                                    visitsByDate = mapOf(today to 1),
                                 ),
                             ),
                         ),

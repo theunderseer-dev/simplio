@@ -20,10 +20,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,57 +34,35 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenUiTest {
     private val today = LocalDate(2026, 10, 5)
+    private val firstAttendance = LocalDate(2026, 10, 2)
+    private val nextClassDate = LocalDate(2026, 10, 9)
 
-    private val packageType = testFourClassPackage()
-    private val duoPackage =
-        PackageType(
-            id = 3,
-            name = "Duo 8 · Special rate",
-            totalClasses = 8,
-            validityWeeks = 4,
-            price = 2400,
-            maxVisitsPerAttendance = 2,
-        )
+    private val student = testStudent(id = 7)
+    private val duoStudent = testStudent(
+        id = 7,
+        fullName = "Anna & John",
+    )
+
+    private val packageType = testClassPackage()
+    private val duoPackage = testClassPackage(
+        id = 3,
+        plan = PackagePlan.DUO_SPECIAL,
+    )
+
+    private val displayedPackageStart = LocalDate(2026, 10, 1)
+    private val displayedVisits = mapOf(
+        displayedPackageStart to 1,
+        LocalDate(2026, 10, 3) to 1,
+        today to 1,
+    )
 
     @Test
     fun `displays registered student attendance`() = runComposeUiTest {
         // Given
-        val studentPackage =
-            StudentPackage(
-                id = 1,
-                studentId = 1,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 1),
-                attendanceHistory =
-                PackageAttendanceHistory(
-                    visitsByDate =
-                    mapOf(
-                        LocalDate(2026, 10, 1) to 1,
-                        LocalDate(2026, 10, 3) to 1,
-                        LocalDate(2026, 10, 5) to 1,
-                    ),
-                ),
-            )
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage = studentPackage,
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
+        val state = attendanceState(
+            startedOn = displayedPackageStart,
+            visitsByDate = displayedVisits,
+        )
 
         // When
         setContent {
@@ -130,10 +111,7 @@ class AttendanceScreenUiTest {
     @Test
     fun `shows copy confirmation after copy action`() = runComposeUiTest {
         // Given
-        val state =
-            emptyAttendanceState(
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = emptyAttendanceState()
 
         setContent {
             AttendanceScreenForTest(
@@ -153,40 +131,10 @@ class AttendanceScreenUiTest {
     @Test
     fun `shows package history when classes count is clicked`() = runComposeUiTest {
         // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 1),
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 1) to 1,
-                                        LocalDate(2026, 10, 3) to 1,
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
+        val state = attendanceState(
+            startedOn = displayedPackageStart,
+            visitsByDate = displayedVisits,
+        )
 
         setContent {
             AttendanceScreenForTest(
@@ -213,40 +161,10 @@ class AttendanceScreenUiTest {
     @Test
     fun `exposes attendance count as package attendance history action`() = runComposeUiTest {
         // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = 1,
-                                fullName = "Anna Smith",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = 1,
-                                packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 1),
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 1) to 1,
-                                        LocalDate(2026, 10, 3) to 1,
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
+        val state = attendanceState(
+            startedOn = displayedPackageStart,
+            visitsByDate = displayedVisits,
+        )
 
         setContent {
             AttendanceScreenForTest(
@@ -263,36 +181,10 @@ class AttendanceScreenUiTest {
     @Test
     fun `keeps attendance picker open while saving and closes after success`() = runComposeUiTest {
         // Given
-        val student = Student(
-            id = 7,
-            fullName = "Anna Smith",
-        )
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val selectedDate = LocalDate(2026, 10, 5)
-
-        val studentPackage = StudentPackage(
-            id = 1,
-            studentId = student.id,
-            packageType = packageType,
-            startedOn = firstAttendance,
-            attendanceHistory = PackageAttendanceHistory(
-                visitsByDate = mapOf(firstAttendance to 1),
-            ),
-        )
+        val selectedDate = today
 
         val state = mutableStateOf(
-            attendanceContentUiState(
-                attendance = Attendance(
-                    entries = listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage = studentPackage,
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 9),
-            ),
+            attendanceState(currentDate = nextClassDate),
         )
 
         val confirmedAttendance =
@@ -378,34 +270,8 @@ class AttendanceScreenUiTest {
     @Test
     fun `shows checked state when latest scheduled attendance is recorded`() = runComposeUiTest {
         // Given
-        val student = Student(
-            id = 7,
-            fullName = "Anna Smith",
-        )
-
-        val state = attendanceContentUiState(
-            attendance = Attendance(
-                entries = listOf(
-                    RegisteredStudent(
-                        student = student,
-                        studentPackage = StudentPackage(
-                            id = 1,
-                            studentId = student.id,
-                            packageType = packageType,
-                            startedOn = LocalDate(2026, 10, 2),
-                            attendanceHistory =
-                            PackageAttendanceHistory(
-                                visitsByDate =
-                                mapOf(
-                                    LocalDate(2026, 10, 2) to 1,
-                                    LocalDate(2026, 10, 5) to 1,
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-            packageTypes = listOf(packageType),
+        val state = attendanceState(
+            visitsByDate = mapOf(firstAttendance to 1, today to 1),
             currentDate = LocalDate(2026, 10, 6),
         )
 
@@ -430,40 +296,7 @@ class AttendanceScreenUiTest {
     @Test
     fun `opens attendance date picker when pending check is clicked`() = runComposeUiTest {
         // Given
-        val student =
-            Student(
-                id = 7,
-                fullName = "Anna Smith",
-            )
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 2),
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 2) to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = attendanceState(currentDate = LocalDate(2026, 10, 6))
 
         setContent {
             AttendanceScreenForTest(
@@ -483,41 +316,10 @@ class AttendanceScreenUiTest {
     @Test
     fun `requests attendance removal with student id and date`() = runComposeUiTest {
         // Given
-        val student =
-            Student(
-                id = 7,
-                fullName = "Anna Smith",
-            )
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = LocalDate(2026, 10, 2),
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        LocalDate(2026, 10, 2) to 1,
-                                        LocalDate(2026, 10, 5) to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 6),
-            )
+        val state = attendanceState(
+            visitsByDate = mapOf(firstAttendance to 1, today to 1),
+            currentDate = LocalDate(2026, 10, 6),
+        )
 
         val removedAttendance = mutableListOf<Pair<Int, LocalDate>>()
 
@@ -549,54 +351,19 @@ class AttendanceScreenUiTest {
             .performClick()
 
         // Then
-        assertEquals(
-            listOf(student.id to LocalDate(2026, 10, 5)),
-            removedAttendance,
-        )
-
         onNodeWithText("Remove attendance?")
             .assertIsDisplayed()
+
+        assertEquals(
+            listOf(student.id to today),
+            removedAttendance,
+        )
     }
 
     @Test
     fun `initially selects latest scheduled class date in attendance picker`() = runComposeUiTest {
         // Given
-        val student =
-            Student(
-                id = 7,
-                fullName = "Anna Smith",
-            )
-
-        val studentPackage =
-            StudentPackage(
-                id = 1,
-                studentId = student.id,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 2),
-                attendanceHistory =
-                PackageAttendanceHistory(
-                    visitsByDate =
-                    mapOf(
-                        LocalDate(2026, 10, 2) to 1,
-                    ),
-                ),
-            )
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage = studentPackage,
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 8),
-            )
+        val state = attendanceState(currentDate = LocalDate(2026, 10, 8))
 
         setContent {
             AttendanceScreenForTest(
@@ -620,42 +387,7 @@ class AttendanceScreenUiTest {
     @Test
     fun `allows only scheduled attendance dates up to current date`() = runComposeUiTest {
         // Given
-        val student =
-            Student(
-                id = 7,
-                fullName = "Anna Smith",
-            )
-
-        val studentPackage =
-            StudentPackage(
-                id = 1,
-                studentId = student.id,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 2),
-                attendanceHistory =
-                PackageAttendanceHistory(
-                    visitsByDate =
-                    mapOf(
-                        LocalDate(2026, 10, 2) to 1,
-                    ),
-                ),
-            )
-
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage = studentPackage,
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = LocalDate(2026, 10, 9),
-            )
+        val state = attendanceState(currentDate = nextClassDate)
 
         setContent {
             AttendanceScreenForTest(
@@ -692,34 +424,8 @@ class AttendanceScreenUiTest {
     @Test
     fun `opens attendance removal confirmation when checked attendance is clicked`() = runComposeUiTest {
         // Given
-        val student = Student(
-            id = 7,
-            fullName = "Anna Smith",
-        )
-        val studentPackage = StudentPackage(
-            id = 1,
-            studentId = student.id,
-            packageType = packageType,
-            startedOn = LocalDate(2026, 10, 2),
-            attendanceHistory =
-            PackageAttendanceHistory(
-                visitsByDate =
-                mapOf(
-                    LocalDate(2026, 10, 2) to 1,
-                    LocalDate(2026, 10, 5) to 1,
-                ),
-            ),
-        )
-        val state = attendanceContentUiState(
-            attendance = Attendance(
-                entries = listOf(
-                    RegisteredStudent(
-                        student = student,
-                        studentPackage = studentPackage,
-                    ),
-                ),
-            ),
-            packageTypes = listOf(packageType),
+        val state = attendanceState(
+            visitsByDate = mapOf(firstAttendance to 1, today to 1),
             currentDate = LocalDate(2026, 10, 8),
         )
 
@@ -754,40 +460,14 @@ class AttendanceScreenUiTest {
     @Test
     fun `provides two visits when duo attendance is confirmed`() = runComposeUiTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val attendanceDate = LocalDate(2026, 10, 5)
-        val studentId = 7
+        val attendanceDate = today
 
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = studentId,
-                                fullName = "Anna & John",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = studentId,
-                                packageType = duoPackage,
-                                startedOn = firstAttendance,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(firstAttendance to 2),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(duoPackage),
-                currentDate = attendanceDate,
-            )
+        val state = attendanceState(
+            student = duoStudent,
+            packageType = duoPackage,
+            visitsByDate = mapOf(firstAttendance to 2),
+            currentDate = attendanceDate,
+        )
 
         val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
 
@@ -816,7 +496,7 @@ class AttendanceScreenUiTest {
 
         // Then
         assertEquals(
-            listOf(Triple(studentId, attendanceDate, 2)),
+            listOf(Triple(duoStudent.id, attendanceDate, 2)),
             markedAttendance,
         )
     }
@@ -825,44 +505,20 @@ class AttendanceScreenUiTest {
     fun `provides one visit when duo package has only one visit remaining`() = runComposeUiTest {
         // Given
         val firstAttendance = LocalDate(2026, 9, 21)
-        val attendanceDate = LocalDate(2026, 10, 5)
-        val studentId = 7
+        val attendanceDate = today
 
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student =
-                            Student(
-                                id = studentId,
-                                fullName = "Anna & John",
-                            ),
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = studentId,
-                                packageType = duoPackage,
-                                startedOn = firstAttendance,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(
-                                        firstAttendance to 2,
-                                        LocalDate(2026, 9, 25) to 2,
-                                        LocalDate(2026, 9, 28) to 2,
-                                        LocalDate(2026, 10, 2) to 1,
-                                    ),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(duoPackage),
-                currentDate = attendanceDate,
-            )
+        val state = attendanceState(
+            student = duoStudent,
+            packageType = duoPackage,
+            startedOn = firstAttendance,
+            visitsByDate = mapOf(
+                firstAttendance to 2,
+                LocalDate(2026, 9, 25) to 2,
+                LocalDate(2026, 9, 28) to 2,
+                LocalDate(2026, 10, 2) to 1,
+            ),
+            currentDate = attendanceDate,
+        )
 
         val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
 
@@ -897,7 +553,7 @@ class AttendanceScreenUiTest {
 
         // Then
         assertEquals(
-            listOf(Triple(studentId, attendanceDate, 1)),
+            listOf(Triple(duoStudent.id, attendanceDate, 1)),
             markedAttendance,
         )
     }
@@ -927,36 +583,13 @@ class AttendanceScreenUiTest {
     @Test
     fun `shows mark error inside picker and preserves selection for retry`() = runComposeUiTest {
         // Given
-        val student = Student(
-            id = 7,
-            fullName = "Anna & John",
-        )
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val selectedDate = LocalDate(2026, 10, 5)
         val errorMessage = "Failed to mark student present"
-
-        val studentPackage = StudentPackage(
-            id = 1,
-            studentId = student.id,
-            packageType = duoPackage,
-            startedOn = firstAttendance,
-            attendanceHistory = PackageAttendanceHistory(
-                visitsByDate = mapOf(firstAttendance to 2),
-            ),
-        )
-
         val state = mutableStateOf(
-            attendanceContentUiState(
-                attendance = Attendance(
-                    entries = listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage = studentPackage,
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(duoPackage),
-                currentDate = LocalDate(2026, 10, 9),
+            attendanceState(
+                student = duoStudent,
+                packageType = duoPackage,
+                visitsByDate = mapOf(firstAttendance to 2),
+                currentDate = nextClassDate,
             ),
         )
 
@@ -1028,7 +661,7 @@ class AttendanceScreenUiTest {
             .assertIsEnabled()
 
         assertEquals(
-            listOf(Triple(student.id, selectedDate, 1)),
+            listOf(Triple(duoStudent.id, today, 1)),
             confirmedAttendance,
         )
 
@@ -1039,8 +672,8 @@ class AttendanceScreenUiTest {
         // Then: both the date and visit count are preserved
         assertEquals(
             listOf(
-                Triple(student.id, selectedDate, 1),
-                Triple(student.id, selectedDate, 1),
+                Triple(duoStudent.id, today, 1),
+                Triple(duoStudent.id, today, 1),
             ),
             confirmedAttendance,
         )
@@ -1062,6 +695,33 @@ class AttendanceScreenUiTest {
     ): AttendanceUiState.Content = attendanceContentUiState(
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
+        currentDate = currentDate,
+    )
+
+    private fun attendanceState(
+        student: Student = this.student,
+        packageType: PackageType = this.packageType,
+        startedOn: LocalDate = firstAttendance,
+        visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
+        currentDate: LocalDate = today,
+    ): AttendanceUiState.Content = attendanceContentUiState(
+        attendance = Attendance(
+            entries = listOf(
+                RegisteredStudent(
+                    student = student,
+                    studentPackage = StudentPackage(
+                        id = 1,
+                        studentId = student.id,
+                        packageType = packageType,
+                        startedOn = startedOn,
+                        attendanceHistory = PackageAttendanceHistory(
+                            visitsByDate = visitsByDate,
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        packageTypes = listOf(packageType),
         currentDate = currentDate,
     )
 }

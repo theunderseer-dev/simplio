@@ -5,15 +5,17 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
-import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -28,15 +30,22 @@ import kotlin.test.assertTrue
 class RenewStudentPackageUseCaseIntegrationTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var renewStudentPackage: RenewStudentPackageUseCase
-    private val packageType = testFiveClassPackage()
+
+    private val studentEntity = testStudentEntity()
+
+    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
+
+    private val groupId = 1
 
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(testStudentGroupEntity())
 
         renewStudentPackage =
             RenewStudentPackageUseCase(
@@ -63,27 +72,21 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
-
-        val packageTemplate = testFiveClassPackage()
+                .insert(studentEntity).toInt()
 
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
+                        name = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
                     ),
                 ).toInt()
 
-        val packageType = packageTemplate.copy(id = packageTypeId)
+        val packageType = packageType.copy(id = packageTypeId)
 
         val oldStartedOn = LocalDate(2026, 8, 1)
 
@@ -215,27 +218,21 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
-
-        val packageTemplate = testFiveClassPackage()
+                .insert(studentEntity).toInt()
 
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
+                        name = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
                     ),
                 ).toInt()
 
-        val packageType = packageTemplate.copy(id = packageTypeId)
+        val packageType = packageType.copy(id = packageTypeId)
 
         val startedOn = LocalDate(2026, 8, 1)
 
@@ -343,27 +340,21 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
-
-        val packageTemplate = testFiveClassPackage()
+                .insert(studentEntity).toInt()
 
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
+                        name = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
                     ),
                 ).toInt()
 
-        val packageType = packageTemplate.copy(id = packageTypeId)
+        val packageType = packageType.copy(id = packageTypeId)
 
         val oldStartedOn = LocalDate(2026, 7, 1)
 
@@ -485,27 +476,21 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
-
-        val packageTemplate = testFiveClassPackage()
+                .insert(studentEntity).toInt()
 
         val packageTypeId =
             database
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
+                        name = packageType.name,
+                        totalClasses = packageType.totalClasses,
+                        validityWeeks = packageType.validityWeeks,
+                        price = packageType.price,
                     ),
                 ).toInt()
 
-        val packageType = packageTemplate.copy(id = packageTypeId)
+        val packageType = packageType.copy(id = packageTypeId)
 
         val oldStartedOn = LocalDate(2026, 7, 1)
 

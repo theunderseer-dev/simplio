@@ -6,6 +6,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
@@ -26,13 +27,22 @@ class MarkStudentPresentUseCaseIntegrationTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var markStudentPresent: MarkStudentPresentUseCase
 
+    private val groupId = 1
+
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(
+            StudentGroupEntity(
+                id = groupId,
+                name = "Group A",
+            ),
+        )
 
         markStudentPresent =
             MarkStudentPresentUseCase(
@@ -62,6 +72,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 
@@ -164,6 +175,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 
@@ -264,6 +276,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 
@@ -375,6 +388,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 
@@ -479,6 +493,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 
@@ -510,6 +525,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
                 .insert(
                     StudentEntity(
                         fullName = "Anna Smith",
+                        groupId = groupId,
                     ),
                 ).toInt()
 

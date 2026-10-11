@@ -14,6 +14,7 @@ class RegisterStudentUseCase(
 ) {
     suspend operator fun invoke(
         fullName: String,
+        groupId: Int,
         packageType: PackageType,
         registeredOn: LocalDate,
         visitCount: Int = 1,
@@ -22,7 +23,11 @@ class RegisterStudentUseCase(
             "Visit count is not allowed for the selected package"
         }
 
-        val student = studentRepository.create(fullName = fullName)
+        val student =
+            studentRepository.create(
+                fullName = fullName,
+                groupId = groupId,
+            )
 
         val studentPackage =
             studentPackageRepository.create(
@@ -32,6 +37,9 @@ class RegisterStudentUseCase(
                 visitCount = visitCount,
             )
 
-        RegisteredStudent(student = student, studentPackage = studentPackage)
+        RegisteredStudent(
+            student = student,
+            studentPackage = studentPackage,
+        )
     }
 }

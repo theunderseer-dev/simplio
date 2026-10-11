@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.data.local.database
 
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
@@ -33,13 +34,20 @@ class AttendanceDatabaseFactoryTest {
 
             val studentId =
                 try {
-                    database
-                        .studentDao()
-                        .insert(
-                            StudentEntity(
-                                fullName = "Anna Smith",
+                    val groupId =
+                        database.studentGroupDao().insert(
+                            StudentGroupEntity(
+                                id = 1,
+                                name = "Group A",
                             ),
                         ).toInt()
+
+                    database.studentDao().insert(
+                        StudentEntity(
+                            fullName = "Anna Smith",
+                            groupId = groupId,
+                        ),
+                    ).toInt()
                 } finally {
                     database.close()
                 }
@@ -63,6 +71,8 @@ class AttendanceDatabaseFactoryTest {
                     "Anna Smith",
                     persistedStudent.fullName,
                 )
+
+                assertEquals(1, persistedStudent.groupId)
             } finally {
                 reopenedDatabase.close()
             }

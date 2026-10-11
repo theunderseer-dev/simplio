@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.repository
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -15,13 +16,22 @@ class RoomStudentRepositoryTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var repository: RoomStudentRepository
 
+    private val groupId = 1
+
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(
+            StudentGroupEntity(
+                id = groupId,
+                name = "Group A",
+            ),
+        )
 
         repository =
             RoomStudentRepository(
@@ -43,11 +53,13 @@ class RoomStudentRepositoryTest {
         val student =
             repository.create(
                 fullName = fullName,
+                groupId = groupId,
             )
 
         // Then
         assertTrue(student.id > 0)
         assertEquals(fullName, student.fullName)
+        assertEquals(groupId, student.groupId)
 
         // And
         // the student is persisted in Room
@@ -65,6 +77,8 @@ class RoomStudentRepositoryTest {
             fullName,
             persistedStudent.fullName,
         )
+
+        assertEquals(groupId, persistedStudent.groupId)
     }
 
     @Test
@@ -73,11 +87,13 @@ class RoomStudentRepositoryTest {
         val anna =
             repository.create(
                 fullName = "Anna Smith",
+                groupId = groupId,
             )
 
         val bob =
             repository.create(
                 fullName = "Bob Lee",
+                groupId = groupId,
             )
 
         // When

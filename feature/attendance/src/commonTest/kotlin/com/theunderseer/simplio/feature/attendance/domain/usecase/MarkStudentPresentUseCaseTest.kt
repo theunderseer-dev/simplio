@@ -1,12 +1,13 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fake.RecordedAttendance
-import com.theunderseer.simplio.feature.attendance.presentation.testFiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
@@ -21,7 +22,7 @@ class MarkStudentPresentUseCaseTest {
     private lateinit var markStudentPresent: MarkStudentPresentUseCase
     private lateinit var transactionRunner: FakeTransactionRunner
     private val studentId = 1
-    private val packageType = testFiveClassPackage()
+    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
     private val duoPackage =
         PackageType(
             id = 2,

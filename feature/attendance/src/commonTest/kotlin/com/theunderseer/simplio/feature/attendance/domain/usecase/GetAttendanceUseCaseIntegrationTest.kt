@@ -4,17 +4,18 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
-import com.theunderseer.simplio.feature.attendance.presentation.testFourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -28,12 +29,14 @@ class GetAttendanceUseCaseIntegrationTest {
     private lateinit var getAttendance: GetAttendanceUseCase
 
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(testStudentGroupEntity())
 
         getAttendance =
             GetAttendanceUseCase(
@@ -60,25 +63,15 @@ class GetAttendanceUseCaseIntegrationTest {
         val studentId =
             database
                 .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                    ),
-                ).toInt()
+                .insert(testStudentEntity()).toInt()
 
-        val packageTemplate = testFourClassPackage()
+        val packageTemplate = testClassPackage()
 
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
-                    ),
-                ).toInt()
+        val packageTypeId = database.packageTypeDao().insert(
+            testPackageTypeEntity(
+                packageType = packageTemplate,
+            ),
+        ).toInt()
 
         val packageType = packageTemplate.copy(id = packageTypeId)
 
@@ -89,20 +82,13 @@ class GetAttendanceUseCaseIntegrationTest {
                 1,
             )
 
-        val latestPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = latestStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        val latestPackageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = packageType,
+                startedOnEpochDay = latestStartedOn.toEpochDays(),
+            ),
+        ).toInt()
 
         val secondAttendanceDate =
             LocalDate(
@@ -136,20 +122,13 @@ class GetAttendanceUseCaseIntegrationTest {
                 1,
             )
 
-        val oldPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = oldStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        val oldPackageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = packageType,
+                startedOnEpochDay = oldStartedOn.toEpochDays(),
+            ),
+        ).toInt()
 
         assertTrue(
             oldPackageId > latestPackageId,
@@ -165,8 +144,7 @@ class GetAttendanceUseCaseIntegrationTest {
             )
 
         // When
-        val attendance =
-            getAttendance()
+        val attendance = getAttendance()
 
         // Then
         assertEquals(
@@ -174,11 +152,7 @@ class GetAttendanceUseCaseIntegrationTest {
                 entries =
                 listOf(
                     RegisteredStudent(
-                        student =
-                        Student(
-                            id = studentId,
-                            fullName = "Anna Smith",
-                        ),
+                        student = testStudent(id = studentId),
                         studentPackage =
                         StudentPackage(
                             id = latestPackageId,

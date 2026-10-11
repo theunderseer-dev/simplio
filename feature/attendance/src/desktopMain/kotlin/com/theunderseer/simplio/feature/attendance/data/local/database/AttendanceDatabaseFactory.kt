@@ -10,5 +10,6 @@ fun createAttendanceDatabase(path: String): AttendanceDatabase = Room
     .addMigrations(
         AttendanceMigration1To2,
         AttendanceMigration2To3,
+        AttendanceMigration3To4,
     )
     .build()

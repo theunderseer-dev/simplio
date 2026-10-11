@@ -3,9 +3,10 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -16,7 +17,7 @@ class AttendanceCheckAvailabilityTest {
     private val firstAttendance = LocalDate(2026, 10, 2)
     private val laterAttendance = LocalDate(2026, 10, 5)
 
-    private val packageType = testFourClassPackage()
+    private val packageType = testClassPackage()
 
     @Test
     fun `first attendance remains checked but check action is disabled`() {
@@ -66,11 +67,11 @@ class AttendanceCheckAvailabilityTest {
             Attendance(
                 entries = listOf(
                     RegisteredStudent(
-                        student = Student(id = 7, fullName = "Anna Smith"),
+                        student = testStudent(),
                         studentPackage =
                         StudentPackage(
                             id = 1,
-                            studentId = 7,
+                            studentId = 1,
                             packageType = packageType,
                             startedOn = firstAttendance,
                             attendanceHistory =

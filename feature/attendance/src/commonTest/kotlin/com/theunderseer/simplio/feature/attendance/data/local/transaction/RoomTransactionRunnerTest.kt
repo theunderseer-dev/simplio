@@ -4,9 +4,12 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -23,12 +26,14 @@ class RoomTransactionRunnerTest {
     private lateinit var transactionRunner: RoomTransactionRunner
 
     @BeforeTest
-    fun setUp() {
+    fun setUp() = runTest {
         database =
             Room
                 .inMemoryDatabaseBuilder<AttendanceDatabase>()
                 .setDriver(BundledSQLiteDriver())
                 .build()
+
+        database.studentGroupDao().insert(testStudentGroupEntity())
 
         transactionRunner =
             RoomTransactionRunner(
@@ -48,11 +53,7 @@ class RoomTransactionRunnerTest {
             transactionRunner.run {
                 database
                     .studentDao()
-                    .insert(
-                        StudentEntity(
-                            fullName = "Anna Smith",
-                        ),
-                    ).toInt()
+                    .insert(testStudentEntity()).toInt()
             }
 
         // Then
@@ -81,11 +82,7 @@ class RoomTransactionRunnerTest {
                     insertedStudentId =
                         database
                             .studentDao()
-                            .insert(
-                                StudentEntity(
-                                    fullName = "Anna Smith",
-                                ),
-                            ).toInt()
+                            .insert(testStudentEntity()).toInt()
 
                     error("Transaction failed")
                 }
@@ -111,17 +108,17 @@ class RoomTransactionRunnerTest {
     fun `failed transaction rolls back changes across multiple DAOs`() = runTest {
         // Given
         // an existing package type outside the transaction
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
+        val packageTemplate = testClassPackage(
+            plan = PackagePlan.FIVE_CLASSES,
+        )
+
+        val packageTypeId = database.packageTypeDao().insert(
+            testPackageTypeEntity(
+                packageType = packageTemplate,
+            ),
+        ).toInt()
+
+        val packageType = packageTemplate.copy(id = packageTypeId)
 
         val startedOn = LocalDate(2026, 9, 30)
 
@@ -135,28 +132,17 @@ class RoomTransactionRunnerTest {
                     val studentId =
                         database
                             .studentDao()
-                            .insert(
-                                StudentEntity(
-                                    fullName = "Anna Smith",
-                                ),
-                            ).toInt()
+                            .insert(testStudentEntity()).toInt()
 
                     insertedStudentId = studentId
 
-                    val packageId =
-                        database
-                            .studentPackageDao()
-                            .insert(
-                                StudentPackageEntity(
-                                    studentId = studentId,
-                                    packageTypeId = packageTypeId,
-                                    packageName = "5-class package",
-                                    totalClasses = 5,
-                                    validityWeeks = 6,
-                                    price = 1700,
-                                    startedOnEpochDay = startedOn.toEpochDays(),
-                                ),
-                            ).toInt()
+                    val packageId = database.studentPackageDao().insert(
+                        testStudentPackageEntity(
+                            studentId = studentId,
+                            packageType = packageType,
+                            startedOnEpochDay = startedOn.toEpochDays(),
+                        ),
+                    ).toInt()
 
                     insertedPackageId = packageId
 
