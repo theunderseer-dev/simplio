@@ -3,7 +3,6 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
@@ -55,7 +54,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "\tAnna Smith\t3 / 4\t(until 29/10)",
+            "Anna Smith 3/4 (until 29/10)",
             result,
         )
     }
@@ -99,7 +98,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "♻️\tAnna Smith\t4 / 4\t(until 29/10)",
+            "♻️Anna Smith 4/4 (until 29/10)",
             result,
         )
     }
@@ -141,7 +140,7 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "♻️\tAnna Smith\t2 / 4\t(until 29/08)",
+            "♻️Anna Smith 2/4 (until 29/08)",
             result,
         )
     }
@@ -172,11 +171,9 @@ class AttendanceShareFormatterTest {
                         ),
                     ),
                     RegisteredStudent(
-                        student =
-                        Student(
+                        student = testStudent(
                             id = 2,
                             fullName = "John Doe",
-                            groupId = 1,
                         ),
                         studentPackage =
                         StudentPackage(
@@ -206,8 +203,8 @@ class AttendanceShareFormatterTest {
 
         // Then
         assertEquals(
-            "\tAnna Smith\t2 / 4\t(until 29/10)\n" +
-                "♻️\tJohn Doe\t2 / 4\t(until 29/08)",
+            "Anna Smith 2/4 (until 29/10)\n" +
+                "♻️John Doe 2/4 (until 29/08)",
             result,
         )
     }

@@ -113,7 +113,7 @@ class AttendanceScreenUiTest {
     @Test
     fun `shows copy confirmation after copy action`() = runComposeUiTest {
         // Given
-        val state = emptyAttendanceState()
+        val state = attendanceState()
 
         setContent {
             AttendanceScreenForTest(
@@ -122,8 +122,9 @@ class AttendanceScreenUiTest {
         }
 
         // When
-        onNodeWithContentDescription("Copy attendance")
-            .performClick()
+        onNodeWithContentDescription(
+            "Copy attendance for ${DefaultStudentGroups.GROUP_A.name}",
+        ).performClick()
 
         // Then
         onNodeWithText("Copied to clipboard")
