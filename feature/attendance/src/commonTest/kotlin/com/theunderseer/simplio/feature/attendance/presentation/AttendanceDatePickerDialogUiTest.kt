@@ -272,4 +272,68 @@ class AttendanceDatePickerDialogUiTest {
 
         assertEquals(emptyList(), confirmedDates)
     }
+
+    @Test
+    fun `dates before package registration are disabled`() = runComposeUiTest {
+        // Given
+        val startedOn = LocalDate(2026, 10, 5)
+
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                initialDate = LocalDate(2026, 10, 9),
+                currentDate = LocalDate(2026, 10, 12),
+                startedOn = startedOn,
+                expiresOn = LocalDate(2026, 11, 2),
+                recordedAttendanceDates = setOf(startedOn),
+            )
+        }
+
+        // Then: a scheduled date before registration is unavailable
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        // Registration attendance is already recorded.
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        // A scheduled date inside the package period remains available.
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        )
+            .assertIsEnabled()
+            .assertIsSelected()
+    }
+
+    @Test
+    fun `dates after package expiration are disabled and expiration date is allowed`() = runComposeUiTest {
+        // Given
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                currentDate = LocalDate(2026, 10, 16),
+                expiresOn = LocalDate(2026, 10, 9),
+            )
+        }
+
+        // Then: expiration date is included in the valid period
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
+
+        // These dates are not future dates, but are outside the package period.
+        onNodeWithText(
+            text = "Monday, October 12, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Friday, October 16, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+    }
 }

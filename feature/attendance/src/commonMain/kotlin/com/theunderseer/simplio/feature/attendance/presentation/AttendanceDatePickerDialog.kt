@@ -38,6 +38,8 @@ internal fun AttendanceDatePickerDialog(
     currentDate: LocalDate,
     maxVisitsPerAttendance: Int,
     remainingClasses: Int,
+    startedOn: LocalDate,
+    expiresOn: LocalDate,
     recordedAttendanceDates: Set<LocalDate>,
     isSaving: Boolean = false,
     errorMessage: String? = null,
@@ -59,6 +61,9 @@ internal fun AttendanceDatePickerDialog(
         selectedVisitCount in 1..maxVisitsPerAttendance &&
             selectedVisitCount <= remainingClasses
 
+    val startedOnState = rememberUpdatedState(startedOn)
+    val expiresOnState = rememberUpdatedState(expiresOn)
+
     val currentDateState = rememberUpdatedState(currentDate)
 
     val recordedAttendanceDatesState =
@@ -74,7 +79,9 @@ internal fun AttendanceDatePickerDialog(
                             .toLocalDateTime(TimeZone.UTC)
                             .date
 
-                    return date !in recordedAttendanceDatesState.value &&
+                    return date >= startedOnState.value &&
+                        date <= expiresOnState.value &&
+                        date !in recordedAttendanceDatesState.value &&
                         isAttendanceDateSelectable(
                             date = date,
                             today = currentDateState.value,
@@ -146,7 +153,12 @@ internal fun AttendanceDatePickerDialog(
         },
     ) {
         Column {
-            key(currentDate, recordedAttendanceDates) {
+            key(
+                currentDate,
+                recordedAttendanceDates,
+                startedOn,
+                expiresOn,
+            ) {
                 DatePicker(
                     state = datePickerState,
                     modifier =

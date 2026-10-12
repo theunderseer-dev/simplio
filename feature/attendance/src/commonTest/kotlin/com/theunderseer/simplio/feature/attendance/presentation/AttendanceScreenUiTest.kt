@@ -860,6 +860,36 @@ class AttendanceScreenUiTest {
         )
     }
 
+    @Test
+    fun `attendance picker uses selected package registration date`() = runComposeUiTest {
+        // Given
+        val state = attendanceState(
+            startedOn = today,
+            visitsByDate = mapOf(today to 1),
+            currentDate = nextClassDate,
+        )
+
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "Mark ${student.fullName} present",
+        ).performClick()
+
+        // Then
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
+    }
+
     private fun emptyAttendanceState(
         packageTypes: List<PackageType> = emptyList(),
         currentDate: LocalDate = today,
