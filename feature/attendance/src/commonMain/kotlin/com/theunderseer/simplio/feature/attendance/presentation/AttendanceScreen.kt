@@ -115,10 +115,16 @@ fun AttendanceScreen(
                         onDeleteStudentClick = { studentId ->
                             deleteStudentDialog = studentId
                         },
-                        onCopyAttendanceClick = {
+                        onCopyAttendanceClick = { groupId ->
+                            val groupAttendance = state.attendance.copy(
+                                entries = state.attendance.entries.filter { entry ->
+                                    entry.student.groupId == groupId
+                                },
+                            )
+
                             onCopyAttendance(
                                 formatAttendanceForSharing(
-                                    attendance = state.attendance,
+                                    attendance = groupAttendance,
                                     currentDate = state.currentDate,
                                 ),
                             )
@@ -310,7 +316,7 @@ private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
-    onCopyAttendanceClick: () -> Unit,
+    onCopyAttendanceClick: (Int) -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
     onRemoveStudentAttendanceClick: (StudentAttendanceUiState, LocalDate) -> Unit,
 ) {
@@ -337,13 +343,42 @@ private fun AttendanceContent(
                         Column(
                             modifier = Modifier.testTag("student-group-${group.id}"),
                         ) {
-                            Text(
-                                text = group.name,
-                                style = MaterialTheme.typography.titleMedium,
+                            Row(
                                 modifier = Modifier.padding(
-                                    top = 12.dp,
-                                    bottom = 6.dp,
+                                    top = 8.dp,
+                                    bottom = 2.dp,
                                 ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = group.name,
+                                    style = MaterialTheme.typography.titleSmall,
+                                )
+
+                                Text(
+                                    text = "⧉",
+                                    modifier = Modifier
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClick = {
+                                                onCopyAttendanceClick(group.id)
+                                            },
+                                        )
+                                        .semantics {
+                                            contentDescription =
+                                                "Copy attendance for ${group.name}"
+                                        }
+                                        .padding(
+                                            horizontal = 8.dp,
+                                            vertical = 2.dp,
+                                        ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 16.sp,
+                                )
+                            }
+
+                            HorizontalDivider(
+                                thickness = 0.5.dp,
                             )
 
                             groupRows.forEachIndexed { index, row ->
@@ -376,27 +411,10 @@ private fun AttendanceContent(
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Button(
+            onClick = onAddStudentClick,
         ) {
-            Button(
-                onClick = onAddStudentClick,
-            ) {
-                Text("Add Student")
-            }
-
-            Text(
-                text = "⧉",
-                modifier =
-                Modifier
-                    .clickable(
-                        onClick = onCopyAttendanceClick,
-                    )
-                    .semantics {
-                        contentDescription = "Copy attendance"
-                    }
-                    .padding(8.dp),
-            )
+            Text("Add Student")
         }
     }
 }

@@ -29,8 +29,7 @@ internal fun formatAttendanceForSharing(attendance: Attendance, currentDate: Loc
                     .padStart(2, '0') +
                 ")"
 
-        "$renewalMarker\t" +
-            "${registeredStudent.student.fullName}\t" +
-            "${studentPackage.usedClasses} / ${studentPackage.packageType.totalClasses}\t" +
+        "$renewalMarker${registeredStudent.student.fullName} " +
+            "${studentPackage.usedClasses}/${studentPackage.packageType.totalClasses} " +
             expirationDate
     }
