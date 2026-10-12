@@ -6,12 +6,15 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
@@ -409,7 +412,76 @@ class AttendanceScreenPackageHistoryUiTest {
         }
     }
 
-    private fun packageHistoryState(): AttendanceUiState.Content = testAttendanceContentUiState(
+    @Test
+    fun `shows recorded visit counts for each duo attendance date`() = runComposeUiTest {
+        // Given
+        val state = packageHistoryState(
+            packageType = testClassPackage(plan = PackagePlan.DUO_SPECIAL),
+            visitsByDate = mapOf(
+                firstAttendance to 2,
+                secondAttendance to 1,
+                latestAttendance to 2,
+            ),
+        )
+
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "View package history for ${student.fullName}",
+        ).performClick()
+
+        // Then
+        onNodeWithContentDescription(
+            "Visits on Oct 2 for ${student.fullName}",
+        ).assertTextEquals("2").assertIsDisplayed()
+
+        onNodeWithContentDescription(
+            "Visits on Oct 5 for ${student.fullName}",
+        ).assertTextEquals("1").assertIsDisplayed()
+
+        onNodeWithContentDescription(
+            "Visits on Oct 9 for ${student.fullName}",
+        ).assertTextEquals("2").assertIsDisplayed()
+
+        // Registration attendance still cannot be removed.
+        onNodeWithContentDescription(
+            "Remove attendance on Oct 2 for ${student.fullName}",
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun `hides visit counts for individual package attendance`() = runComposeUiTest {
+        // Given
+        val state = packageHistoryState()
+
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "View package history for ${student.fullName}",
+        ).performClick()
+
+        // Then
+        listOf("Oct 2", "Oct 5", "Oct 9").forEach { date ->
+            onNodeWithContentDescription(
+                "Visits on $date for ${student.fullName}",
+            ).assertDoesNotExist()
+        }
+    }
+
+    private fun packageHistoryState(
+        packageType: PackageType = this.packageType,
+        visitsByDate: Map<LocalDate, Int> = mapOf(
+            firstAttendance to 1,
+            secondAttendance to 1,
+            latestAttendance to 1,
+        ),
+    ): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(
             entries = listOf(
                 RegisteredStudent(
@@ -420,11 +492,7 @@ class AttendanceScreenPackageHistoryUiTest {
                         packageType = packageType,
                         startedOn = firstAttendance,
                         attendanceHistory = PackageAttendanceHistory(
-                            visitsByDate = mapOf(
-                                firstAttendance to 1,
-                                secondAttendance to 1,
-                                latestAttendance to 1,
-                            ),
+                            visitsByDate = visitsByDate,
                         ),
                     ),
                 ),

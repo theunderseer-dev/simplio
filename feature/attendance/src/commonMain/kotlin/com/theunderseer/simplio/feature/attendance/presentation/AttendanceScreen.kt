@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -497,30 +498,58 @@ private fun StudentAttendanceRow(
                                 modifier = Modifier.weight(1f),
                             )
 
-                            if (date != studentPackage.startedOn) {
+                            if (studentPackage.packageType.maxVisitsPerAttendance > 1) {
+                                val visitCount =
+                                    studentPackage.attendanceHistory.visitsByDate.getValue(date)
+
                                 Text(
-                                    text = "×",
-                                    modifier =
-                                    Modifier
-                                        .clickable(
-                                            role = Role.Button,
-                                            onClick = {
-                                                onRemoveAttendanceClick(date)
-                                            },
+                                    text = visitCount.toString(),
+                                    modifier = Modifier
+                                        .padding(
+                                            start = 12.dp,
+                                            end = 8.dp,
                                         )
+                                        .width(24.dp)
                                         .semantics {
                                             contentDescription =
-                                                "Remove attendance on ${date.toDisplayDate()} " +
+                                                "Visits on ${date.toDisplayDate()} " +
                                                 "for ${registeredStudent.student.fullName}"
-                                        }
-                                        .padding(
-                                            horizontal = 6.dp,
-                                            vertical = 2.dp,
-                                        ),
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 20.sp,
-                                    lineHeight = 20.sp,
+                                            stateDescription = visitCount.toString()
+                                        },
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                            }
+
+                            Box(
+                                modifier = Modifier.width(32.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (date != studentPackage.startedOn) {
+                                    Text(
+                                        text = "×",
+                                        modifier =
+                                        Modifier
+                                            .clickable(
+                                                role = Role.Button,
+                                                onClick = {
+                                                    onRemoveAttendanceClick(date)
+                                                },
+                                            )
+                                            .semantics {
+                                                contentDescription =
+                                                    "Remove attendance on ${date.toDisplayDate()} " +
+                                                    "for ${registeredStudent.student.fullName}"
+                                            }
+                                            .padding(
+                                                horizontal = 6.dp,
+                                                vertical = 2.dp,
+                                            ),
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontSize = 20.sp,
+                                        lineHeight = 20.sp,
+                                    )
+                                }
                             }
                         }
                     }
