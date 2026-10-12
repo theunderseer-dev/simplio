@@ -772,6 +772,124 @@ class AttendanceScreenUiTest {
             .assertDoesNotExist()
     }
 
+    @Test
+    fun `attendance picker disables recorded dates from student package`() = runComposeUiTest {
+        // Given
+        val state = attendanceState(
+            visitsByDate = mapOf(
+                firstAttendance to 1,
+                today to 1,
+            ),
+            currentDate = nextClassDate,
+        )
+
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "Mark ${student.fullName} present",
+        ).performClick()
+
+        // Then
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
+    }
+
+    @Test
+    fun `another student's attendance does not disable date in picker`() = runComposeUiTest {
+        // Given
+        val bob = testStudent(id = 8, fullName = "Bob Lee")
+        val confirmedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
+
+        val annaEntry = attendanceState(
+            visitsByDate = mapOf(firstAttendance to 1, today to 1),
+        ).attendance.entries.single()
+
+        val bobEntry = attendanceState(
+            student = bob,
+            visitsByDate = mapOf(firstAttendance to 1),
+        ).attendance.entries.single()
+
+        val state = testAttendanceContentUiState(
+            attendance = Attendance(entries = listOf(annaEntry, bobEntry)),
+            packageTypes = listOf(packageType),
+            currentDate = nextClassDate,
+        )
+
+        setContent {
+            AttendanceScreenForTest(
+                state = state,
+                onMarkStudentPresent = { id, date, visitCount ->
+                    confirmedAttendance += Triple(id, date, visitCount)
+                },
+            )
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "Mark ${bob.fullName} present",
+        ).performClick()
+
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        )
+            .assertIsEnabled()
+            .performClick()
+
+        onNodeWithText("OK").performClick()
+
+        // Then
+        assertEquals(
+            listOf(Triple(bob.id, today, 1)),
+            confirmedAttendance,
+        )
+    }
+
+    @Test
+    fun `attendance picker uses selected package registration date`() = runComposeUiTest {
+        // Given
+        val state = attendanceState(
+            startedOn = today,
+            visitsByDate = mapOf(today to 1),
+            currentDate = nextClassDate,
+        )
+
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "Mark ${student.fullName} present",
+        ).performClick()
+
+        // Then
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
+    }
+
     private fun emptyAttendanceState(
         packageTypes: List<PackageType> = emptyList(),
         currentDate: LocalDate = today,

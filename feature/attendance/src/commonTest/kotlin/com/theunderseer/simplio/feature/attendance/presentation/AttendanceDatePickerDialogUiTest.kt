@@ -1,7 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,15 +21,10 @@ class AttendanceDatePickerDialogUiTest {
         val confirmedDates = mutableListOf<LocalDate>()
 
         setContent {
-            AttendanceDatePickerDialog(
-                initialDate = LocalDate(2026, 10, 5),
-                currentDate = LocalDate(2026, 10, 8),
-                maxVisitsPerAttendance = 1,
-                remainingClasses = 3,
+            AttendanceDatePickerDialogForTest(
                 onConfirm = { date, _ ->
                     confirmedDates += date
                 },
-                onDismiss = {},
             )
         }
 
@@ -63,13 +61,9 @@ class AttendanceDatePickerDialogUiTest {
     fun `defaults to two people when duo package has sufficient remaining visits`() = runComposeUiTest {
         // Given
         setContent {
-            AttendanceDatePickerDialog(
-                initialDate = LocalDate(2026, 10, 5),
-                currentDate = LocalDate(2026, 10, 8),
+            AttendanceDatePickerDialogForTest(
                 maxVisitsPerAttendance = 2,
                 remainingClasses = 6,
-                onConfirm = { _, _ -> },
-                onDismiss = {},
             )
         }
 
@@ -89,15 +83,13 @@ class AttendanceDatePickerDialogUiTest {
         val confirmedAttendance = mutableListOf<Pair<LocalDate, Int>>()
 
         setContent {
-            AttendanceDatePickerDialog(
+            AttendanceDatePickerDialogForTest(
                 initialDate = attendanceDate,
-                currentDate = LocalDate(2026, 10, 8),
                 maxVisitsPerAttendance = 2,
                 remainingClasses = 6,
                 onConfirm = { date, visitCount ->
                     confirmedAttendance += date to visitCount
                 },
-                onDismiss = {},
             )
         }
 
@@ -124,15 +116,13 @@ class AttendanceDatePickerDialogUiTest {
         val confirmedAttendance = mutableListOf<Pair<LocalDate, Int>>()
 
         setContent {
-            AttendanceDatePickerDialog(
+            AttendanceDatePickerDialogForTest(
                 initialDate = attendanceDate,
-                currentDate = LocalDate(2026, 10, 8),
                 maxVisitsPerAttendance = 2,
                 remainingClasses = 6,
                 onConfirm = { date, visitCount ->
                     confirmedAttendance += date to visitCount
                 },
-                onDismiss = {},
             )
         }
 
@@ -155,5 +145,195 @@ class AttendanceDatePickerDialogUiTest {
             listOf(attendanceDate to 1),
             confirmedAttendance,
         )
+    }
+
+    @Test
+    fun `recorded date is disabled and does not replace selected date`() = runComposeUiTest {
+        // Given
+        val confirmedDates = mutableListOf<LocalDate>()
+
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                recordedAttendanceDates = setOf(LocalDate(2026, 10, 2)),
+                onConfirm = { date, _ ->
+                    confirmedDates += date
+                },
+            )
+        }
+
+        // When
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        )
+            .assertIsNotEnabled()
+            .performClick()
+
+        // Then
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsSelected()
+
+        assertEquals(emptyList(), confirmedDates)
+
+        // When
+        onNodeWithText("OK").performClick()
+
+        // Then
+        assertEquals(
+            listOf(LocalDate(2026, 10, 5)),
+            confirmedDates,
+        )
+    }
+
+    @Test
+    fun `recorded initial date cannot be confirmed for duo attendance`() = runComposeUiTest {
+        // Given
+        val recordedDate = LocalDate(2026, 10, 5)
+        val confirmedAttendance = mutableListOf<Pair<LocalDate, Int>>()
+
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                initialDate = recordedDate,
+                maxVisitsPerAttendance = 2,
+                remainingClasses = 6,
+                recordedAttendanceDates = setOf(recordedDate),
+                onConfirm = { date, visitCount ->
+                    confirmedAttendance += date to visitCount
+                },
+            )
+        }
+
+        // Then
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        // When
+        onNodeWithText("OK")
+            .assertIsNotEnabled()
+            .performClick()
+
+        // Then
+        assertEquals(emptyList(), confirmedAttendance)
+
+        // When: a date without attendance is selected
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).performClick()
+
+        onNodeWithText("OK")
+            .assertIsEnabled()
+            .performClick()
+
+        // Then
+        assertEquals(
+            listOf(LocalDate(2026, 10, 2) to 2),
+            confirmedAttendance,
+        )
+    }
+
+    @Test
+    fun `updated history disables selected date without reopening dialog`() = runComposeUiTest {
+        // Given
+        val selectedDate = LocalDate(2026, 10, 5)
+        val recordedDates = mutableStateOf(emptySet<LocalDate>())
+        val confirmedDates = mutableListOf<LocalDate>()
+
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                initialDate = selectedDate,
+                recordedAttendanceDates = recordedDates.value,
+                onConfirm = { date, _ ->
+                    confirmedDates += date
+                },
+            )
+        }
+
+        onNodeWithText("OK").assertIsEnabled()
+
+        // When
+        runOnIdle {
+            recordedDates.value = setOf(selectedDate)
+        }
+
+        // Then
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText("OK")
+            .assertIsNotEnabled()
+            .performClick()
+
+        assertEquals(emptyList(), confirmedDates)
+    }
+
+    @Test
+    fun `dates before package registration are disabled`() = runComposeUiTest {
+        // Given
+        val startedOn = LocalDate(2026, 10, 5)
+
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                initialDate = LocalDate(2026, 10, 9),
+                currentDate = LocalDate(2026, 10, 12),
+                startedOn = startedOn,
+                expiresOn = LocalDate(2026, 11, 2),
+                recordedAttendanceDates = setOf(startedOn),
+            )
+        }
+
+        // Then: a scheduled date before registration is unavailable
+        onNodeWithText(
+            text = "Friday, October 2, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        // Registration attendance is already recorded.
+        onNodeWithText(
+            text = "Monday, October 5, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        // A scheduled date inside the package period remains available.
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        )
+            .assertIsEnabled()
+            .assertIsSelected()
+    }
+
+    @Test
+    fun `dates after package expiration are disabled and expiration date is allowed`() = runComposeUiTest {
+        // Given
+        setContent {
+            AttendanceDatePickerDialogForTest(
+                currentDate = LocalDate(2026, 10, 16),
+                expiresOn = LocalDate(2026, 10, 9),
+            )
+        }
+
+        // Then: expiration date is included in the valid period
+        onNodeWithText(
+            text = "Friday, October 9, 2026",
+            substring = true,
+        ).assertIsEnabled()
+
+        // These dates are not future dates, but are outside the package period.
+        onNodeWithText(
+            text = "Monday, October 12, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
+
+        onNodeWithText(
+            text = "Friday, October 16, 2026",
+            substring = true,
+        ).assertIsNotEnabled()
     }
 }
