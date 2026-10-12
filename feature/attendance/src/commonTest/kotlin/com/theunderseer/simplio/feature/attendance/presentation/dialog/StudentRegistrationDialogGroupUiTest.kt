@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.dialog
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.hasSetTextAction
@@ -6,9 +6,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.fixtures.TEST_GROUP_B_ID
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -22,7 +22,7 @@ class StudentRegistrationDialogGroupUiTest {
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = listOf(testClassPackage()),
-                initialDate = LocalDate(2026, 10, 9),
+                initialDate = registrationDate,
                 onRegister = { _, groupId, _, _, _ ->
                     registeredGroupId = groupId
                 },
@@ -40,6 +40,6 @@ class StudentRegistrationDialogGroupUiTest {
             .performClick()
 
         // Then
-        assertEquals(TEST_GROUP_B_ID, registeredGroupId)
+        assertEquals(DefaultStudentGroups.GROUP_B.id, registeredGroupId)
     }
 }

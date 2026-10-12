@@ -5,8 +5,10 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -15,18 +17,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class AttendanceCheckAvailabilityTest {
-    private val firstAttendance = LocalDate(2026, 10, 2)
-    private val laterAttendance = LocalDate(2026, 10, 5)
-
-    private val packageType = testClassPackage()
-
     @Test
     fun `first attendance remains checked but check action is disabled`() {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendance),
-                currentDate = firstAttendance,
+                attendanceDates = setOf(firstAttendanceDate),
+                currentDate = firstAttendanceDate,
             )
 
         // Then
@@ -39,8 +36,8 @@ class AttendanceCheckAvailabilityTest {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendance),
-                currentDate = laterAttendance,
+                attendanceDates = setOf(firstAttendanceDate),
+                currentDate = nextAttendanceDate,
             )
 
         // Then
@@ -53,8 +50,8 @@ class AttendanceCheckAvailabilityTest {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendance, laterAttendance),
-                currentDate = laterAttendance,
+                attendanceDates = setOf(firstAttendanceDate, nextAttendanceDate),
+                currentDate = nextAttendanceDate,
             )
 
         // Then
@@ -73,8 +70,8 @@ class AttendanceCheckAvailabilityTest {
                         StudentPackage(
                             id = 1,
                             studentId = 1,
-                            packageType = packageType,
-                            startedOn = firstAttendance,
+                            packageType = fourClassPackage,
+                            startedOn = firstAttendanceDate,
                             attendanceHistory =
                             PackageAttendanceHistory(
                                 visitsByDate = attendanceDates.associateWith { 1 },
@@ -83,7 +80,7 @@ class AttendanceCheckAvailabilityTest {
                     ),
                 ),
             ),
-            packageTypes = listOf(packageType),
+            packageTypes = listOf(fourClassPackage),
             currentDate = currentDate,
         ).rows.single()
 }

@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +17,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals

@@ -1,6 +1,5 @@
 package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
@@ -18,8 +17,7 @@ import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryReposito
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
 import kotlinx.coroutines.Dispatchers
@@ -34,32 +32,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-
-internal object AttendanceViewModelTestData {
-    val student = testStudent()
-
-    val today = LocalDate(2026, 10, 8)
-    val firstAttendance = LocalDate(2026, 10, 2)
-    val attendanceDate = LocalDate(2026, 10, 5)
-    val registeredOn = LocalDate(2026, 10, 3)
-
-    val fourClassPackage = testClassPackage()
-
-    val fiveClassPackage = testClassPackage(
-        id = 2,
-        plan = PackagePlan.FIVE_CLASSES,
-    )
-
-    val duoSpecialPackage = testClassPackage(
-        id = 3,
-        plan = PackagePlan.DUO_SPECIAL,
-    )
-
-    val availablePackages = listOf(
-        fourClassPackage,
-        fiveClassPackage,
-    )
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal fun runViewModelTest(block: suspend TestScope.() -> Unit) {
@@ -93,9 +65,9 @@ internal fun createViewModel(
     studentRepository: FakeStudentRepository,
     studentPackageRepository: FakeStudentPackageRepository,
     classHistoryRepository: ClassHistoryRepository = FakeClassHistoryRepository(),
-    packageTypes: List<PackageType> = listOf(AttendanceViewModelTestData.fourClassPackage),
+    packageTypes: List<PackageType> = listOf(AttendanceTestData.fourClassPackage),
     studentGroups: List<StudentGroup> = testStudentGroups(),
-    currentDates: Flow<LocalDate> = flowOf(AttendanceViewModelTestData.today),
+    currentDates: Flow<LocalDate> = flowOf(AttendanceTestData.currentDate),
     markStudentPresentUseCase: MarkStudentPresentUseCase =
         createMarkStudentPresentUseCase(
             studentPackageRepository = studentPackageRepository,

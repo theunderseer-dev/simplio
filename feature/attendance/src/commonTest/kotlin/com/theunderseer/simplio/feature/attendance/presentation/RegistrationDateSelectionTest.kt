@@ -1,6 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import kotlinx.datetime.LocalDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -8,28 +11,24 @@ import kotlin.test.assertTrue
 class RegistrationDateSelectionTest {
     @Test
     fun `does not allow registration date after today`() {
-        // Given
-        val today = LocalDate(2026, 10, 5)
-
-        // Then
         assertTrue(
             isRegistrationDateSelectable(
-                date = today,
-                today = today,
+                date = currentDate,
+                today = currentDate,
             ),
         )
 
         assertTrue(
             isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 4),
-                today = today,
+                date = currentDate - DatePeriod(days = 1),
+                today = currentDate,
             ),
         )
 
         assertFalse(
             isRegistrationDateSelectable(
-                date = LocalDate(2026, 10, 6),
-                today = today,
+                date = currentDate + DatePeriod(days = 1),
+                today = currentDate,
             ),
         )
     }

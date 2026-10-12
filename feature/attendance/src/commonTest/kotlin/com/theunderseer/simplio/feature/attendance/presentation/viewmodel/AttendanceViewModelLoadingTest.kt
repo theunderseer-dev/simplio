@@ -6,17 +6,17 @@ import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStuden
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.availablePackages
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.studentGroups
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.ClassHistoryUiState
 import com.theunderseer.simplio.feature.attendance.presentation.StudentAttendanceUiState
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.attendanceDate
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.availablePackages
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.firstAttendance
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.student
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.today
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -27,8 +27,6 @@ import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelLoadingTest {
-    private val studentGroups = testStudentGroups()
-
     @Test
     fun `loads attendance into content state`() = runViewModelTest {
         // Given
@@ -41,7 +39,7 @@ class AttendanceViewModelLoadingTest {
         val studentPackage = studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = firstAttendance,
+            startedOn = firstAttendanceDate,
         )
 
         val expectedAttendance = Attendance(
@@ -72,14 +70,14 @@ class AttendanceViewModelLoadingTest {
                 classHistoryState = ClassHistoryUiState.Content(
                     entries = listOf(
                         testClassHistoryEntry(
-                            date = attendanceDate,
+                            date = nextAttendanceDate,
                         ),
                     ),
                     nextBeforeDate = null,
                 ),
                 studentGroups = studentGroups,
-                currentDate = today,
-                latestClassDate = attendanceDate,
+                currentDate = currentDate,
+                latestClassDate = nextAttendanceDate,
                 rows = listOf(
                     StudentAttendanceUiState(
                         registeredStudent = expectedAttendance.entries.single(),
@@ -150,14 +148,14 @@ class AttendanceViewModelLoadingTest {
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
         val otherDay = LocalDate(2026, 10, 9)
-        val currentDates = MutableStateFlow(today)
+        val currentDates = MutableStateFlow(currentDate)
 
         val student = studentRepository.seed(student)
 
         studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = attendanceDate,
+            startedOn = nextAttendanceDate,
         )
 
         val viewModel = createViewModel(
@@ -175,8 +173,8 @@ class AttendanceViewModelLoadingTest {
                 viewModel.uiState.value,
             )
 
-        assertEquals(today, before.currentDate)
-        assertEquals(attendanceDate, before.latestClassDate)
+        assertEquals(currentDate, before.currentDate)
+        assertEquals(nextAttendanceDate, before.latestClassDate)
         assertEquals(AttendanceCheckState.Checked, before.rows.single().checkState)
 
         // When: the current date changes to Friday
@@ -194,7 +192,7 @@ class AttendanceViewModelLoadingTest {
         assertEquals(otherDay, after.latestClassDate)
         assertEquals(AttendanceCheckState.Pending, row.checkState)
         assertEquals(student.id, row.registeredStudent.student.id)
-        assertEquals(setOf(attendanceDate), row.registeredStudent.studentPackage.attendanceDates)
+        assertEquals(setOf(nextAttendanceDate), row.registeredStudent.studentPackage.attendanceDates)
         assertEquals(1, row.registeredStudent.studentPackage.usedClasses)
         assertEquals(before.attendance, after.attendance)
     }

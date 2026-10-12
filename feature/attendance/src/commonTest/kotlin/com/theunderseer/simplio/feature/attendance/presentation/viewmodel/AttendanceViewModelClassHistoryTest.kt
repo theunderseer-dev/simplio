@@ -6,12 +6,12 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistor
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.ClassHistoryUiState
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.attendanceDate
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.firstAttendance
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.student
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.datetime.LocalDate
@@ -21,13 +21,12 @@ import kotlin.test.assertIs
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelClassHistoryTest {
-
     @Test
     fun `loads class history and adds empty latest scheduled class`() = runViewModelTest {
         // Given
         val recordedClass =
             testClassHistoryEntry(
-                date = firstAttendance,
+                date = firstAttendanceDate,
                 students = listOf(
                     ClassHistoryStudent(
                         student = student,
@@ -60,7 +59,7 @@ class AttendanceViewModelClassHistoryTest {
             ClassHistoryUiState.Content(
                 entries = listOf(
                     testClassHistoryEntry(
-                        date = attendanceDate,
+                        date = nextAttendanceDate,
                     ),
                     recordedClass,
                 ),
@@ -128,7 +127,7 @@ class AttendanceViewModelClassHistoryTest {
             ClassHistoryUiState.Content(
                 entries = listOf(
                     testClassHistoryEntry(
-                        date = attendanceDate,
+                        date = nextAttendanceDate,
                     ),
                 ),
                 nextBeforeDate = null,

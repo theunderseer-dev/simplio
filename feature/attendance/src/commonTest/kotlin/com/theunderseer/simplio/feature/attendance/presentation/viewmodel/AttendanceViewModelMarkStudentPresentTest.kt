@@ -6,14 +6,14 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPre
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.MarkStudentPresentUiState
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.attendanceDate
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.duoSpecialPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.firstAttendance
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.student
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -31,13 +31,12 @@ class AttendanceViewModelMarkStudentPresentTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-
         val student = studentRepository.seed(student)
 
         studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = firstAttendance,
+            startedOn = firstAttendanceDate,
         )
 
         val viewModel = createViewModel(
@@ -52,7 +51,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
 
         advanceUntilIdle()
@@ -73,8 +72,8 @@ class AttendanceViewModelMarkStudentPresentTest {
 
         assertEquals(
             setOf(
-                firstAttendance,
-                attendanceDate,
+                firstAttendanceDate,
+                nextAttendanceDate,
             ),
             registeredStudent.studentPackage.attendanceDates,
         )
@@ -90,12 +89,12 @@ class AttendanceViewModelMarkStudentPresentTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-        val student = studentRepository.seed(testStudent(id = 7, fullName = "Anna & John"))
+        val student = studentRepository.seed(testStudent(id = 7))
 
         studentPackageRepository.create(
             studentId = student.id,
             packageType = duoSpecialPackage,
-            startedOn = firstAttendance,
+            startedOn = firstAttendanceDate,
             visitCount = 2,
         )
 
@@ -103,7 +102,7 @@ class AttendanceViewModelMarkStudentPresentTest {
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
             packageTypes = listOf(duoSpecialPackage),
-            currentDates = flowOf(attendanceDate),
+            currentDates = flowOf(nextAttendanceDate),
         )
 
         observeUiState(viewModel)
@@ -112,7 +111,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
             visitCount = 2,
         )
 
@@ -129,8 +128,8 @@ class AttendanceViewModelMarkStudentPresentTest {
         assertEquals(student, row.registeredStudent.student)
         assertEquals(
             mapOf(
-                firstAttendance to 2,
-                attendanceDate to 2,
+                firstAttendanceDate to 2,
+                nextAttendanceDate to 2,
             ),
             updatedPackage.attendanceHistory.visitsByDate,
         )
@@ -154,10 +153,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         val firstAttendance = LocalDate(2026, 9, 21)
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-
-        val student = studentRepository.seed(
-            testStudent(id = 7, fullName = "Anna & John"),
-        )
+        val student = studentRepository.seed(student)
 
         val studentPackage =
             studentPackageRepository.create(
@@ -186,7 +182,7 @@ class AttendanceViewModelMarkStudentPresentTest {
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
             packageTypes = listOf(duoSpecialPackage),
-            currentDates = flowOf(attendanceDate),
+            currentDates = flowOf(nextAttendanceDate),
         )
 
         observeUiState(viewModel)
@@ -205,7 +201,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
             visitCount = 2,
         )
 
@@ -238,20 +234,18 @@ class AttendanceViewModelMarkStudentPresentTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-
-        val student = studentRepository.seed(testStudent(id = 7))
-
+        val student = studentRepository.seed(student)
         val storedPackage =
             studentPackageRepository.seed(
                 studentId = student.id,
                 packageType = fourClassPackage,
-                startedOn = firstAttendance,
+                startedOn = firstAttendanceDate,
             )
 
         val viewModel = createViewModel(
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
-            currentDates = flowOf(attendanceDate),
+            currentDates = flowOf(nextAttendanceDate),
         )
 
         observeUiState(viewModel)
@@ -267,7 +261,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
             visitCount = 2,
         )
 
@@ -312,12 +306,12 @@ class AttendanceViewModelMarkStudentPresentTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-        val student = studentRepository.seed(testStudent(id = 7))
+        val student = studentRepository.seed(student)
 
         studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = firstAttendance,
+            startedOn = firstAttendanceDate,
         )
 
         val allowSaving = CompletableDeferred<Unit>()
@@ -352,7 +346,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When: saving starts and remains suspended
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
         runCurrent()
 
@@ -368,7 +362,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When: another request and state clearing are attempted
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
         viewModel.clearMarkStudentPresentState()
         runCurrent()
@@ -391,8 +385,8 @@ class AttendanceViewModelMarkStudentPresentTest {
         )
         assertEquals(
             mapOf(
-                firstAttendance to 1,
-                attendanceDate to 1,
+                firstAttendanceDate to 1,
+                nextAttendanceDate to 1,
             ),
             savedState.attendance.entries.single()
                 .studentPackage.attendanceHistory.visitsByDate,

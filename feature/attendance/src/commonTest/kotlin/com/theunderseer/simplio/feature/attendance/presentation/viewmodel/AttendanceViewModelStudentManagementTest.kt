@@ -2,13 +2,12 @@ package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.attendanceDate
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.duoSpecialPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.registeredOn
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.student
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlin.test.Test
@@ -37,7 +36,7 @@ class AttendanceViewModelStudentManagementTest {
             fullName = student.fullName,
             groupId = student.groupId,
             packageType = fourClassPackage,
-            registeredOn = registeredOn,
+            registeredOn = registrationDate,
         )
 
         advanceUntilIdle()
@@ -71,12 +70,12 @@ class AttendanceViewModelStudentManagementTest {
         )
 
         assertEquals(
-            registeredOn,
+            registrationDate,
             registeredStudent.studentPackage.startedOn,
         )
 
         assertEquals(
-            setOf(registeredOn),
+            setOf(registrationDate),
             registeredStudent.studentPackage.attendanceDates,
         )
     }
@@ -84,7 +83,6 @@ class AttendanceViewModelStudentManagementTest {
     @Test
     fun `registers duo student with two visits and refreshes attendance`() = runViewModelTest {
         // Given
-        val duoStudent = testStudent(fullName = "Anna & John")
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
         val viewModel = createViewModel(
@@ -98,10 +96,10 @@ class AttendanceViewModelStudentManagementTest {
 
         // When
         viewModel.registerStudent(
-            fullName = duoStudent.fullName,
-            groupId = duoStudent.groupId,
+            fullName = student.fullName,
+            groupId = student.groupId,
             packageType = duoSpecialPackage,
-            registeredOn = registeredOn,
+            registeredOn = registrationDate,
             visitCount = 2,
         )
 
@@ -116,12 +114,12 @@ class AttendanceViewModelStudentManagementTest {
         val registeredStudent = state.attendance.entries.single()
         val studentPackage = registeredStudent.studentPackage
 
-        assertEquals(duoStudent.fullName, registeredStudent.student.fullName)
+        assertEquals(student.fullName, registeredStudent.student.fullName)
         assertEquals(duoSpecialPackage, studentPackage.packageType)
-        assertEquals(registeredOn, studentPackage.startedOn)
+        assertEquals(registrationDate, studentPackage.startedOn)
 
         assertEquals(
-            mapOf(registeredOn to 2),
+            mapOf(registrationDate to 2),
             studentPackage.attendanceHistory.visitsByDate,
         )
 
@@ -140,15 +138,13 @@ class AttendanceViewModelStudentManagementTest {
     fun `deletes student and refreshes attendance`() = runViewModelTest {
         // Given
         val studentRepository = FakeStudentRepository()
-
         val studentPackageRepository = FakeStudentPackageRepository()
-
         val student = studentRepository.seed(student)
 
         studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = attendanceDate,
+            startedOn = nextAttendanceDate,
         )
 
         val viewModel = createViewModel(

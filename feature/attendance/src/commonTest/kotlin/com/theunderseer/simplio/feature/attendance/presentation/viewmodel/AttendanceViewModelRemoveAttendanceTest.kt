@@ -9,14 +9,15 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentA
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.RemoveStudentAttendanceUiState
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.attendanceDate
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.duoSpecialPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.firstAttendance
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.presentation.viewmodel.AttendanceViewModelTestData.today
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -39,8 +40,8 @@ class AttendanceViewModelRemoveAttendanceTest {
             studentPackageRepository.seed(
                 studentId = student.id,
                 packageType = fourClassPackage,
-                startedOn = firstAttendance,
-                attendanceDates = setOf(firstAttendance, attendanceDate),
+                startedOn = firstAttendanceDate,
+                attendanceDates = setOf(firstAttendanceDate, nextAttendanceDate),
             )
         val viewModel = createViewModel(
             studentRepository = studentRepository,
@@ -52,14 +53,14 @@ class AttendanceViewModelRemoveAttendanceTest {
 
         val before = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
 
-        assertEquals(attendanceDate, before.latestClassDate)
+        assertEquals(nextAttendanceDate, before.latestClassDate)
         assertEquals(AttendanceCheckState.Checked, before.rows.single().checkState)
         assertEquals(2, before.rows.single().registeredStudent.studentPackage.usedClasses)
 
         // When
         viewModel.removeStudentAttendance(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
         advanceUntilIdle()
 
@@ -69,7 +70,7 @@ class AttendanceViewModelRemoveAttendanceTest {
             studentPackage.copy(
                 attendanceHistory =
                 PackageAttendanceHistory(
-                    visitsByDate = mapOf(firstAttendance to 1),
+                    visitsByDate = mapOf(firstAttendanceDate to 1),
                 ),
             )
         val expectedAttendance =
@@ -88,8 +89,8 @@ class AttendanceViewModelRemoveAttendanceTest {
         assertEquals(1, row.registeredStudent.studentPackage.usedClasses)
         assertEquals(AttendanceCheckState.Pending, row.checkState)
         assertEquals(listOf(fourClassPackage), after.packageTypes)
-        assertEquals(today, after.currentDate)
-        assertEquals(attendanceDate, after.latestClassDate)
+        assertEquals(currentDate, after.currentDate)
+        assertEquals(nextAttendanceDate, after.latestClassDate)
         assertEquals(
             expectedPackage,
             studentPackageRepository.getLatestPackageForStudent(student.id),
@@ -101,17 +102,17 @@ class AttendanceViewModelRemoveAttendanceTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-        val student = studentRepository.seed(testStudent(id = 7))
+        val student = studentRepository.seed(student)
         val studentPackage =
             studentPackageRepository.seed(
                 studentId = student.id,
                 packageType = fourClassPackage,
-                startedOn = firstAttendance,
+                startedOn = firstAttendanceDate,
             )
         val viewModel = createViewModel(
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
-            currentDates = flowOf(firstAttendance),
+            currentDates = flowOf(firstAttendanceDate),
         )
 
         observeUiState(viewModel)
@@ -122,7 +123,7 @@ class AttendanceViewModelRemoveAttendanceTest {
         // When
         viewModel.removeStudentAttendance(
             studentId = student.id,
-            attendanceDate = firstAttendance,
+            attendanceDate = firstAttendanceDate,
         )
         advanceUntilIdle()
 
@@ -152,18 +153,17 @@ class AttendanceViewModelRemoveAttendanceTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
-        val student = studentRepository.seed(testStudent(id = 7, fullName = "Anna and John"))
-
+        val student = studentRepository.seed(student)
         val studentPackage = studentPackageRepository.create(
             studentId = student.id,
             packageType = duoSpecialPackage,
-            startedOn = firstAttendance,
+            startedOn = firstAttendanceDate,
             visitCount = 2,
         )
 
         studentPackageRepository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendanceDate,
+            attendedOn = nextAttendanceDate,
             visitCount = 2,
         )
 
@@ -207,7 +207,7 @@ class AttendanceViewModelRemoveAttendanceTest {
         // When: removal starts and remains suspended
         viewModel.removeStudentAttendance(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
         runCurrent()
 
@@ -226,7 +226,7 @@ class AttendanceViewModelRemoveAttendanceTest {
         // When: another request and state clearing are attempted
         viewModel.removeStudentAttendance(
             studentId = student.id,
-            attendanceDate = attendanceDate,
+            attendanceDate = nextAttendanceDate,
         )
         viewModel.clearRemoveStudentAttendanceState()
         runCurrent()
@@ -250,7 +250,7 @@ class AttendanceViewModelRemoveAttendanceTest {
             savedState.removeStudentAttendanceState,
         )
         assertEquals(
-            mapOf(firstAttendance to 2),
+            mapOf(firstAttendanceDate to 2),
             updatedPackage.attendanceHistory.visitsByDate,
         )
         assertEquals(2, updatedPackage.usedClasses)

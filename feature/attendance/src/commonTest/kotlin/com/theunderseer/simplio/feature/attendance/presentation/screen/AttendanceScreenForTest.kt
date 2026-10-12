@@ -1,7 +1,9 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.runtime.Composable
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.presentation.AttendanceScreen
+import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
 
 @Composable

@@ -1,10 +1,11 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.dialog
 
 import androidx.compose.runtime.Composable
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
+import com.theunderseer.simplio.feature.attendance.presentation.StudentRegistrationDialog
 import kotlinx.datetime.LocalDate
 
 @Composable
