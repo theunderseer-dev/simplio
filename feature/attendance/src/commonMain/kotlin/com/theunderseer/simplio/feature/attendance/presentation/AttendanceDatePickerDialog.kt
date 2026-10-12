@@ -38,6 +38,7 @@ internal fun AttendanceDatePickerDialog(
     currentDate: LocalDate,
     maxVisitsPerAttendance: Int,
     remainingClasses: Int,
+    recordedAttendanceDates: Set<LocalDate>,
     isSaving: Boolean = false,
     errorMessage: String? = null,
     onConfirm: (LocalDate, Int) -> Unit,
@@ -60,6 +61,9 @@ internal fun AttendanceDatePickerDialog(
 
     val currentDateState = rememberUpdatedState(currentDate)
 
+    val recordedAttendanceDatesState =
+        rememberUpdatedState(recordedAttendanceDates)
+
     val selectableDates =
         remember {
             object : SelectableDates {
@@ -70,20 +74,27 @@ internal fun AttendanceDatePickerDialog(
                             .toLocalDateTime(TimeZone.UTC)
                             .date
 
-                    return isAttendanceDateSelectable(
-                        date = date,
-                        today = currentDateState.value,
-                    )
+                    return date !in recordedAttendanceDatesState.value &&
+                        isAttendanceDateSelectable(
+                            date = date,
+                            today = currentDateState.value,
+                        )
                 }
             }
         }
 
+    val initialDateMillis =
+        initialDate
+            .atStartOfDayIn(TimeZone.UTC)
+            .toEpochMilliseconds()
+
     val datePickerState =
         rememberDatePickerState(
             initialSelectedDateMillis =
-            initialDate
-                .atStartOfDayIn(TimeZone.UTC)
-                .toEpochMilliseconds(),
+            initialDateMillis.takeIf { millis ->
+                selectableDates.isSelectableDate(millis)
+            },
+            initialDisplayedMonthMillis = initialDateMillis,
             selectableDates = selectableDates,
         )
 
@@ -95,13 +106,13 @@ internal fun AttendanceDatePickerDialog(
                 .date
         }
 
-    val canConfirm =
-        selectedDate?.let { date ->
-            isAttendanceDateSelectable(
-                date = date,
-                today = currentDate,
-            )
+    val canConfirmDate =
+        datePickerState.selectedDateMillis?.let { millis ->
+            selectableDates.isSelectableDate(millis)
         } ?: false
+
+    val canConfirm =
+        canConfirmDate && canConfirmVisitCount && !isSaving
 
     DatePickerDialog(
         onDismissRequest = {
@@ -111,10 +122,12 @@ internal fun AttendanceDatePickerDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = canConfirm && canConfirmVisitCount && !isSaving,
+                enabled = canConfirm,
                 onClick = {
-                    selectedDate?.let { date ->
-                        onConfirm(date, selectedVisitCount)
+                    if (canConfirm) {
+                        selectedDate?.let { date ->
+                            onConfirm(date, selectedVisitCount)
+                        }
                     }
                 },
             ) {
@@ -133,7 +146,7 @@ internal fun AttendanceDatePickerDialog(
         },
     ) {
         Column {
-            key(currentDate) {
+            key(currentDate, recordedAttendanceDates) {
                 DatePicker(
                     state = datePickerState,
                     modifier =

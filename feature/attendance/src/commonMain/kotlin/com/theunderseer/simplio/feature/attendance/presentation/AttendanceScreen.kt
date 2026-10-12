@@ -207,6 +207,7 @@ fun AttendanceScreen(
                     maxVisitsPerAttendance =
                     studentPackage.packageType.maxVisitsPerAttendance,
                     remainingClasses = studentPackage.remainingClasses,
+                    recordedAttendanceDates = studentPackage.attendanceDates,
                     isSaving = markState == MarkStudentPresentUiState.Saving,
                     errorMessage =
                     (markState as? MarkStudentPresentUiState.Error)?.message,
