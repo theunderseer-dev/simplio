@@ -14,6 +14,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -180,12 +181,13 @@ class AttendanceScreenPackageHistoryUiTest {
                             }
                         }
 
-                    screenState.value = attendanceContentUiState(
+                    screenState.value = testAttendanceContentUiState(
                         attendance = currentState.attendance.copy(
                             entries = updatedEntries,
                         ),
                         packageTypes = currentState.packageTypes,
                         currentDate = currentState.currentDate,
+                        studentGroups = currentState.studentGroups,
                     ).copy(
                         removeStudentAttendanceState = RemoveStudentAttendanceUiState.Success,
                     )
@@ -407,7 +409,7 @@ class AttendanceScreenPackageHistoryUiTest {
         }
     }
 
-    private fun packageHistoryState(): AttendanceUiState.Content = attendanceContentUiState(
+    private fun packageHistoryState(): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(
             entries = listOf(
                 RegisteredStudent(

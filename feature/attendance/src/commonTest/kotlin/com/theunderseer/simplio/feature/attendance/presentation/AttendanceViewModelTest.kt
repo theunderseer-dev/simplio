@@ -1,17 +1,21 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGroupsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
@@ -19,6 +23,7 @@ import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageReposi
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -59,6 +64,7 @@ class AttendanceViewModelTest {
         id = 3,
         plan = PackagePlan.DUO_SPECIAL,
     )
+    private val studentGroups = testStudentGroups()
 
     @Test
     fun `loads attendance into content state`() = runViewModelTest {
@@ -100,6 +106,7 @@ class AttendanceViewModelTest {
             AttendanceUiState.Content(
                 attendance = expectedAttendance,
                 packageTypes = availablePackages,
+                studentGroups = studentGroups,
                 currentDate = today,
                 latestClassDate = attendanceDate,
                 rows = listOf(
@@ -1014,6 +1021,34 @@ class AttendanceViewModelTest {
         )
     }
 
+    @Test
+    fun `loads student groups into content state`() = runViewModelTest {
+        // Given: the repository exposes only Group B
+        val expectedGroups =
+            studentGroups.filter {
+                it.id == DefaultStudentGroups.GROUP_B_ID
+            }
+
+        val viewModel = createViewModel(
+            studentRepository = FakeStudentRepository(),
+            studentPackageRepository = FakeStudentPackageRepository(),
+            studentGroups = expectedGroups,
+        )
+
+        observeUiState(viewModel)
+
+        // When
+        advanceUntilIdle()
+
+        // Then
+        val content =
+            assertIs<AttendanceUiState.Content>(
+                viewModel.uiState.value,
+            )
+
+        assertEquals(expectedGroups, content.studentGroups)
+    }
+
     private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
         GetPackageTypesUseCase(
             packageTypeRepository = object : PackageTypeRepository {
@@ -1022,6 +1057,13 @@ class AttendanceViewModelTest {
                 override suspend fun getById(id: Int): PackageType? = packageTypes.firstOrNull {
                     it.id == id
                 }
+            },
+        )
+
+    private fun createGetStudentGroupsUseCase(studentGroups: List<StudentGroup>): GetStudentGroupsUseCase =
+        GetStudentGroupsUseCase(
+            repository = object : StudentGroupRepository {
+                override suspend fun getAll(): List<StudentGroup> = studentGroups
             },
         )
 
@@ -1084,6 +1126,7 @@ class AttendanceViewModelTest {
         studentRepository: FakeStudentRepository,
         studentPackageRepository: FakeStudentPackageRepository,
         packageTypes: List<PackageType> = listOf(fourClassPackage),
+        studentGroups: List<StudentGroup> = this.studentGroups,
         currentDates: Flow<LocalDate> = flowOf(today),
         markStudentPresentUseCase: MarkStudentPresentUseCase =
             createMarkStudentPresentUseCase(
@@ -1100,6 +1143,9 @@ class AttendanceViewModelTest {
         ),
         getPackageTypesUseCase = createGetPackageTypesUseCase(
             packageTypes = packageTypes,
+        ),
+        getStudentGroupsUseCase = createGetStudentGroupsUseCase(
+            studentGroups = studentGroups,
         ),
         registerStudentUseCase = createRegisterStudentUseCase(
             studentRepository = studentRepository,

@@ -24,6 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -322,26 +323,54 @@ private fun AttendanceContent(
                 text = "No students yet",
             )
         } else {
-            state.rows.forEachIndexed { index, row ->
-                StudentAttendanceRow(
-                    row = row,
-                    onCheckClick = {
-                        onCheckStudentClick(row)
-                    },
-                    onDeleteClick = {
-                        onDeleteStudentClick(
-                            row.registeredStudent.student.id,
-                        )
-                    },
-                    onRemoveAttendanceClick = { date ->
-                        onRemoveStudentAttendanceClick(row, date)
-                    },
-                )
+            val rowsByGroup =
+                state.rows.groupBy { row ->
+                    row.registeredStudent.student.groupId
+                }
 
-                if (index < state.rows.lastIndex) {
-                    HorizontalDivider(
-                        thickness = 0.5.dp,
-                    )
+            state.studentGroups.forEach { group ->
+                val groupRows = rowsByGroup[group.id].orEmpty()
+
+                if (groupRows.isNotEmpty()) {
+                    key(group.id) {
+                        Column(
+                            modifier = Modifier.testTag("student-group-${group.id}"),
+                        ) {
+                            Text(
+                                text = group.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.padding(
+                                    top = 12.dp,
+                                    bottom = 6.dp,
+                                ),
+                            )
+
+                            groupRows.forEachIndexed { index, row ->
+                                key(row.registeredStudent.student.id) {
+                                    StudentAttendanceRow(
+                                        row = row,
+                                        onCheckClick = {
+                                            onCheckStudentClick(row)
+                                        },
+                                        onDeleteClick = {
+                                            onDeleteStudentClick(
+                                                row.registeredStudent.student.id,
+                                            )
+                                        },
+                                        onRemoveAttendanceClick = { date ->
+                                            onRemoveStudentAttendanceClick(row, date)
+                                        },
+                                    )
+
+                                    if (index < groupRows.lastIndex) {
+                                        HorizontalDivider(
+                                            thickness = 0.5.dp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

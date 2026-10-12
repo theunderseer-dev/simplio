@@ -7,9 +7,11 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.theunderseer.simplio.database.prepareSimplioDatabasePath
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
@@ -42,10 +44,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 class AttendanceKoinIntegrationTest {
-    private val studentGroup = StudentGroupEntity(
-        id = 1,
-        name = "Group A",
-    )
+    private val studentGroup = DefaultStudentGroups.GROUP_A
 
     @Test
     fun `attendance graph wires registration to persistent database`() = runTest {
@@ -234,12 +233,8 @@ class AttendanceKoinIntegrationTest {
             // Given
             val firstPackage =
                 koin.insertPackageType(
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 4,
-                    price = 1400,
+                    plan = PackagePlan.FOUR_CLASSES,
                 )
-
             val secondPackage = koin.insertPackageType()
             val getPackageTypes = koin.get<GetPackageTypesUseCase>()
 
@@ -269,31 +264,12 @@ class AttendanceKoinIntegrationTest {
 
             assertEquals(3, packageTypes.size)
 
+            assertEquals(3, packageTypes.size)
+
             assertEquals(
-                listOf(
-                    PackageType(
-                        id = packageTypes[0].id,
-                        name = "4-class package",
-                        totalClasses = 4,
-                        validityWeeks = 4,
-                        price = 1400,
-                    ),
-                    PackageType(
-                        id = packageTypes[1].id,
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 5,
-                        price = 1700,
-                    ),
-                    PackageType(
-                        id = packageTypes[2].id,
-                        name = "Duo 8 · Special rate",
-                        totalClasses = 8,
-                        validityWeeks = 4,
-                        price = 2400,
-                        maxVisitsPerAttendance = 2,
-                    ),
-                ),
+                PackagePlan.entries.mapIndexed { index, plan ->
+                    plan.toPackageType(id = packageTypes[index].id)
+                },
                 packageTypes,
             )
         }
@@ -407,6 +383,11 @@ class AttendanceKoinIntegrationTest {
                         viewModel,
                         provider[AttendanceViewModel::class],
                     )
+
+                    assertEquals(
+                        DefaultStudentGroups.ALL,
+                        content.studentGroups,
+                    )
                 } finally {
                     viewModelStore.clear()
                 }
@@ -445,9 +426,8 @@ class AttendanceKoinIntegrationTest {
 
             try {
                 application.koin
-                    .get<AttendanceDatabase>()
-                    .studentGroupDao()
-                    .insert(studentGroup)
+                    .get<StudentGroupSeeder>()
+                    .seedDefaults()
 
                 block(application.koin)
             } finally {
@@ -460,30 +440,20 @@ class AttendanceKoinIntegrationTest {
         }
     }
 
-    private suspend fun Koin.insertPackageType(
-        name: String = "5-class package",
-        totalClasses: Int = 5,
-        validityWeeks: Int = 5,
-        price: Int = 1700,
-    ): PackageType {
+    private suspend fun Koin.insertPackageType(plan: PackagePlan = PackagePlan.FIVE_CLASSES): PackageType {
         val id =
             get<AttendanceDatabase>()
                 .packageTypeDao()
                 .insert(
                     PackageTypeEntity(
-                        name = name,
-                        totalClasses = totalClasses,
-                        validityWeeks = validityWeeks,
-                        price = price,
+                        name = plan.packageName,
+                        totalClasses = plan.totalClasses,
+                        validityWeeks = plan.validityWeeks,
+                        price = plan.price,
+                        maxVisitsPerAttendance = plan.maxVisitsPerAttendance,
                     ),
                 ).toInt()
 
-        return PackageType(
-            id = id,
-            name = name,
-            totalClasses = totalClasses,
-            validityWeeks = validityWeeks,
-            price = price,
-        )
+        return plan.toPackageType(id = id)
     }
 }

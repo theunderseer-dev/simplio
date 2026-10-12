@@ -5,6 +5,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -62,7 +63,7 @@ class AttendanceCheckAvailabilityTest {
     }
 
     private fun rowFor(attendanceDates: Set<LocalDate>, currentDate: LocalDate): StudentAttendanceUiState =
-        attendanceContentUiState(
+        testAttendanceContentUiState(
             attendance =
             Attendance(
                 entries = listOf(

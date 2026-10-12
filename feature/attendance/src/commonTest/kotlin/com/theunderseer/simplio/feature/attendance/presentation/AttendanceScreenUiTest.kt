@@ -19,12 +19,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -689,10 +691,90 @@ class AttendanceScreenUiTest {
             .assertIsDisplayed()
     }
 
+    @Test
+    fun `displays students in their corresponding group sections`() = runComposeUiTest {
+        // Given
+        val groupAStudent = student.copy(
+            groupId = DefaultStudentGroups.GROUP_A_ID,
+        )
+        val groupBStudent = testStudent(
+            id = 8,
+            fullName = "Bob Lee",
+            groupId = DefaultStudentGroups.GROUP_B_ID,
+        )
+
+        // Group B deliberately appears first in the source attendance.
+        val entries = listOf(groupBStudent, groupAStudent).map { student ->
+            attendanceState(student = student).attendance.entries.single()
+        }
+
+        val state = testAttendanceContentUiState(
+            attendance = Attendance(entries = entries),
+            packageTypes = listOf(packageType),
+            currentDate = today,
+        )
+
+        // When
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // Then
+        onNode(
+            hasText(DefaultStudentGroups.GROUP_A.name) and
+                hasAnyAncestor(
+                    hasTestTag("student-group-${groupAStudent.groupId}"),
+                ),
+        ).assertIsDisplayed()
+
+        onNode(
+            hasText(groupAStudent.fullName) and
+                hasAnyAncestor(
+                    hasTestTag("student-group-${groupAStudent.groupId}"),
+                ),
+        ).assertIsDisplayed()
+
+        onNode(
+            hasText(DefaultStudentGroups.GROUP_B.name) and
+                hasAnyAncestor(
+                    hasTestTag("student-group-${groupBStudent.groupId}"),
+                ),
+        ).assertIsDisplayed()
+
+        onNode(
+            hasText(groupBStudent.fullName) and
+                hasAnyAncestor(
+                    hasTestTag("student-group-${groupBStudent.groupId}"),
+                ),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `hides group sections without students`() = runComposeUiTest {
+        // Given
+        val state = attendanceState(
+            student = student.copy(
+                groupId = DefaultStudentGroups.GROUP_A_ID,
+            ),
+        )
+
+        // When
+        setContent {
+            AttendanceScreenForTest(state = state)
+        }
+
+        // Then
+        onNodeWithText(DefaultStudentGroups.GROUP_A.name)
+            .assertIsDisplayed()
+
+        onNodeWithText(DefaultStudentGroups.GROUP_B.name)
+            .assertDoesNotExist()
+    }
+
     private fun emptyAttendanceState(
         packageTypes: List<PackageType> = emptyList(),
         currentDate: LocalDate = today,
-    ): AttendanceUiState.Content = attendanceContentUiState(
+    ): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
         currentDate = currentDate,
@@ -704,7 +786,7 @@ class AttendanceScreenUiTest {
         startedOn: LocalDate = firstAttendance,
         visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
         currentDate: LocalDate = today,
-    ): AttendanceUiState.Content = attendanceContentUiState(
+    ): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(
             entries = listOf(
                 RegisteredStudent(

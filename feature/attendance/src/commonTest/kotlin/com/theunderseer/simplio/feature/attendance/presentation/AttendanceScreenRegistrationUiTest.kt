@@ -14,9 +14,9 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroups
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -26,8 +26,6 @@ class AttendanceScreenRegistrationUiTest {
     private val today = LocalDate(2026, 10, 5)
 
     private val packageType = testClassPackage()
-
-    private val studentGroups = testStudentGroups()
 
     @Test
     fun `opens student registration dialog when add student is clicked`() = runComposeUiTest {
@@ -57,7 +55,7 @@ class AttendanceScreenRegistrationUiTest {
         // Given
         val student = testStudent()
         val state =
-            attendanceContentUiState(
+            testAttendanceContentUiState(
                 attendance =
                 Attendance(
                     entries =
@@ -195,11 +193,9 @@ class AttendanceScreenRegistrationUiTest {
     private fun emptyAttendanceState(
         packageTypes: List<PackageType> = listOf(packageType),
         currentDate: LocalDate = today,
-    ): AttendanceUiState.Content = attendanceContentUiState(
+    ): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
         currentDate = currentDate,
-    ).copy(
-        studentGroups = studentGroups,
     )
 }

@@ -10,6 +10,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -24,35 +25,34 @@ class AttendanceScreenStudentDeletionUiTest {
 
     private val packageType = testClassPackage()
 
-    @Test
-    fun `shows delete action for registered student`() = runComposeUiTest {
-        // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = today,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate = mapOf(today to 1),
-                                ),
+    private val state =
+        testAttendanceContentUiState(
+            attendance =
+            Attendance(
+                entries =
+                listOf(
+                    RegisteredStudent(
+                        student = student,
+                        studentPackage =
+                        StudentPackage(
+                            id = 1,
+                            studentId = student.id,
+                            packageType = packageType,
+                            startedOn = today,
+                            attendanceHistory =
+                            PackageAttendanceHistory(
+                                visitsByDate = mapOf(today to 1),
                             ),
                         ),
                     ),
                 ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
+            ),
+            packageTypes = listOf(packageType),
+            currentDate = today,
+        )
 
+    @Test
+    fun `shows delete action for registered student`() = runComposeUiTest {
         // When
         setContent {
             AttendanceScreenForTest(
@@ -68,32 +68,6 @@ class AttendanceScreenStudentDeletionUiTest {
     @Test
     fun `shows confirmation dialog before deleting student`() = runComposeUiTest {
         // Given
-        val state =
-            attendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = today,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate = mapOf(today to 1),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
-
         var deletedStudentId: Int? = null
 
         setContent {
