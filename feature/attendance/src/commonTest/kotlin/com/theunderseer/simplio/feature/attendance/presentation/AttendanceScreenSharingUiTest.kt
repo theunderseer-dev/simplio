@@ -11,6 +11,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -43,7 +44,7 @@ class AttendanceScreenSharingUiTest {
     fun `provides formatted attendance when copy action is clicked`() = runComposeUiTest {
         // Given
         val state =
-            attendanceContentUiState(
+            testAttendanceContentUiState(
                 attendance =
                 Attendance(
                     entries =
@@ -147,7 +148,7 @@ class AttendanceScreenSharingUiTest {
     private fun emptyAttendanceState(
         packageTypes: List<PackageType> = emptyList(),
         currentDate: LocalDate = today,
-    ): AttendanceUiState.Content = attendanceContentUiState(
+    ): AttendanceUiState.Content = testAttendanceContentUiState(
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
         currentDate = currentDate,

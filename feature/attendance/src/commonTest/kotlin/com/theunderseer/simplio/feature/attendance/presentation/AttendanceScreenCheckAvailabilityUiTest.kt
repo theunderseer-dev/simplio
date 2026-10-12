@@ -13,6 +13,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -28,7 +29,7 @@ class AttendanceScreenCheckAvailabilityUiTest {
         val student = testStudent()
         val packageType = testClassPackage()
         val state =
-            attendanceContentUiState(
+            testAttendanceContentUiState(
                 attendance =
                 Attendance(
                     entries = listOf(
