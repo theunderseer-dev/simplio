@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.di
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
@@ -8,6 +9,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -15,6 +17,7 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepo
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGroupsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
@@ -92,6 +95,12 @@ val attendanceModule = module {
         )
     }
 
+    single<ClassHistoryRepository> {
+        RoomClassHistoryRepository(
+            attendanceDao = get(),
+        )
+    }
+
     factory {
         GetAttendanceUseCase(
             studentRepository = get(),
@@ -146,6 +155,12 @@ val attendanceModule = module {
         )
     }
 
+    factory {
+        GetClassHistoryUseCase(
+            repository = get(),
+        )
+    }
+
     viewModel {
         AttendanceViewModel(
             getAttendanceUseCase = get(),
@@ -155,6 +170,7 @@ val attendanceModule = module {
             markStudentPresentUseCase = get(),
             removeStudentAttendanceUseCase = get(),
             deleteStudentUseCase = get(),
+            getClassHistoryUseCase = get(),
             currentDates = get(
                 qualifier = named("attendanceCurrentDates"),
             ),

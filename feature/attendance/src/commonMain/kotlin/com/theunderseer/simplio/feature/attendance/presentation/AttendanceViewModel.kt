@@ -7,14 +7,19 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetPackageTypesUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGroupsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,6 +39,7 @@ class AttendanceViewModel(
     private val markStudentPresentUseCase: MarkStudentPresentUseCase,
     private val removeStudentAttendanceUseCase: RemoveStudentAttendanceUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
+    private val getClassHistoryUseCase: GetClassHistoryUseCase,
     currentDates: Flow<LocalDate>,
 ) : ViewModel() {
     private val attendanceData =
@@ -51,13 +57,21 @@ class AttendanceViewModel(
             RemoveStudentAttendanceUiState.Idle,
         )
 
+    private val classHistoryData =
+        MutableStateFlow<ClassHistoryUiState>(
+            ClassHistoryUiState.Loading,
+        )
+
+    private var classHistoryJob: Job? = null
+
     val uiState: StateFlow<AttendanceUiState> =
         combine(
             attendanceData,
             currentDates,
             markAttendanceState,
             removeAttendanceState,
-        ) { data, currentDate, markState, removeState ->
+            classHistoryData,
+        ) { data, currentDate, markState, removeState, historyState ->
             when (data) {
                 AttendanceDataState.Loading ->
                     AttendanceUiState.Loading
@@ -71,6 +85,11 @@ class AttendanceViewModel(
                         studentGroups = data.studentGroups,
                         markStudentPresentState = markState,
                         removeStudentAttendanceState = removeState,
+                        classHistoryState = historyState.withLatestClassDate(
+                            latestClassDate = latestScheduledClassDate(
+                                today = currentDate,
+                            ),
+                        ),
                     )
 
                 is AttendanceDataState.Error ->
@@ -89,6 +108,7 @@ class AttendanceViewModel(
 
     init {
         loadAttendance()
+        loadClassHistory()
     }
 
     fun registerStudent(
@@ -109,6 +129,7 @@ class AttendanceViewModel(
                 )
 
                 refreshAttendance()
+                loadClassHistory()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -142,6 +163,7 @@ class AttendanceViewModel(
                     when (result) {
                         is MarkStudentPresentResult.Success -> {
                             refreshAttendance()
+                            loadClassHistory()
                             markAttendanceState.value = MarkStudentPresentUiState.Success
                             return@launch
                         }
@@ -198,6 +220,7 @@ class AttendanceViewModel(
                 when (result) {
                     is RemoveStudentAttendanceResult.Success -> {
                         refreshAttendance()
+                        loadClassHistory()
                         removeAttendanceState.value =
                             RemoveStudentAttendanceUiState.Success
                     }
@@ -257,6 +280,43 @@ class AttendanceViewModel(
         if (removeAttendanceState.value != RemoveStudentAttendanceUiState.Saving) {
             removeAttendanceState.value = RemoveStudentAttendanceUiState.Idle
         }
+    }
+
+    fun retryClassHistory() {
+        if (classHistoryData.value is ClassHistoryUiState.Error) {
+            loadClassHistory()
+        }
+    }
+
+    private fun loadClassHistory() {
+        classHistoryJob?.cancel()
+        classHistoryData.value = ClassHistoryUiState.Loading
+
+        classHistoryJob =
+            viewModelScope.launch {
+                try {
+                    val page = getClassHistoryUseCase()
+
+                    currentCoroutineContext().ensureActive()
+
+                    classHistoryData.value =
+                        ClassHistoryUiState.Content(
+                            entries = page.entries,
+                            nextBeforeDate = page.nextBeforeDate,
+                        )
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    currentCoroutineContext().ensureActive()
+
+                    classHistoryData.value =
+                        ClassHistoryUiState.Error(
+                            message =
+                            exception.message
+                                ?: "Failed to load class history",
+                        )
+                }
+            }
     }
 
     private fun loadAttendance() {
