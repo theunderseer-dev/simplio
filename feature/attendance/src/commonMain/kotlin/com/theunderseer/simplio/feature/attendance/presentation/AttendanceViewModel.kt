@@ -283,8 +283,60 @@ class AttendanceViewModel(
     }
 
     fun retryClassHistory() {
-        if (classHistoryData.value is ClassHistoryUiState.Error) {
-            loadClassHistory()
+        when (val state = classHistoryData.value) {
+            is ClassHistoryUiState.Error -> loadClassHistory()
+
+            is ClassHistoryUiState.Content -> {
+                if (state.nextPageErrorMessage != null) {
+                    loadNextClassHistoryPage()
+                }
+            }
+
+            ClassHistoryUiState.Loading -> Unit
+        }
+    }
+
+    fun loadNextClassHistoryPage() {
+        val content =
+            classHistoryData.value as? ClassHistoryUiState.Content
+                ?: return
+        val beforeDate = content.nextBeforeDate ?: return
+
+        if (content.isLoadingNextPage) {
+            return
+        }
+
+        classHistoryData.value = content.copy(
+            isLoadingNextPage = true,
+            nextPageErrorMessage = null,
+        )
+
+        classHistoryJob = viewModelScope.launch {
+            try {
+                val page = getClassHistoryUseCase(
+                    beforeDate = beforeDate,
+                )
+
+                currentCoroutineContext().ensureActive()
+
+                classHistoryData.value = content.copy(
+                    entries = content.entries + page.entries,
+                    nextBeforeDate = page.nextBeforeDate,
+                    isLoadingNextPage = false,
+                    nextPageErrorMessage = null,
+                )
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                currentCoroutineContext().ensureActive()
+
+                classHistoryData.value = content.copy(
+                    isLoadingNextPage = false,
+                    nextPageErrorMessage =
+                    exception.message
+                        ?: "Failed to load more class history",
+                )
+            }
         }
     }
 

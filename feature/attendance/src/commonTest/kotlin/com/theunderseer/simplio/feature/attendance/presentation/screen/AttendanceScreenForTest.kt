@@ -16,6 +16,8 @@ internal fun AttendanceScreenForTest(
     onRemoveStudentAttendance: (Int, LocalDate) -> Unit = { _, _ -> },
     onClearMarkStudentPresentState: () -> Unit = {},
     onClearRemoveStudentAttendanceState: () -> Unit = {},
+    onLoadNextClassHistoryPage: () -> Unit = {},
+    onRetryClassHistory: () -> Unit = {},
 ) {
     AttendanceScreen(
         state = state,
@@ -26,5 +28,7 @@ internal fun AttendanceScreenForTest(
         onRemoveStudentAttendance = onRemoveStudentAttendance,
         onClearMarkStudentPresentState = onClearMarkStudentPresentState,
         onClearRemoveStudentAttendanceState = onClearRemoveStudentAttendanceState,
+        onLoadNextClassHistoryPage = onLoadNextClassHistoryPage,
+        onRetryClassHistory = onRetryClassHistory,
     )
 }
