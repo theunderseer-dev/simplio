@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -10,12 +10,10 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,29 +23,9 @@ class AttendanceScreenCheckAvailabilityUiTest {
     @Test
     fun `first attendance check is disabled and cannot open an attendance dialog`() = runComposeUiTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val student = testStudent()
-        val packageType = testClassPackage()
-        val state =
-            testAttendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries = listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = firstAttendance,
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = firstAttendance,
-            )
+        val state = testStudentAttendanceUiState(
+            currentDate = firstClassDate,
+        )
         val markedAttendance = mutableListOf<Pair<Int, LocalDate>>()
         val removedAttendance = mutableListOf<Pair<Int, LocalDate>>()
 
@@ -64,7 +42,9 @@ class AttendanceScreenCheckAvailabilityUiTest {
         }
 
         // Then: the first attendance still appears checked
-        val check = onNodeWithContentDescription("Mark Anna Smith present")
+        val check = onNodeWithContentDescription(
+            "Mark ${student.fullName} present",
+        )
 
         check.assertIsNotEnabled()
         check.assert(
@@ -83,5 +63,33 @@ class AttendanceScreenCheckAvailabilityUiTest {
         onNodeWithText("Select attendance date").assertDoesNotExist()
         assertEquals(emptyList(), markedAttendance)
         assertEquals(emptyList(), removedAttendance)
+    }
+
+    @Test
+    fun `shows checked state when latest scheduled attendance is recorded`() = runComposeUiTest {
+        // Given
+        val state = testStudentAttendanceUiState(
+            visitsByDate = mapOf(
+                firstClassDate to 1,
+                secondClassDate to 1,
+            ),
+        )
+
+        // When
+        setContent {
+            AttendanceScreenForTest(
+                state = state,
+            )
+        }
+
+        // Then
+        onNodeWithText("✓")
+            .assertIsDisplayed()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Checked",
+                ),
+            )
     }
 }

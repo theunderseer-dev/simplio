@@ -21,6 +21,8 @@ sealed interface AttendanceUiState {
             MarkStudentPresentUiState.Idle,
         val removeStudentAttendanceState: RemoveStudentAttendanceUiState =
             RemoveStudentAttendanceUiState.Idle,
+        val classHistoryState: ClassHistoryUiState =
+            ClassHistoryUiState.Loading,
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState

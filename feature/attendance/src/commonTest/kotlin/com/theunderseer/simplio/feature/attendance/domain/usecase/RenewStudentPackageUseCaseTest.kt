@@ -1,311 +1,182 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class RenewStudentPackageUseCaseTest {
-    private val studentId = 1
+    private val studentId = student.id
+    private lateinit var repository: FakeStudentPackageRepository
+    private lateinit var transactionRunner: FakeTransactionRunner
+    private lateinit var renewStudentPackage: RenewStudentPackageUseCase
 
-    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
-
-    private val renewedOn = LocalDate(2026, 8, 30)
+    @BeforeTest
+    fun setUp() {
+        repository = FakeStudentPackageRepository()
+        transactionRunner = FakeTransactionRunner()
+        renewStudentPackage = RenewStudentPackageUseCase(
+            repository = repository,
+            transactionRunner = transactionRunner,
+        )
+    }
 
     @Test
     fun `renewing completed package creates a new package for existing student`() = runTest {
         // Given
-        // an existing student
-        val repository = FakeStudentPackageRepository()
+        val previousPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
+            attendanceDates = setOf(
+                firstClassDate,
+                secondClassDate,
+                thirdClassDate,
+                LocalDate(2026, 10, 12),
+                LocalDate(2026, 10, 16),
+            ),
+        )
+        val renewedOn = LocalDate(2026, 10, 19)
 
-        // And
-        // a previous package is completed
-        val previousPackageType = packageType
-
-        val previousPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = previousPackageType,
-                startedOn = LocalDate(2026, 8, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 8, 1),
-                    LocalDate(2026, 8, 8),
-                    LocalDate(2026, 8, 15),
-                    LocalDate(2026, 8, 22),
-                    LocalDate(2026, 8, 29),
-                ),
-            )
-
-        val newPackageType = testClassPackage(id = 2)
-
-        val transactionRunner = FakeTransactionRunner()
-        val renewStudentPackage =
-            RenewStudentPackageUseCase(
-                repository = repository,
-                transactionRunner = transactionRunner,
-            )
+        assertTrue(previousPackage.isCompleted)
+        assertFalse(previousPackage.isExpiredOn(renewedOn))
 
         // When
-        // I renew the student with a new package on the renewal date
-        val result =
-            renewStudentPackage(
-                studentId = studentId,
-                packageType = newPackageType,
-                renewedOn = renewedOn,
-            )
+        val result = renewStudentPackage(
+            studentId = studentId,
+            packageType = fourClassPackage,
+            renewedOn = renewedOn,
+        )
 
         // Then
-        // a new student package is created for student
         val success = assertIs<RenewStudentPackageResult.Success>(result)
-
-        // And
-        // a new package entity is created
         val renewedPackage = success.studentPackage
+
         assertNotEquals(previousPackage.id, renewedPackage.id)
-
-        // And
-        // it belongs to the same student
         assertEquals(studentId, renewedPackage.studentId)
-
-        // And
-        // it uses the selected package type
-        assertEquals(newPackageType, renewedPackage.packageType)
-
-        // And
-        // it starts on the renewal date
+        assertEquals(fourClassPackage, renewedPackage.packageType)
         assertEquals(renewedOn, renewedPackage.startedOn)
-
-        // And
-        // the first attendance is recorded automatically
         assertEquals(setOf(renewedOn), renewedPackage.attendanceDates)
-
-        // And
-        // used classes are 1 of 4
         assertEquals(1, renewedPackage.usedClasses)
 
-        // And
-        // the previous package remains persisted unchanged
-        val persistedPreviousPackage =
-            repository.packages.single {
-                it.id == previousPackage.id
-            }
-
+        // And: the previous package is preserved
         assertEquals(
             previousPackage,
-            persistedPreviousPackage,
+            repository.packages.single { it.id == previousPackage.id },
         )
 
-        // And
-        // the new package is persisted separately
-        assertTrue(
-            repository.packages.contains(renewedPackage),
-        )
-
-        // And
-        // both packages remain in the repository
+        // And: the new package is persisted separately and becomes latest
+        assertTrue(repository.packages.contains(renewedPackage))
         assertEquals(2, repository.packages.size)
-
-        // And
-        // the new package is the latest one for the student
         assertEquals(
             renewedPackage,
             repository.getLatestPackageForStudent(studentId),
         )
-
-        // And
-        // the transaction is run
         assertEquals(1, transactionRunner.runCount)
     }
 
     @Test
     fun `renewing package is rejected when current package is still active`() = runTest {
         // Given
-        // an existing student
-        val repository = FakeStudentPackageRepository()
+        val currentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
+            attendanceDates = setOf(
+                firstClassDate,
+                secondClassDate,
+            ),
+        )
+        val renewedOn = thirdClassDate
 
-        // And
-        // the student has an active package with unused classes
-        val currentPackageType = packageType
-
-        val currentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = currentPackageType,
-                startedOn = LocalDate(2026, 8, 1),
-                attendanceDates = setOf(
-                    LocalDate(2026, 8, 1),
-                    LocalDate(2026, 8, 8),
-                ),
-            )
-
-        val newPackageType = testClassPackage(id = 2)
-
-        val transactionRunner = FakeTransactionRunner()
-
-        val renewStudentPackage =
-            RenewStudentPackageUseCase(
-                repository = repository,
-                transactionRunner = transactionRunner,
-            )
+        assertFalse(currentPackage.isCompleted)
+        assertFalse(currentPackage.isExpiredOn(renewedOn))
 
         // When
-        // I try to renew the student with a new package
-        val result =
-            renewStudentPackage(
-                studentId = studentId,
-                packageType = newPackageType,
-                renewedOn = renewedOn,
-            )
+        val result = renewStudentPackage(
+            studentId = studentId,
+            packageType = fourClassPackage,
+            renewedOn = renewedOn,
+        )
 
         // Then
-        // the operation reports that an active package already exists
         val activePackageResult =
             assertIs<RenewStudentPackageResult.ActivePackageExists>(result)
 
-        // And
-        // the current active package is returned unchanged
-        assertEquals(
-            currentPackage,
-            activePackageResult.studentPackage,
-        )
+        assertEquals(currentPackage, activePackageResult.studentPackage)
 
-        // And
-        // no new package is created
-        assertEquals(
-            1,
-            repository.packages.size,
-        )
-
-        // And
-        // the current package remains the latest package
+        // And: no new package is created
+        assertEquals(1, repository.packages.size)
         assertEquals(
             currentPackage,
             repository.getLatestPackageForStudent(studentId),
         )
-
-        // And
-        // the transaction is run
         assertEquals(1, transactionRunner.runCount)
     }
 
     @Test
     fun `renewing package creates a new package when current package is expired but incomplete`() = runTest {
         // Given
-        // an existing student
-        val repository = FakeStudentPackageRepository()
+        val expiredPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = LocalDate(2026, 7, 1),
+            attendanceDates = setOf(
+                LocalDate(2026, 7, 1),
+                LocalDate(2026, 7, 8),
+            ),
+        )
+        val renewedOn = registrationDate
 
-        // And
-        // the student has an expired package with unused classes
-        val expiredPackageType = packageType
-
-        val expiredPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = expiredPackageType,
-                startedOn = LocalDate(2026, 7, 1),
-                attendanceDates = setOf(
-                    LocalDate(2026, 7, 1),
-                    LocalDate(2026, 7, 8),
-                ),
-            )
-
-        val newPackageType = testClassPackage(id = 2)
-
-        val transactionRunner = FakeTransactionRunner()
-
-        val renewStudentPackage =
-            RenewStudentPackageUseCase(
-                repository = repository,
-                transactionRunner = transactionRunner,
-            )
+        assertFalse(expiredPackage.isCompleted)
+        assertTrue(expiredPackage.isExpiredOn(renewedOn))
 
         // When
-        // I renew the student with a new package on the renewal date
-        val result =
-            renewStudentPackage(
-                studentId = studentId,
-                packageType = newPackageType,
-                renewedOn = renewedOn,
-            )
+        val result = renewStudentPackage(
+            studentId = studentId,
+            packageType = fourClassPackage,
+            renewedOn = renewedOn,
+        )
 
         // Then
-        // a new student package is created for the student
         val success = assertIs<RenewStudentPackageResult.Success>(result)
-
-        // And
-        // a new package entity is created
         val renewedPackage = success.studentPackage
+
         assertNotEquals(expiredPackage.id, renewedPackage.id)
-
-        // And
-        // it belongs to the same student
         assertEquals(studentId, renewedPackage.studentId)
-
-        // And
-        // it uses the selected package type
-        assertEquals(newPackageType, renewedPackage.packageType)
-
-        // And
-        // it starts on the renewal date
+        assertEquals(fourClassPackage, renewedPackage.packageType)
         assertEquals(renewedOn, renewedPackage.startedOn)
+        assertEquals(setOf(renewedOn), renewedPackage.attendanceDates)
+        assertEquals(1, renewedPackage.usedClasses)
 
-        // And
-        // the first attendance is recorded automatically
-        assertEquals(
-            setOf(renewedOn),
-            renewedPackage.attendanceDates,
-        )
-
-        // And
-        // used classes start at 1
-        assertEquals(
-            1,
-            renewedPackage.usedClasses,
-        )
-
-        // And
-        // the expired package remains persisted unchanged
-        val persistedExpiredPackage =
-            repository.packages.single {
-                it.id == expiredPackage.id
-            }
-
+        // And: the expired package is preserved
         assertEquals(
             expiredPackage,
-            persistedExpiredPackage,
+            repository.packages.single { it.id == expiredPackage.id },
         )
 
-        // And
-        // the renewed package is persisted separately
-        assertTrue(
-            repository.packages.contains(renewedPackage),
-        )
-
-        // And
-        // both packages remain in the repository
-        assertEquals(
-            2,
-            repository.packages.size,
-        )
-
-        // And
-        // the renewed package becomes the latest package
+        // And: the new package is persisted separately and becomes latest
+        assertTrue(repository.packages.contains(renewedPackage))
+        assertEquals(2, repository.packages.size)
         assertEquals(
             renewedPackage,
             repository.getLatestPackageForStudent(studentId),
         )
-
-        // And
-        // the transaction is run
         assertEquals(1, transactionRunner.runCount)
     }
 }

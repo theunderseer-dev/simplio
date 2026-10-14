@@ -94,7 +94,7 @@ class StudentGroupSeederTest {
         // Then
         val missingGroup =
             expectedGroups.single {
-                it.id == DefaultStudentGroups.GROUP_B_ID
+                it.id == DefaultStudentGroups.GROUP_B.id
             }
 
         assertEquals(

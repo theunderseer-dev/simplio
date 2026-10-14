@@ -1,5 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.domain.schedule
 
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -9,21 +13,19 @@ class AttendanceDateSelectionTest {
     @Test
     fun `allows past Mondays and Fridays`() {
         // Given
-        val today = LocalDate(2026, 10, 8)
-        val dates =
-            listOf(
-                LocalDate(2026, 10, 2),
-                LocalDate(2026, 10, 5),
-            )
+        val dates = listOf(
+            firstClassDate,
+            secondClassDate,
+        )
 
         // When / Then
         dates.forEach { date ->
             assertTrue(
                 isAttendanceDateSelectable(
                     date = date,
-                    today = today,
+                    today = currentDate,
                 ),
-                message = "Expected $date to be selectable on $today",
+                message = "Expected $date to be selectable on $currentDate",
             )
         }
     }
@@ -31,20 +33,19 @@ class AttendanceDateSelectionTest {
     @Test
     fun `allows today when it is Monday or Friday`() {
         // Given
-        val dates =
-            listOf(
-                LocalDate(2026, 10, 5),
-                LocalDate(2026, 10, 9),
-            )
+        val dates = listOf(
+            secondClassDate,
+            thirdClassDate,
+        )
 
         // When / Then
-        dates.forEach { today ->
+        dates.forEach { date ->
             assertTrue(
                 isAttendanceDateSelectable(
-                    date = today,
-                    today = today,
+                    date = date,
+                    today = date,
                 ),
-                message = "Expected $today to be selectable on the same day",
+                message = "Expected $date to be selectable on the same day",
             )
         }
     }
@@ -52,24 +53,22 @@ class AttendanceDateSelectionTest {
     @Test
     fun `rejects dates outside the class schedule`() {
         // Given
-        val today = LocalDate(2026, 10, 9)
-        val dates =
-            listOf(
-                LocalDate(2026, 10, 3),
-                LocalDate(2026, 10, 4),
-                LocalDate(2026, 10, 6),
-                LocalDate(2026, 10, 7),
-                LocalDate(2026, 10, 8),
-            )
+        val dates = listOf(
+            LocalDate(2026, 10, 3),
+            LocalDate(2026, 10, 4),
+            LocalDate(2026, 10, 6),
+            LocalDate(2026, 10, 7),
+            currentDate,
+        )
 
         // When / Then
         dates.forEach { date ->
             assertFalse(
                 isAttendanceDateSelectable(
                     date = date,
-                    today = today,
+                    today = thirdClassDate,
                 ),
-                message = "Expected $date to be unavailable on $today",
+                message = "Expected $date to be unavailable on $thirdClassDate",
             )
         }
     }
@@ -77,21 +76,19 @@ class AttendanceDateSelectionTest {
     @Test
     fun `rejects future Mondays and Fridays`() {
         // Given
-        val today = LocalDate(2026, 10, 9)
-        val dates =
-            listOf(
-                LocalDate(2026, 10, 12),
-                LocalDate(2026, 10, 16),
-            )
+        val dates = listOf(
+            LocalDate(2026, 10, 12),
+            LocalDate(2026, 10, 16),
+        )
 
         // When / Then
         dates.forEach { date ->
             assertFalse(
                 isAttendanceDateSelectable(
                     date = date,
-                    today = today,
+                    today = thirdClassDate,
                 ),
-                message = "Expected future date $date to be unavailable on $today",
+                message = "Expected future date $date to be unavailable on $thirdClassDate",
             )
         }
     }

@@ -4,17 +4,23 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -24,37 +30,41 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class RegisterStudentUseCaseIntegrationTest {
+    private val groupId = DefaultStudentGroups.GROUP_A.id
     private lateinit var database: AttendanceDatabase
+    private lateinit var studentRepository: RoomStudentRepository
+    private lateinit var studentPackageRepository: RoomStudentPackageRepository
     private lateinit var registerStudent: RegisterStudentUseCase
-
-    private val groupId = 1
 
     @BeforeTest
     fun setUp() = runTest {
-        database =
-            Room
-                .inMemoryDatabaseBuilder<AttendanceDatabase>()
-                .setDriver(BundledSQLiteDriver())
-                .build()
+        database = Room
+            .inMemoryDatabaseBuilder<AttendanceDatabase>()
+            .setDriver(BundledSQLiteDriver())
+            .build()
 
-        database.studentGroupDao().insert(testStudentGroupEntity())
+        database.studentGroupDao().insert(
+            testStudentGroupEntity(
+                id = groupId,
+                name = DefaultStudentGroups.GROUP_A.name,
+            ),
+        )
 
-        registerStudent =
-            RegisterStudentUseCase(
-                studentRepository =
-                RoomStudentRepository(
-                    studentDao = database.studentDao(),
-                ),
-                studentPackageRepository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                ),
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
+        studentRepository = RoomStudentRepository(
+            studentDao = database.studentDao(),
+        )
+        studentPackageRepository = RoomStudentPackageRepository(
+            studentPackageDao = database.studentPackageDao(),
+            attendanceDao = database.attendanceDao(),
+        )
+
+        registerStudent = RegisterStudentUseCase(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+            transactionRunner = RoomTransactionRunner(
+                database = database,
+            ),
+        )
     }
 
     @AfterTest
@@ -65,221 +75,135 @@ class RegisterStudentUseCaseIntegrationTest {
     @Test
     fun `registering student persists student package and first attendance`() = runTest {
         // Given
-        val packageTemplate = testClassPackage()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageTemplate.name,
-                        totalClasses = packageTemplate.totalClasses,
-                        validityWeeks = packageTemplate.validityWeeks,
-                        price = packageTemplate.price,
-                    ),
-                ).toInt()
-
-        val packageType = packageTemplate.copy(id = packageTypeId)
-
-        val registeredOn = LocalDate(2026, 9, 30)
+        val packageType = persistPackageType(fourClassPackage)
 
         // When
-        val registeredStudent =
-            registerStudent(
-                fullName = "Anna Smith",
-                packageType = packageType,
-                registeredOn = registeredOn,
-                groupId = groupId,
-            )
+        val registeredStudent = registerStudent(
+            fullName = student.fullName,
+            packageType = packageType,
+            registeredOn = registrationDate,
+            groupId = groupId,
+        )
 
         // Then
-        assertTrue(registeredStudent.student.id > 0)
+        val createdStudent = registeredStudent.student
 
-        assertEquals(
-            "Anna Smith",
-            registeredStudent.student.fullName,
-        )
-        assertEquals(groupId, registeredStudent.student.groupId)
+        assertTrue(createdStudent.id > 0)
+        assertEquals(student.fullName, createdStudent.fullName)
+        assertEquals(groupId, createdStudent.groupId)
 
-        val persistedStudent =
-            assertNotNull(
-                database.studentDao()
-                    .getById(registeredStudent.student.id),
-            )
-
-        assertEquals(
-            "Anna Smith",
-            persistedStudent.fullName,
-        )
-        assertEquals(groupId, persistedStudent.groupId)
-
-        // And
-        // the package is persisted for the created student
-        val persistedPackage =
-            assertNotNull(
-                database
-                    .studentPackageDao()
-                    .getLatestForStudent(
-                        registeredStudent.student.id,
-                    ),
-            )
-
-        assertEquals(
-            registeredStudent.studentPackage.id,
-            persistedPackage.id,
+        val persistedStudent = assertNotNull(
+            database.studentDao().getById(createdStudent.id),
         )
 
         assertEquals(
-            registeredStudent.student.id,
-            persistedPackage.studentId,
+            testStudentEntity(
+                fullName = student.fullName,
+                groupId = groupId,
+            ).copy(id = createdStudent.id),
+            persistedStudent,
+        )
+
+        // And: the purchased package is persisted for this student
+        val persistedPackage = assertNotNull(
+            database.studentPackageDao().getLatestForStudent(
+                createdStudent.id,
+            ),
         )
 
         assertEquals(
-            packageType.id,
-            persistedPackage.packageTypeId,
+            testStudentPackageEntity(
+                studentId = createdStudent.id,
+                packageType = packageType,
+                startedOnEpochDay = registrationDate.toEpochDays(),
+            ).copy(id = registeredStudent.studentPackage.id),
+            persistedPackage,
         )
 
+        // And: the first attendance is returned and persisted
         assertEquals(
-            registeredOn.toEpochDays(),
-            persistedPackage.startedOnEpochDay,
-        )
-
-        // And
-        // the first attendance is persisted
-        val attendance =
-            database
-                .attendanceDao()
-                .getForPackage(persistedPackage.id)
-
-        assertEquals(
-            1,
-            attendance.size,
-        )
-
-        assertEquals(
-            setOf(registeredOn),
+            setOf(registrationDate),
             registeredStudent.studentPackage.attendanceDates,
         )
-
-        val persistedAttendance =
-            attendance.single()
-
         assertEquals(
-            persistedPackage.id,
-            persistedAttendance.packageId,
-        )
-
-        assertEquals(
-            registeredOn.toEpochDays(),
-            persistedAttendance.attendedOnEpochDay,
+            listOf(
+                AttendanceEntity(
+                    packageId = persistedPackage.id,
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
+                    visitCount = 1,
+                ),
+            ),
+            database.attendanceDao().getForPackage(persistedPackage.id),
         )
     }
 
     @Test
     fun `failed registration rolls back created student`() = runTest {
-        // Given
-        // a package type that does not exist in Room
-        val packageType = testClassPackage(id = 999, plan = PackagePlan.FIVE_CLASSES)
+        // Given: this package type does not exist in Room
+        val packageType = fiveClassPackage.copy(id = 999)
 
-        val registeredOn = LocalDate(2026, 9, 30)
-
-        assertEquals(
-            0,
-            database.studentDao().count(),
-        )
+        assertEquals(0, database.studentDao().count())
 
         var studentWasCreated = false
 
-        val roomStudentRepository =
-            RoomStudentRepository(
-                studentDao = database.studentDao(),
-            )
-
-        val studentRepository =
-            object : StudentRepository by roomStudentRepository {
+        val trackingStudentRepository =
+            object : StudentRepository by studentRepository {
                 override suspend fun create(fullName: String, groupId: Int): Student {
-                    val student =
-                        roomStudentRepository.create(
-                            fullName = fullName,
-                            groupId = groupId,
-                        )
+                    val createdStudent = studentRepository.create(
+                        fullName = fullName,
+                        groupId = groupId,
+                    )
 
                     studentWasCreated = true
 
-                    return student
+                    return createdStudent
                 }
             }
 
-        val failingRegisterStudent =
-            RegisterStudentUseCase(
-                studentRepository = studentRepository,
-                studentPackageRepository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                ),
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
+        val failingRegisterStudent = RegisterStudentUseCase(
+            studentRepository = trackingStudentRepository,
+            studentPackageRepository = studentPackageRepository,
+            transactionRunner = RoomTransactionRunner(
+                database = database,
+            ),
+        )
 
         // When
         assertFails {
             failingRegisterStudent(
-                fullName = "Anna Smith",
+                fullName = student.fullName,
                 packageType = packageType,
-                registeredOn = registeredOn,
+                registeredOn = registrationDate,
                 groupId = groupId,
             )
         }
 
-        // Then
-        // student creation completed before the later failure
+        // Then: student creation completed before the failure
         assertTrue(studentWasCreated)
 
-        // And
-        // the transaction rolled the created student back
-        assertEquals(
-            0,
-            database.studentDao().count(),
-        )
+        // And: the transaction rolled the created student back
+        assertEquals(0, database.studentDao().count())
     }
 
     @Test
     fun `registering duo package persists two visits for first attendance`() = runTest {
         // Given
-        val packageTypeId =
-            database.packageTypeDao().insert(
-                PackageTypeEntity(
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                    maxVisitsPerAttendance = 2,
-                ),
-            ).toInt()
-
-        val packageType = testClassPackage(id = packageTypeId, plan = PackagePlan.DUO_SPECIAL)
-
-        val registeredOn = LocalDate(2026, 10, 9)
+        val packageType = persistPackageType(duoSpecialPackage)
 
         // When
-        val result =
-            registerStudent(
-                fullName = "Anna & John",
-                packageType = packageType,
-                registeredOn = registeredOn,
-                visitCount = 2,
-                groupId = groupId,
-            )
+        val result = registerStudent(
+            fullName = student.fullName,
+            packageType = packageType,
+            registeredOn = registrationDate,
+            visitCount = 2,
+            groupId = groupId,
+        )
 
         // Then
         assertEquals(
-            mapOf(registeredOn to 2),
+            mapOf(registrationDate to 2),
             result.studentPackage.attendanceHistory.visitsByDate,
         )
-
         assertEquals(2, result.studentPackage.usedClasses)
         assertEquals(6, result.studentPackage.remainingClasses)
 
@@ -287,7 +211,7 @@ class RegisterStudentUseCaseIntegrationTest {
             listOf(
                 AttendanceEntity(
                     packageId = result.studentPackage.id,
-                    attendedOnEpochDay = registeredOn.toEpochDays(),
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
                     visitCount = 2,
                 ),
             ),
@@ -295,18 +219,23 @@ class RegisterStudentUseCaseIntegrationTest {
         )
 
         // And: reading the package restores its terms and visit count
-        val repository =
-            RoomStudentPackageRepository(
-                studentPackageDao = database.studentPackageDao(),
-                attendanceDao = database.attendanceDao(),
-            )
-
-        val reloadedPackage =
-            assertNotNull(
-                repository.getLatestPackageForStudent(result.student.id),
-            )
+        val reloadedPackage = assertNotNull(
+            studentPackageRepository.getLatestPackageForStudent(
+                result.student.id,
+            ),
+        )
 
         assertEquals(packageType, reloadedPackage.packageType)
         assertEquals(result.studentPackage, reloadedPackage)
+    }
+
+    private suspend fun persistPackageType(packageType: PackageType): PackageType {
+        val id = database.packageTypeDao().insert(
+            testPackageTypeEntity(
+                packageType = packageType,
+            ).copy(id = 0),
+        ).toInt()
+
+        return packageType.copy(id = id)
     }
 }

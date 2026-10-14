@@ -2,17 +2,18 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.database.createAttendanceDatabase
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -22,51 +23,34 @@ class RemoveStudentAttendancePersistenceTest {
     @Test
     fun `removed attendance stays deleted and both visits remain restored after reopening database`() = runTest {
         // Given
-        val temporaryDirectory: Path =
+        val temporaryDirectory =
             Files.createTempDirectory("simplio-attendance-removal-")
-        val databasePath: String =
+        val databasePath =
             temporaryDirectory.resolve("attendance.db").toString()
-
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val attendanceToRemove = LocalDate(2026, 10, 5)
+        val attendanceToRemove = secondClassDate
 
         try {
             val studentId = withDatabase(databasePath) { database ->
-                val packageTypeId =
-                    database.packageTypeDao().insert(
-                        PackageTypeEntity(
-                            name = "Duo 8 · Special rate",
-                            totalClasses = 8,
-                            validityWeeks = 4,
-                            price = 2400,
-                            maxVisitsPerAttendance = 2,
-                        ),
-                    ).toInt()
+                val packageTypeId = database.packageTypeDao().insert(
+                    testPackageTypeEntity(
+                        packageType = duoSpecialPackage,
+                    ).copy(id = 0),
+                ).toInt()
 
-                val packageType = PackageType(
+                val packageType = duoSpecialPackage.copy(
                     id = packageTypeId,
-                    name = "Duo 8 · Special rate",
-                    totalClasses = 8,
-                    validityWeeks = 4,
-                    price = 2400,
-                    maxVisitsPerAttendance = 2,
                 )
 
-                val groupId =
-                    database.studentGroupDao().insert(
-                        StudentGroupEntity(
-                            id = 1,
-                            name = "Group A",
-                        ),
-                    ).toInt()
+                val groupId = database.studentGroupDao().insert(
+                    testStudentGroupEntity(),
+                ).toInt()
 
-                val student =
-                    RoomStudentRepository(
-                        studentDao = database.studentDao(),
-                    ).create(
-                        fullName = "Anna and John",
-                        groupId = groupId,
-                    )
+                val student = RoomStudentRepository(
+                    studentDao = database.studentDao(),
+                ).create(
+                    fullName = AttendanceTestData.student.fullName,
+                    groupId = groupId,
+                )
 
                 val repository = RoomStudentPackageRepository(
                     studentPackageDao = database.studentPackageDao(),
@@ -76,7 +60,7 @@ class RemoveStudentAttendancePersistenceTest {
                 val studentPackage = repository.create(
                     studentId = student.id,
                     packageType = packageType,
-                    startedOn = firstAttendance,
+                    startedOn = firstClassDate,
                     visitCount = 2,
                 )
 
@@ -92,7 +76,7 @@ class RemoveStudentAttendancePersistenceTest {
 
                 assertEquals(
                     mapOf(
-                        firstAttendance to 2,
+                        firstClassDate to 2,
                         attendanceToRemove to 2,
                     ),
                     before.attendanceHistory.visitsByDate,
@@ -119,20 +103,18 @@ class RemoveStudentAttendancePersistenceTest {
 
             // And: the database is reopened
             withDatabase(databasePath) { database ->
-                val repository =
-                    RoomStudentPackageRepository(
-                        studentPackageDao = database.studentPackageDao(),
-                        attendanceDao = database.attendanceDao(),
-                    )
+                val repository = RoomStudentPackageRepository(
+                    studentPackageDao = database.studentPackageDao(),
+                    attendanceDao = database.attendanceDao(),
+                )
 
-                val restoredPackage =
-                    assertNotNull(
-                        repository.getLatestPackageForStudent(studentId),
-                    )
+                val restoredPackage = assertNotNull(
+                    repository.getLatestPackageForStudent(studentId),
+                )
 
-                // Then: only registration attendance remains
+                // Then: only the first attendance remains
                 assertEquals(
-                    mapOf(firstAttendance to 2),
+                    mapOf(firstClassDate to 2),
                     restoredPackage.attendanceHistory.visitsByDate,
                 )
                 assertEquals(2, restoredPackage.usedClasses)

@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -17,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -197,5 +199,7 @@ class AttendanceScreenRegistrationUiTest {
         attendance = Attendance(entries = emptyList()),
         packageTypes = packageTypes,
         currentDate = currentDate,
+    ).copy(
+        studentGroups = DefaultStudentGroups.ALL,
     )
 }

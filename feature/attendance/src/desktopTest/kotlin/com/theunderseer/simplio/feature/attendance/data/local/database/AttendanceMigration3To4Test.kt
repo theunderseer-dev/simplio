@@ -9,8 +9,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -24,8 +26,7 @@ class AttendanceMigration3To4Test {
     private val studentId = 7
     private val packageTypeId = 3
     private val packageId = 11
-    private val firstAttendance = LocalDate(2026, 10, 2)
-    private val secondAttendance = LocalDate(2026, 10, 5)
+    private val studentFullName = AttendanceTestData.student.fullName
 
     private lateinit var temporaryDirectory: Path
     private lateinit var databasePath: Path
@@ -93,7 +94,7 @@ class AttendanceMigration3To4Test {
             assertEquals(
                 StudentEntity(
                     id = studentId,
-                    fullName = "Anna & John",
+                    fullName = studentFullName,
                     groupId = 1,
                 ),
                 persistedStudent,
@@ -112,13 +113,13 @@ class AttendanceMigration3To4Test {
                         price = 2400,
                         maxVisitsPerAttendance = 2,
                     ),
-                    startedOn = firstAttendance,
+                    startedOn = firstClassDate,
                     attendanceHistory =
                     PackageAttendanceHistory(
                         visitsByDate =
                         mapOf(
-                            firstAttendance to 2,
-                            secondAttendance to 1,
+                            firstClassDate to 2,
+                            secondClassDate to 1,
                         ),
                     ),
                 ),
@@ -134,12 +135,16 @@ class AttendanceMigration3To4Test {
 
     private fun createVersion3Database() {
         migrationHelper.createDatabase(version = 3).use { connection ->
-            connection.execSQL(
+            connection.prepare(
                 """
                 INSERT INTO students (id, fullName)
-                VALUES ($studentId, 'Anna & John')
+                VALUES (?, ?)
                 """.trimIndent(),
-            )
+            ).use { statement ->
+                statement.bindLong(1, studentId.toLong())
+                statement.bindText(2, studentFullName)
+                statement.step()
+            }
 
             connection.execSQL(
                 """
@@ -164,7 +169,7 @@ class AttendanceMigration3To4Test {
                 VALUES (
                     $packageId, $studentId, $packageTypeId,
                     'Duo 8 · Special rate', 8, 4, 2400,
-                    ${firstAttendance.toEpochDays()}, 2
+                    ${firstClassDate.toEpochDays()}, 2
                 )
                 """.trimIndent(),
             )
@@ -175,8 +180,8 @@ class AttendanceMigration3To4Test {
                     packageId, attendedOnEpochDay, visitCount
                 )
                 VALUES
-                    ($packageId, ${firstAttendance.toEpochDays()}, 2),
-                    ($packageId, ${secondAttendance.toEpochDays()}, 1)
+                    ($packageId, ${firstClassDate.toEpochDays()}, 2),
+                    ($packageId, ${secondClassDate.toEpochDays()}, 1)
                 """.trimIndent(),
             )
         }

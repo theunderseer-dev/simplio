@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.ExperimentalTestApi
@@ -7,32 +7,31 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
+import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
+import com.theunderseer.simplio.feature.attendance.presentation.RemoveStudentAttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenPackageHistoryUiTest {
-    private val student = testStudent(id = 7)
-    private val packageType = testClassPackage()
-
-    private val firstAttendance = LocalDate(2026, 10, 2)
-    private val secondAttendance = LocalDate(2026, 10, 5)
-    private val latestAttendance = LocalDate(2026, 10, 9)
-
     @Test
     fun `shows removal actions only for attendance after registration date`() = runComposeUiTest {
         // Given
@@ -112,7 +111,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: the middle date is passed instead of the latest date
         assertEquals(
-            listOf(student.id to secondAttendance),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
     }
@@ -304,7 +303,7 @@ class AttendanceScreenPackageHistoryUiTest {
         )
 
         assertEquals(
-            listOf(student.id to secondAttendance),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
 
@@ -315,8 +314,8 @@ class AttendanceScreenPackageHistoryUiTest {
         // Then: the same attendance is requested again
         assertEquals(
             listOf(
-                student.id to secondAttendance,
-                student.id to secondAttendance,
+                student.id to secondClassDate,
+                student.id to secondClassDate,
             ),
             removalRequests,
         )
@@ -382,7 +381,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: no additional request is dispatched; confirmation remains open
         assertEquals(
-            listOf(student.id to secondAttendance),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
 
@@ -416,11 +415,11 @@ class AttendanceScreenPackageHistoryUiTest {
     fun `shows recorded visit counts for each duo attendance date`() = runComposeUiTest {
         // Given
         val state = packageHistoryState(
-            packageType = testClassPackage(plan = PackagePlan.DUO_SPECIAL),
+            packageType = duoSpecialPackage,
             visitsByDate = mapOf(
-                firstAttendance to 2,
-                secondAttendance to 1,
-                latestAttendance to 2,
+                firstClassDate to 2,
+                secondClassDate to 1,
+                thirdClassDate to 2,
             ),
         )
 
@@ -474,31 +473,60 @@ class AttendanceScreenPackageHistoryUiTest {
         }
     }
 
+    @Test
+    fun `shows package history when classes count is clicked`() = runComposeUiTest {
+        // Given
+        val state = packageHistoryState()
+
+        setContent {
+            AttendanceScreenForTest(
+                state = state,
+            )
+        }
+
+        // When
+        onNodeWithText("3 / 4")
+            .performClick()
+
+        // Then
+        onNodeWithText("Package history")
+            .assertIsDisplayed()
+
+        onNode(
+            hasTestTag("package-history-menu") and
+                hasAnyDescendant(hasText("1. Oct 2")) and
+                hasAnyDescendant(hasText("2. Oct 5")) and
+                hasAnyDescendant(hasText("3. Oct 9")),
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `exposes attendance count as package attendance history action`() = runComposeUiTest {
+        // Given
+        val state = packageHistoryState()
+
+        setContent {
+            AttendanceScreenForTest(
+                state = state,
+            )
+        }
+
+        // Then
+        onNodeWithContentDescription(
+            "View package history for Anna Smith",
+        ).assertIsDisplayed()
+    }
+
     private fun packageHistoryState(
-        packageType: PackageType = this.packageType,
+        packageType: PackageType = fourClassPackage,
         visitsByDate: Map<LocalDate, Int> = mapOf(
-            firstAttendance to 1,
-            secondAttendance to 1,
-            latestAttendance to 1,
+            firstClassDate to 1,
+            secondClassDate to 1,
+            thirdClassDate to 1,
         ),
-    ): AttendanceUiState.Content = testAttendanceContentUiState(
-        attendance = Attendance(
-            entries = listOf(
-                RegisteredStudent(
-                    student = student,
-                    studentPackage = StudentPackage(
-                        id = 11,
-                        studentId = student.id,
-                        packageType = packageType,
-                        startedOn = firstAttendance,
-                        attendanceHistory = PackageAttendanceHistory(
-                            visitsByDate = visitsByDate,
-                        ),
-                    ),
-                ),
-            ),
-        ),
-        packageTypes = listOf(packageType),
-        currentDate = latestAttendance,
+    ): AttendanceUiState.Content = testStudentAttendanceUiState(
+        packageType = packageType,
+        visitsByDate = visitsByDate,
+        currentDate = thirdClassDate,
     )
 }

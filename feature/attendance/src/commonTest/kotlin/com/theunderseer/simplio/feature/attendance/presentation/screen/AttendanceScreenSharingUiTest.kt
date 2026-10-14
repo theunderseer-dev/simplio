@@ -1,4 +1,4 @@
-package com.theunderseer.simplio.feature.attendance.presentation
+package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -8,55 +8,42 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
-import kotlinx.datetime.LocalDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenSharingUiTest {
-    private val today = LocalDate(2026, 10, 5)
-    private val startedOn = LocalDate(2026, 10, 1)
-    private val secondAttendance = LocalDate(2026, 10, 3)
-
-    private val groupA = DefaultStudentGroups.GROUP_A
-    private val groupB = DefaultStudentGroups.GROUP_B
-    private val packageType = testClassPackage()
-
     private val state = testAttendanceContentUiState(
         attendance = Attendance(
             entries = listOf(
-                testStudent(groupId = groupA.id),
+                student.copy(
+                    groupId = DefaultStudentGroups.GROUP_A.id,
+                ),
                 testStudent(
                     id = 2,
                     fullName = "Bob Lee",
-                    groupId = groupB.id,
+                    groupId = DefaultStudentGroups.GROUP_B.id,
                 ),
-            ).map { student ->
-                RegisteredStudent(
-                    student = student,
-                    studentPackage = StudentPackage(
-                        id = student.id,
-                        studentId = student.id,
-                        packageType = packageType,
-                        startedOn = startedOn,
-                        attendanceHistory = PackageAttendanceHistory(
-                            visitsByDate = mapOf(
-                                startedOn to 1,
-                                secondAttendance to 1,
-                            ),
-                        ),
+            ).map { groupStudent ->
+                testStudentAttendanceUiState(
+                    student = groupStudent,
+                    visitsByDate = mapOf(
+                        firstClassDate to 1,
+                        secondClassDate to 1,
                     ),
-                )
+                ).attendance.entries.single()
             },
         ),
-        packageTypes = listOf(packageType),
-        currentDate = today,
+        packageTypes = listOf(fourClassPackage),
+        currentDate = currentDate,
     )
 
     @Test
@@ -68,11 +55,11 @@ class AttendanceScreenSharingUiTest {
 
         // Then
         onNodeWithContentDescription(
-            "Copy attendance for ${groupA.name}",
+            "Copy attendance for ${DefaultStudentGroups.GROUP_A.name}",
         ).assertIsDisplayed()
 
         onNodeWithContentDescription(
-            "Copy attendance for ${groupB.name}",
+            "Copy attendance for ${DefaultStudentGroups.GROUP_B.name}",
         ).assertIsDisplayed()
 
         onNodeWithContentDescription("Copy attendance")
@@ -93,12 +80,12 @@ class AttendanceScreenSharingUiTest {
 
         // When
         onNodeWithContentDescription(
-            "Copy attendance for ${groupA.name}",
+            "Copy attendance for ${DefaultStudentGroups.GROUP_A.name}",
         ).performClick()
 
         // Then
         assertEquals(
-            "Anna Smith 2/4 (until 29/10)",
+            "Anna Smith 2/4 (until 30/10)",
             copiedText,
         )
     }
@@ -117,31 +104,14 @@ class AttendanceScreenSharingUiTest {
 
         // When
         onNodeWithContentDescription(
-            "Copy attendance for ${groupB.name}",
+            "Copy attendance for ${DefaultStudentGroups.GROUP_B.name}",
         ).performClick()
 
         // Then
         assertEquals(
-            "Bob Lee 2/4 (until 29/10)",
+            "Bob Lee 2/4 (until 30/10)",
             copiedText,
         )
-    }
-
-    @Test
-    fun `shows copy confirmation after copying a group`() = runComposeUiTest {
-        // Given
-        setContent {
-            AttendanceScreenForTest(state = state)
-        }
-
-        // When
-        onNodeWithContentDescription(
-            "Copy attendance for ${groupA.name}",
-        ).performClick()
-
-        // Then
-        onNodeWithText("Copied to clipboard")
-            .assertIsDisplayed()
     }
 
     @Test
@@ -155,7 +125,7 @@ class AttendanceScreenSharingUiTest {
 
         // When
         onNodeWithContentDescription(
-            "Copy attendance for ${groupA.name}",
+            "Copy attendance for ${DefaultStudentGroups.GROUP_A.name}",
         ).performClick()
 
         mainClock.advanceTimeByFrame()
@@ -169,5 +139,26 @@ class AttendanceScreenSharingUiTest {
 
         onNodeWithText("Copied to clipboard")
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun `shows copy confirmation after copy action`() = runComposeUiTest {
+        // Given
+        val state = testStudentAttendanceUiState(student = student)
+
+        setContent {
+            AttendanceScreenForTest(
+                state = state,
+            )
+        }
+
+        // When
+        onNodeWithContentDescription(
+            "Copy attendance for ${DefaultStudentGroups.GROUP_A.name}",
+        ).performClick()
+
+        // Then
+        onNodeWithText("Copied to clipboard")
+            .assertIsDisplayed()
     }
 }
