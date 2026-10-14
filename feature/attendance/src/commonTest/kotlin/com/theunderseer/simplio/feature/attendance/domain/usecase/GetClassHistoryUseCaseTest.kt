@@ -23,7 +23,7 @@ class GetClassHistoryUseCaseTest {
         // Then
         assertEquals(emptyList(), page.entries)
         assertNull(page.nextBeforeDate)
-        assertEquals(21, repository.lastLimit)
+        assertEquals(11, repository.lastLimit)
     }
 
     @Test
@@ -45,7 +45,7 @@ class GetClassHistoryUseCaseTest {
     @Test
     fun `exactly twenty entries do not require another page`() = runTest {
         // Given
-        val entries = historyEntries(count = 20)
+        val entries = historyEntries(count = 10)
         val getHistory = GetClassHistoryUseCase(
             FakeClassHistoryRepository(entries),
         )
@@ -61,7 +61,7 @@ class GetClassHistoryUseCaseTest {
     @Test
     fun `loads older page without repeating previous entries`() = runTest {
         // Given
-        val entries = historyEntries(count = 21)
+        val entries = historyEntries(count = 11)
         val repository = FakeClassHistoryRepository(entries)
         val getHistory = GetClassHistoryUseCase(repository)
 
@@ -69,8 +69,8 @@ class GetClassHistoryUseCaseTest {
         val firstPage = getHistory()
 
         // Then
-        assertEquals(entries.take(20), firstPage.entries)
-        assertEquals(entries[19].date, firstPage.nextBeforeDate)
+        assertEquals(entries.take(10), firstPage.entries)
+        assertEquals(entries[9].date, firstPage.nextBeforeDate)
 
         // When
         val secondPage = getHistory(
@@ -80,7 +80,7 @@ class GetClassHistoryUseCaseTest {
         // Then
         assertEquals(entries.takeLast(1), secondPage.entries)
         assertNull(secondPage.nextBeforeDate)
-        assertEquals(entries[19].date, repository.lastBeforeDate)
+        assertEquals(entries[9].date, repository.lastBeforeDate)
     }
 
     private fun historyEntries(count: Int): List<ClassHistoryEntry> = List(count) { index ->

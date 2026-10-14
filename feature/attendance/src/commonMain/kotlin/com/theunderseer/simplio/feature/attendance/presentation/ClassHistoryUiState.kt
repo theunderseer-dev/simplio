@@ -6,7 +6,12 @@ import kotlinx.datetime.LocalDate
 sealed interface ClassHistoryUiState {
     data object Loading : ClassHistoryUiState
 
-    data class Content(val entries: List<ClassHistoryEntry>, val nextBeforeDate: LocalDate?) : ClassHistoryUiState
+    data class Content(
+        val entries: List<ClassHistoryEntry>,
+        val nextBeforeDate: LocalDate?,
+        val isLoadingNextPage: Boolean = false,
+        val nextPageErrorMessage: String? = null,
+    ) : ClassHistoryUiState
 
     data class Error(val message: String) : ClassHistoryUiState
 }
