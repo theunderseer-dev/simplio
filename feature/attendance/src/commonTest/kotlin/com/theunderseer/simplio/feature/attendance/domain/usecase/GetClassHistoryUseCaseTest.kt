@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -10,8 +11,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class GetClassHistoryUseCaseTest {
-    private val latestDate = LocalDate(2026, 10, 9)
-
     @Test
     fun `returns empty page when history has no entries`() = runTest {
         // Given
@@ -87,7 +86,7 @@ class GetClassHistoryUseCaseTest {
     private fun historyEntries(count: Int): List<ClassHistoryEntry> = List(count) { index ->
         testClassHistoryEntry(
             date = LocalDate.fromEpochDays(
-                latestDate.toEpochDays() - index,
+                thirdClassDate.toEpochDays() - index,
             ),
         )
     }

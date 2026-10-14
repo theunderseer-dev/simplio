@@ -1,13 +1,22 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fake.RecordedAttendance
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.eighthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fifthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.seventhClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.sixthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
@@ -21,17 +30,7 @@ class MarkStudentPresentUseCaseTest {
     private lateinit var repository: FakeStudentPackageRepository
     private lateinit var markStudentPresent: MarkStudentPresentUseCase
     private lateinit var transactionRunner: FakeTransactionRunner
-    private val studentId = 1
-    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
-    private val duoPackage =
-        PackageType(
-            id = 2,
-            name = "Duo 8 · Special rate",
-            totalClasses = 8,
-            validityWeeks = 4,
-            price = 2400,
-            maxVisitsPerAttendance = 2,
-        )
+    private val studentId = AttendanceTestData.student.id
 
     @BeforeTest
     fun setUp() {
@@ -50,22 +49,19 @@ class MarkStudentPresentUseCaseTest {
         // student has an active 5-class package
         // And
         // he has already attended one class
-        val firstAttendance = LocalDate(2026, 9, 25)
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = packageType,
-                startedOn = firstAttendance,
+                packageType = fiveClassPackage,
+                startedOn = firstClassDate,
             )
 
         // When
         // I mark student present on a new date
-        val nextAttendanceDate = LocalDate(2026, 9, 27)
-
         val result =
             markStudentPresent(
                 studentId = studentId,
-                attendanceDate = nextAttendanceDate,
+                attendanceDate = secondClassDate,
             )
 
         // Then
@@ -82,7 +78,7 @@ class MarkStudentPresentUseCaseTest {
         // And
         // the new attendance date is recorded
         assertEquals(
-            setOf(firstAttendance, nextAttendanceDate),
+            setOf(firstClassDate, secondClassDate),
             success.studentPackage.attendanceDates,
         )
 
@@ -103,7 +99,7 @@ class MarkStudentPresentUseCaseTest {
             listOf(
                 RecordedAttendance(
                     packageId = studentPackage.id,
-                    attendedOn = nextAttendanceDate,
+                    attendedOn = secondClassDate,
                 ),
             ),
             repository.recordedAttendances,
@@ -116,12 +112,10 @@ class MarkStudentPresentUseCaseTest {
         // student has an active 5-class package
         // And
         // he has already attended one class
-        val firstAttendance = LocalDate(2026, 9, 25)
-
         repository.seed(
             studentId = studentId,
-            packageType = packageType,
-            startedOn = firstAttendance,
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
         )
 
         // When
@@ -129,7 +123,7 @@ class MarkStudentPresentUseCaseTest {
         val result =
             markStudentPresent(
                 studentId = studentId,
-                attendanceDate = firstAttendance,
+                attendanceDate = registrationDate,
             )
 
         // Then
@@ -139,7 +133,7 @@ class MarkStudentPresentUseCaseTest {
         // And
         // the attendance date is not duplicated
         assertEquals(
-            setOf(firstAttendance),
+            setOf(registrationDate),
             success.studentPackage.attendanceDates,
         )
 
@@ -158,21 +152,19 @@ class MarkStudentPresentUseCaseTest {
         // student has a 5-class package
         // And
         // he has already used 4 classes
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 9, 20),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 9, 20),
-                    LocalDate(2026, 9, 22),
-                    LocalDate(2026, 9, 24),
-                    LocalDate(2026, 9, 26),
-                ),
-            )
-
-        val finalAttendanceDate = LocalDate(2026, 9, 28)
+        val previousDates = setOf(
+            firstClassDate,
+            secondClassDate,
+            thirdClassDate,
+            fourthClassDate,
+        )
+        val finalAttendanceDate = fifthClassDate
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
+            attendanceDates = previousDates,
+        )
 
         // When
         // I mark the student present on a new date
@@ -189,13 +181,7 @@ class MarkStudentPresentUseCaseTest {
         // And
         // the new attendance date is recorded
         assertEquals(
-            setOf(
-                LocalDate(2026, 9, 20),
-                LocalDate(2026, 9, 22),
-                LocalDate(2026, 9, 24),
-                LocalDate(2026, 9, 26),
-                finalAttendanceDate,
-            ),
+            previousDates + finalAttendanceDate,
             success.studentPackage.attendanceDates,
         )
 
@@ -240,22 +226,22 @@ class MarkStudentPresentUseCaseTest {
         // student has a completed 5-class package
         // And
         // all 5 classes have already been used
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 9, 20),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 9, 20),
-                    LocalDate(2026, 9, 22),
-                    LocalDate(2026, 9, 24),
-                    LocalDate(2026, 9, 26),
-                    LocalDate(2026, 9, 28),
-                ),
-            )
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
+            attendanceDates = setOf(
+                firstClassDate,
+                secondClassDate,
+                thirdClassDate,
+                fourthClassDate,
+                fifthClassDate,
+            ),
+        )
+        val nextAttendanceDate = sixthClassDate
 
-        val nextAttendanceDate = LocalDate(2026, 9, 30)
+        assertTrue(studentPackage.isCompleted)
+        assertFalse(studentPackage.isExpiredOn(nextAttendanceDate))
 
         // When
         // I try to mark the student present on another date
@@ -293,19 +279,22 @@ class MarkStudentPresentUseCaseTest {
         // the package still has unused classes
         // And
         // the package has expired
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 8, 1),
-                attendanceDates =
-                setOf(
-                    LocalDate(2026, 8, 1),
-                    LocalDate(2026, 8, 8),
-                ),
-            )
+        val expiredPackageStartDate = LocalDate(2026, 8, 1)
+        val previousAttendanceDate = LocalDate(2026, 8, 8)
+        val attendanceDate = secondClassDate
 
-        val attendanceDate = LocalDate(2026, 9, 20)
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = expiredPackageStartDate,
+            attendanceDates = setOf(
+                expiredPackageStartDate,
+                previousAttendanceDate,
+            ),
+        )
+
+        assertFalse(studentPackage.isCompleted)
+        assertTrue(studentPackage.isExpiredOn(attendanceDate))
 
         // When
         // I try to mark the student present on a later date
@@ -341,11 +330,10 @@ class MarkStudentPresentUseCaseTest {
         // student has no package at all
         // When
         // I try to mark student present on a date without any package
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = LocalDate(2026, 9, 29),
-            )
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = secondClassDate,
+        )
 
         // Then
         // the operation reports that no package was found for the student
@@ -361,14 +349,14 @@ class MarkStudentPresentUseCaseTest {
         // Given
         repository.seed(
             studentId = studentId,
-            packageType = packageType,
-            startedOn = LocalDate(2026, 9, 25),
+            packageType = fiveClassPackage,
+            startedOn = registrationDate,
         )
 
         // When
         markStudentPresent(
             studentId = studentId,
-            attendanceDate = LocalDate(2026, 9, 27),
+            attendanceDate = secondClassDate,
         )
 
         // Then
@@ -381,21 +369,19 @@ class MarkStudentPresentUseCaseTest {
     @Test
     fun `marking duo attendance records two visits for selected date`() = runTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 5)
-        val nextAttendance = LocalDate(2026, 10, 9)
 
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackage,
-                startedOn = firstAttendance,
+                packageType = duoSpecialPackage,
+                startedOn = firstClassDate,
             )
 
         // When
         val result =
             markStudentPresent(
                 studentId = studentId,
-                attendanceDate = nextAttendance,
+                attendanceDate = secondClassDate,
                 visitCount = 2,
             )
 
@@ -409,8 +395,8 @@ class MarkStudentPresentUseCaseTest {
                 PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
-                        firstAttendance to 1,
-                        nextAttendance to 2,
+                        firstClassDate to 1,
+                        secondClassDate to 2,
                     ),
                 ),
             )
@@ -434,7 +420,7 @@ class MarkStudentPresentUseCaseTest {
             listOf(
                 RecordedAttendance(
                     packageId = studentPackage.id,
-                    attendedOn = nextAttendance,
+                    attendedOn = secondClassDate,
                     visitCount = 2,
                 ),
             ),
@@ -445,14 +431,11 @@ class MarkStudentPresentUseCaseTest {
     @Test
     fun `marking two visits for individual package is rejected without changes`() = runTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 5)
-        val nextAttendance = LocalDate(2026, 10, 9)
-
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = packageType,
-                startedOn = firstAttendance,
+                packageType = fiveClassPackage,
+                startedOn = firstClassDate,
             )
 
         assertEquals(
@@ -464,7 +447,7 @@ class MarkStudentPresentUseCaseTest {
         val result =
             markStudentPresent(
                 studentId = studentId,
-                attendanceDate = nextAttendance,
+                attendanceDate = secondClassDate,
                 visitCount = 2,
             )
 
@@ -484,25 +467,20 @@ class MarkStudentPresentUseCaseTest {
     @Test
     fun `marking two visits when only one remains is rejected without changes`() = runTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val nextAttendance = LocalDate(2026, 10, 26)
-
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = duoPackage,
-                startedOn = firstAttendance,
-                attendanceDates =
-                setOf(
-                    firstAttendance,
-                    LocalDate(2026, 10, 5),
-                    LocalDate(2026, 10, 9),
-                    LocalDate(2026, 10, 12),
-                    LocalDate(2026, 10, 16),
-                    LocalDate(2026, 10, 19),
-                    LocalDate(2026, 10, 23),
-                ),
-            )
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = duoSpecialPackage,
+            startedOn = firstClassDate,
+            attendanceDates = setOf(
+                firstClassDate,
+                secondClassDate,
+                thirdClassDate,
+                fourthClassDate,
+                fifthClassDate,
+                sixthClassDate,
+                seventhClassDate,
+            ),
+        )
 
         assertEquals(
             1,
@@ -510,12 +488,11 @@ class MarkStudentPresentUseCaseTest {
         )
 
         // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = nextAttendance,
-                visitCount = 2,
-            )
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = eighthClassDate,
+            visitCount = 2,
+        )
 
         // Then
         assertIs<MarkStudentPresentResult.InsufficientRemainingVisits>(result)
@@ -533,27 +510,24 @@ class MarkStudentPresentUseCaseTest {
     @Test
     fun `marking one remaining visit completes duo package`() = runTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val finalAttendance = LocalDate(2026, 10, 26)
+        val finalAttendance = eighthClassDate
 
-        val previousDates =
-            setOf(
-                firstAttendance,
-                LocalDate(2026, 10, 5),
-                LocalDate(2026, 10, 9),
-                LocalDate(2026, 10, 12),
-                LocalDate(2026, 10, 16),
-                LocalDate(2026, 10, 19),
-                LocalDate(2026, 10, 23),
-            )
+        val previousDates = setOf(
+            firstClassDate,
+            secondClassDate,
+            thirdClassDate,
+            fourthClassDate,
+            fifthClassDate,
+            sixthClassDate,
+            seventhClassDate,
+        )
 
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = duoPackage,
-                startedOn = firstAttendance,
-                attendanceDates = previousDates,
-            )
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = duoSpecialPackage,
+            startedOn = firstClassDate,
+            attendanceDates = previousDates,
+        )
 
         assertEquals(1, studentPackage.remainingClasses)
         assertFalse(studentPackage.isCompleted)
@@ -605,19 +579,16 @@ class MarkStudentPresentUseCaseTest {
     @Test
     fun `repeating duo attendance preserves two visits without another repository write`() = runTest {
         // Given
-        val firstAttendance = LocalDate(2026, 10, 5)
-        val attendedOn = LocalDate(2026, 10, 9)
-
         val studentPackage =
             repository.seed(
                 studentId = studentId,
-                packageType = duoPackage,
-                startedOn = firstAttendance,
+                packageType = duoSpecialPackage,
+                startedOn = firstClassDate,
             )
 
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendedOn,
+            attendedOn = secondClassDate,
             visitCount = 2,
         )
 
@@ -627,8 +598,8 @@ class MarkStudentPresentUseCaseTest {
                 PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
-                        firstAttendance to 1,
-                        attendedOn to 2,
+                        firstClassDate to 1,
+                        secondClassDate to 2,
                     ),
                 ),
             )
@@ -637,7 +608,7 @@ class MarkStudentPresentUseCaseTest {
         val result =
             markStudentPresent(
                 studentId = studentId,
-                attendanceDate = attendedOn,
+                attendanceDate = secondClassDate,
                 visitCount = 1,
             )
 
@@ -657,7 +628,7 @@ class MarkStudentPresentUseCaseTest {
             listOf(
                 RecordedAttendance(
                     packageId = studentPackage.id,
-                    attendedOn = attendedOn,
+                    attendedOn = secondClassDate,
                     visitCount = 2,
                 ),
             ),

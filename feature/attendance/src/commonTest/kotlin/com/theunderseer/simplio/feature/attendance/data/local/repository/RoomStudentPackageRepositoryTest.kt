@@ -4,10 +4,13 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
@@ -26,8 +29,6 @@ import kotlin.test.assertTrue
 class RoomStudentPackageRepositoryTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var repository: RoomStudentPackageRepository
-    private val startedOn = LocalDate(2026, 10, 5)
-    private val nextAttendance = LocalDate(2026, 10, 9)
 
     @BeforeTest
     fun setUp() = runTest {
@@ -55,10 +56,7 @@ class RoomStudentPackageRepositoryTest {
     fun `creating package persists package and first attendance`() = runTest {
         // Given
         // an existing student
-        val studentId =
-            database
-                .studentDao()
-                .insert(testStudentEntity()).toInt()
+        val studentId = createStudentId()
 
         // And
         // an existing package type
@@ -69,7 +67,7 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = startedOn,
+                startedOn = registrationDate,
             )
 
         // Then
@@ -93,14 +91,14 @@ class RoomStudentPackageRepositoryTest {
         // And
         // the package starts on the selected date
         assertEquals(
-            startedOn,
+            registrationDate,
             studentPackage.startedOn,
         )
 
         // And
         // the first attendance is recorded automatically
         assertEquals(
-            setOf(startedOn),
+            setOf(registrationDate),
             studentPackage.attendanceDates,
         )
 
@@ -144,7 +142,7 @@ class RoomStudentPackageRepositoryTest {
         )
 
         assertEquals(
-            startedOn.toEpochDays(),
+            registrationDate.toEpochDays(),
             persistedPackage.startedOnEpochDay,
         )
 
@@ -168,7 +166,7 @@ class RoomStudentPackageRepositoryTest {
         )
 
         assertEquals(
-            startedOn.toEpochDays(),
+            registrationDate.toEpochDays(),
             attendance.attendedOnEpochDay,
         )
     }
@@ -177,76 +175,51 @@ class RoomStudentPackageRepositoryTest {
     fun `getting latest package reconstructs package with attendance history`() = runTest {
         // Given
         // an existing student
-        val studentId =
-            database
-                .studentDao()
-                .insert(testStudentEntity()).toInt()
+        val studentId = createStudentId()
 
         // And
         // the current package type has updated terms
-        val currentPackageType = seedPackageType(plan = PackagePlan.FIVE_CLASSES)
+        val currentPackageType = seedPackageType(
+            plan = PackagePlan.FIVE_CLASSES,
+        )
+        val purchasedPackageType = currentPackageType.copy(
+            validityWeeks = 6,
+        )
 
         // And
         // the student has a newer package with historical purchase terms
-        val latestStartedOn = LocalDate(2026, 9, 1)
-
-        val latestPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = currentPackageType.id,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = latestStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        val latestPackageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = purchasedPackageType,
+                startedOnEpochDay = registrationDate.toEpochDays(),
+            ),
+        ).toInt()
 
         // And
         // an older package was persisted later
-        database
-            .studentPackageDao()
-            .insert(
-                StudentPackageEntity(
-                    studentId = studentId,
-                    packageTypeId = currentPackageType.id,
-                    packageName = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                    startedOnEpochDay =
-                    LocalDate(2026, 7, 1).toEpochDays(),
-                ),
-            )
+        database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = purchasedPackageType,
+                startedOnEpochDay = LocalDate(2026, 7, 1).toEpochDays(),
+            ),
+        )
 
         // And
         // the latest package has attendance history
-        val secondAttendance = LocalDate(2026, 9, 8)
-        val thirdAttendance = LocalDate(2026, 9, 15)
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = latestPackageId,
-                attendedOnEpochDay = latestStartedOn.toEpochDays(),
-            ),
-        )
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = latestPackageId,
-                attendedOnEpochDay = secondAttendance.toEpochDays(),
-            ),
-        )
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = latestPackageId,
-                attendedOnEpochDay = thirdAttendance.toEpochDays(),
-            ),
-        )
+        listOf(
+            firstClassDate,
+            secondClassDate,
+            thirdClassDate,
+        ).forEach { date ->
+            database.attendanceDao().insert(
+                AttendanceEntity(
+                    packageId = latestPackageId,
+                    attendedOnEpochDay = date.toEpochDays(),
+                ),
+            )
+        }
 
         // When
         val studentPackage =
@@ -256,66 +229,24 @@ class RoomStudentPackageRepositoryTest {
 
         // Then
         // the latest package is returned
-        val latestPackage =
-            assertNotNull(studentPackage)
+        val latestPackage = assertNotNull(studentPackage)
 
+        assertEquals(latestPackageId, latestPackage.id)
+        assertEquals(studentId, latestPackage.studentId)
+        assertEquals(purchasedPackageType, latestPackage.packageType)
+        assertEquals(registrationDate, latestPackage.startedOn)
         assertEquals(
-            latestPackageId,
-            latestPackage.id,
-        )
-
-        assertEquals(
-            studentId,
-            latestPackage.studentId,
-        )
-
-        // And
-        // the historical package snapshot is restored
-        assertEquals(
-            PackageType(
-                id = currentPackageType.id,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            ),
-            latestPackage.packageType,
-        )
-
-        // And
-        // the package start date is restored
-        assertEquals(
-            latestStartedOn,
-            latestPackage.startedOn,
-        )
-
-        // And
-        // all attendance dates are reconstructed
-        assertEquals(
-            setOf(
-                latestStartedOn,
-                secondAttendance,
-                thirdAttendance,
-            ),
+            setOf(firstClassDate, secondClassDate, thirdClassDate),
             latestPackage.attendanceDates,
         )
-
-        // And
-        // used classes reflect the reconstructed attendance history
-        assertEquals(
-            3,
-            latestPackage.usedClasses,
-        )
+        assertEquals(3, latestPackage.usedClasses)
     }
 
     @Test
     fun `recording attendance persists attendance for package`() = runTest {
         // Given
         // an existing student
-        val studentId =
-            database
-                .studentDao()
-                .insert(testStudentEntity()).toInt()
+        val studentId = createStudentId()
 
         // And
         // an existing package type
@@ -327,7 +258,7 @@ class RoomStudentPackageRepositoryTest {
             testStudentPackageEntity(
                 studentId = studentId,
                 packageType = packageType,
-                startedOnEpochDay = startedOn.toEpochDays(),
+                startedOnEpochDay = registrationDate.toEpochDays(),
             ),
         ).toInt()
 
@@ -336,14 +267,14 @@ class RoomStudentPackageRepositoryTest {
         database.attendanceDao().insert(
             AttendanceEntity(
                 packageId = packageId,
-                attendedOnEpochDay = startedOn.toEpochDays(),
+                attendedOnEpochDay = registrationDate.toEpochDays(),
             ),
         )
 
         // When
         repository.recordAttendance(
             packageId = packageId,
-            attendedOn = nextAttendance,
+            attendedOn = secondClassDate,
         )
 
         // Then
@@ -360,8 +291,8 @@ class RoomStudentPackageRepositoryTest {
 
         assertEquals(
             setOf(
-                startedOn.toEpochDays(),
-                nextAttendance.toEpochDays(),
+                registrationDate.toEpochDays(),
+                secondClassDate.toEpochDays(),
             ),
             persistedAttendance
                 .map { it.attendedOnEpochDay }
@@ -381,26 +312,26 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recording duplicate attendance preserves original visit count`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val studentId = createStudentId()
         val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = startedOn,
+                startedOn = registrationDate,
             )
 
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = nextAttendance,
+            attendedOn = secondClassDate,
             visitCount = 2,
         )
 
         // When
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = nextAttendance,
+            attendedOn = secondClassDate,
             visitCount = 1,
         )
 
@@ -409,12 +340,12 @@ class RoomStudentPackageRepositoryTest {
             listOf(
                 AttendanceEntity(
                     packageId = studentPackage.id,
-                    attendedOnEpochDay = startedOn.toEpochDays(),
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
                     visitCount = 1,
                 ),
                 AttendanceEntity(
                     packageId = studentPackage.id,
-                    attendedOnEpochDay = nextAttendance.toEpochDays(),
+                    attendedOnEpochDay = secondClassDate.toEpochDays(),
                     visitCount = 2,
                 ),
             ),
@@ -428,8 +359,8 @@ class RoomStudentPackageRepositoryTest {
 
         assertEquals(
             mapOf(
-                startedOn to 1,
-                nextAttendance to 2,
+                registrationDate to 1,
+                secondClassDate to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -444,10 +375,7 @@ class RoomStudentPackageRepositoryTest {
     fun `getting latest package returns null when student has no packages`() = runTest {
         // Given
         // an existing student with no packages
-        val studentId =
-            database
-                .studentDao()
-                .insert(testStudentEntity()).toInt()
+        val studentId = createStudentId()
 
         // When
         val studentPackage =
@@ -462,8 +390,7 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recorded attendance is returned when package is read again`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity()).toInt()
-
+        val studentId = createStudentId()
         val packageType = seedPackageType(
             plan = PackagePlan.FIVE_CLASSES,
         )
@@ -472,21 +399,21 @@ class RoomStudentPackageRepositoryTest {
             testStudentPackageEntity(
                 studentId = studentId,
                 packageType = packageType,
-                startedOnEpochDay = startedOn.toEpochDays(),
+                startedOnEpochDay = registrationDate.toEpochDays(),
             ),
         ).toInt()
 
         database.attendanceDao().insert(
             AttendanceEntity(
                 packageId = packageId,
-                attendedOnEpochDay = startedOn.toEpochDays(),
+                attendedOnEpochDay = registrationDate.toEpochDays(),
             ),
         )
 
         // When
         repository.recordAttendance(
             packageId = packageId,
-            attendedOn = nextAttendance,
+            attendedOn = secondClassDate,
         )
 
         val reloadedPackage =
@@ -502,8 +429,8 @@ class RoomStudentPackageRepositoryTest {
 
         assertEquals(
             setOf(
-                startedOn,
-                nextAttendance,
+                registrationDate,
+                secondClassDate,
             ),
             reloadedPackage.attendanceDates,
         )
@@ -517,42 +444,39 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `removing attendance restores all visits for requested date and preserves other history`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
-        val otherStudentId = database.studentDao().insert(testStudentEntity(fullName = "Other couple")).toInt()
+        val studentId = createStudentId()
+        val otherStudentId = createStudentId()
         val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
-        val firstAttendance = LocalDate(2026, 10, 2)
-        val attendanceToRemove = startedOn
-        val lastAttendance = nextAttendance
 
         val studentPackage =
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = firstAttendance,
+                startedOn = registrationDate,
             )
 
         val otherStudentPackage =
             repository.create(
                 studentId = otherStudentId,
                 packageType = packageType,
-                startedOn = firstAttendance,
+                startedOn = registrationDate,
             )
 
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendanceToRemove,
+            attendedOn = secondClassDate,
             visitCount = 2,
         )
 
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = lastAttendance,
+            attendedOn = thirdClassDate,
             visitCount = 1,
         )
 
         repository.recordAttendance(
             packageId = otherStudentPackage.id,
-            attendedOn = attendanceToRemove,
+            attendedOn = secondClassDate,
             visitCount = 2,
         )
 
@@ -567,7 +491,7 @@ class RoomStudentPackageRepositoryTest {
         // When
         repository.removeAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendanceToRemove,
+            attendedOn = secondClassDate,
         )
 
         // Then
@@ -577,8 +501,8 @@ class RoomStudentPackageRepositoryTest {
                 PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
-                        firstAttendance to 1,
-                        lastAttendance to 1,
+                        registrationDate to 1,
+                        thirdClassDate to 1,
                     ),
                 ),
             )
@@ -596,12 +520,12 @@ class RoomStudentPackageRepositoryTest {
             listOf(
                 AttendanceEntity(
                     packageId = studentPackage.id,
-                    attendedOnEpochDay = firstAttendance.toEpochDays(),
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
                     visitCount = 1,
                 ),
                 AttendanceEntity(
                     packageId = studentPackage.id,
-                    attendedOnEpochDay = lastAttendance.toEpochDays(),
+                    attendedOnEpochDay = thirdClassDate.toEpochDays(),
                     visitCount = 1,
                 ),
             ),
@@ -615,8 +539,8 @@ class RoomStudentPackageRepositoryTest {
                 PackageAttendanceHistory(
                     visitsByDate =
                     mapOf(
-                        firstAttendance to 1,
-                        attendanceToRemove to 2,
+                        registrationDate to 1,
+                        secondClassDate to 2,
                     ),
                 ),
             )
@@ -629,7 +553,7 @@ class RoomStudentPackageRepositoryTest {
         // When: removal is repeated
         repository.removeAttendance(
             packageId = studentPackage.id,
-            attendedOn = attendanceToRemove,
+            attendedOn = secondClassDate,
         )
 
         // Then: no additional visits are restored
@@ -642,20 +566,20 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `reading package preserves visit counts for each attendance date`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val studentId = createStudentId()
         val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = startedOn,
+                startedOn = registrationDate,
             )
 
         database.attendanceDao().insert(
             AttendanceEntity(
                 packageId = studentPackage.id,
-                attendedOnEpochDay = nextAttendance.toEpochDays(),
+                attendedOnEpochDay = secondClassDate.toEpochDays(),
                 visitCount = 2,
             ),
         )
@@ -669,8 +593,8 @@ class RoomStudentPackageRepositoryTest {
         // Then
         assertEquals(
             mapOf(
-                startedOn to 1,
-                nextAttendance to 2,
+                registrationDate to 1,
+                secondClassDate to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -684,20 +608,20 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `recording attendance persists requested visit count`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity(fullName = "Anna & John")).toInt()
+        val studentId = createStudentId()
         val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         val studentPackage =
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = startedOn,
+                startedOn = registrationDate,
             )
 
         // When
         repository.recordAttendance(
             packageId = studentPackage.id,
-            attendedOn = nextAttendance,
+            attendedOn = secondClassDate,
             visitCount = 2,
         )
 
@@ -709,8 +633,8 @@ class RoomStudentPackageRepositoryTest {
 
         assertEquals(
             mapOf(
-                startedOn to 1,
-                nextAttendance to 2,
+                registrationDate to 1,
+                secondClassDate to 2,
             ),
             reloadedPackage.attendanceHistory.visitsByDate,
         )
@@ -721,13 +645,13 @@ class RoomStudentPackageRepositoryTest {
     @Test
     fun `reading purchased package preserves maximum visits per attendance`() = runTest {
         // Given
-        val studentId = database.studentDao().insert(testStudentEntity()).toInt()
+        val studentId = createStudentId()
         val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
 
         repository.create(
             studentId = studentId,
             packageType = packageType,
-            startedOn = startedOn,
+            startedOn = registrationDate,
         )
 
         // When
@@ -752,4 +676,6 @@ class RoomStudentPackageRepositoryTest {
 
         return template.copy(id = id)
     }
+
+    private suspend fun createStudentId(): Int = database.studentDao().insert(testStudentEntity()).toInt()
 }

@@ -21,8 +21,8 @@ import kotlinx.datetime.LocalDate
 
 internal object AttendanceTestData {
     val student = testStudent()
+    val studentEntity = testStudentEntity()
     val studentGroups = testStudentGroups()
-
     val fourClassPackage = testClassPackage()
 
     val fiveClassPackage = testClassPackage(
@@ -41,11 +41,16 @@ internal object AttendanceTestData {
     )
 
     val registrationDate = LocalDate(2026, 10, 2)
-    val firstAttendanceDate = registrationDate
-    val nextAttendanceDate = LocalDate(2026, 10, 5)
+    val firstClassDate = registrationDate
+    val secondClassDate = LocalDate(2026, 10, 5)
+    val thirdClassDate = LocalDate(2026, 10, 9)
+    val fourthClassDate = LocalDate(2026, 10, 12)
+    val fifthClassDate = LocalDate(2026, 10, 16)
+    val sixthClassDate = LocalDate(2026, 10, 19)
+    val seventhClassDate = LocalDate(2026, 10, 23)
+    val eighthClassDate = LocalDate(2026, 10, 26)
 
     val currentDate = LocalDate(2026, 10, 8)
-    val nextClassDate = LocalDate(2026, 10, 9)
 }
 
 fun testStudentGroups(): List<StudentGroup> = DefaultStudentGroups.ALL
@@ -123,7 +128,7 @@ internal fun testClassHistoryEntry(
 internal fun testStudentAttendanceUiState(
     student: Student = AttendanceTestData.student,
     packageType: PackageType = AttendanceTestData.fourClassPackage,
-    startedOn: LocalDate = AttendanceTestData.firstAttendanceDate,
+    startedOn: LocalDate = AttendanceTestData.firstClassDate,
     visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
     currentDate: LocalDate = AttendanceTestData.currentDate,
 ): AttendanceUiState.Content = testAttendanceContentUiState(

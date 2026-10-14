@@ -1,5 +1,8 @@
 package com.theunderseer.simplio.feature.attendance.domain.model
 
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -8,34 +11,24 @@ class PackageTypeTest {
     @Test
     fun `individual package allows exactly one visit per attendance date`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 4,
-                price = 1400,
-            )
+        val individualPackages = listOf(
+            fourClassPackage,
+            fiveClassPackage,
+        )
 
         // Then
-        assertTrue(packageType.allowsVisitCount(1))
-        assertFalse(packageType.allowsVisitCount(2))
-        assertFalse(packageType.allowsVisitCount(0))
-        assertFalse(packageType.allowsVisitCount(-1))
+        individualPackages.forEach { packageType ->
+            assertTrue(packageType.allowsVisitCount(1))
+            assertFalse(packageType.allowsVisitCount(2))
+            assertFalse(packageType.allowsVisitCount(0))
+            assertFalse(packageType.allowsVisitCount(-1))
+        }
     }
 
     @Test
     fun `duo package allows one or two visits per attendance date`() {
         // Given
-        val packageType =
-            PackageType(
-                id = 3,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
+        val packageType = duoSpecialPackage
 
         // Then
         assertTrue(packageType.allowsVisitCount(1))

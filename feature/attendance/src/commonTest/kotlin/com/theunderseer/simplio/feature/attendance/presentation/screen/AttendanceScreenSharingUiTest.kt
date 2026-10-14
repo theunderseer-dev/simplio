@@ -9,9 +9,9 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
@@ -25,19 +25,19 @@ class AttendanceScreenSharingUiTest {
         attendance = Attendance(
             entries = listOf(
                 student.copy(
-                    groupId = DefaultStudentGroups.GROUP_A_ID,
+                    groupId = DefaultStudentGroups.GROUP_A.id,
                 ),
                 testStudent(
                     id = 2,
                     fullName = "Bob Lee",
-                    groupId = DefaultStudentGroups.GROUP_B_ID,
+                    groupId = DefaultStudentGroups.GROUP_B.id,
                 ),
             ).map { groupStudent ->
                 testStudentAttendanceUiState(
                     student = groupStudent,
                     visitsByDate = mapOf(
-                        firstAttendanceDate to 1,
-                        nextAttendanceDate to 1,
+                        firstClassDate to 1,
+                        secondClassDate to 1,
                     ),
                 ).attendance.entries.single()
             },

@@ -17,11 +17,11 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
@@ -111,7 +111,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: the middle date is passed instead of the latest date
         assertEquals(
-            listOf(student.id to nextAttendanceDate),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
     }
@@ -303,7 +303,7 @@ class AttendanceScreenPackageHistoryUiTest {
         )
 
         assertEquals(
-            listOf(student.id to nextAttendanceDate),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
 
@@ -314,8 +314,8 @@ class AttendanceScreenPackageHistoryUiTest {
         // Then: the same attendance is requested again
         assertEquals(
             listOf(
-                student.id to nextAttendanceDate,
-                student.id to nextAttendanceDate,
+                student.id to secondClassDate,
+                student.id to secondClassDate,
             ),
             removalRequests,
         )
@@ -381,7 +381,7 @@ class AttendanceScreenPackageHistoryUiTest {
 
         // Then: no additional request is dispatched; confirmation remains open
         assertEquals(
-            listOf(student.id to nextAttendanceDate),
+            listOf(student.id to secondClassDate),
             removalRequests,
         )
 
@@ -417,9 +417,9 @@ class AttendanceScreenPackageHistoryUiTest {
         val state = packageHistoryState(
             packageType = duoSpecialPackage,
             visitsByDate = mapOf(
-                firstAttendanceDate to 2,
-                nextAttendanceDate to 1,
-                nextClassDate to 2,
+                firstClassDate to 2,
+                secondClassDate to 1,
+                thirdClassDate to 2,
             ),
         )
 
@@ -520,13 +520,13 @@ class AttendanceScreenPackageHistoryUiTest {
     private fun packageHistoryState(
         packageType: PackageType = fourClassPackage,
         visitsByDate: Map<LocalDate, Int> = mapOf(
-            firstAttendanceDate to 1,
-            nextAttendanceDate to 1,
-            nextClassDate to 1,
+            firstClassDate to 1,
+            secondClassDate to 1,
+            thirdClassDate to 1,
         ),
     ): AttendanceUiState.Content = testStudentAttendanceUiState(
         packageType = packageType,
         visitsByDate = visitsByDate,
-        currentDate = nextClassDate,
+        currentDate = thirdClassDate,
     )
 }

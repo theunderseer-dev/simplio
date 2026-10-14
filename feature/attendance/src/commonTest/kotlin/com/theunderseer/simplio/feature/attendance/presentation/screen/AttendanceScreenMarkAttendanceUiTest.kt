@@ -16,11 +16,11 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
@@ -81,7 +81,7 @@ class AttendanceScreenMarkAttendanceUiTest {
 
         // Then: the selected date and visit count are dispatched
         assertEquals(
-            listOf(Triple(student.id, nextAttendanceDate, 1)),
+            listOf(Triple(student.id, secondClassDate, 1)),
             confirmedAttendance,
         )
 
@@ -163,7 +163,7 @@ class AttendanceScreenMarkAttendanceUiTest {
     @Test
     fun `allows only scheduled attendance dates up to current date`() = runComposeUiTest {
         // Given
-        val state = testStudentAttendanceUiState(currentDate = nextClassDate)
+        val state = testStudentAttendanceUiState(currentDate = thirdClassDate)
 
         setContent {
             AttendanceScreenForTest(
@@ -202,7 +202,7 @@ class AttendanceScreenMarkAttendanceUiTest {
         // Given
         val state = testStudentAttendanceUiState(
             packageType = duoSpecialPackage,
-            visitsByDate = mapOf(firstAttendanceDate to 2),
+            visitsByDate = mapOf(firstClassDate to 2),
         )
 
         val markedAttendance = mutableListOf<Triple<Int, LocalDate, Int>>()
@@ -233,7 +233,7 @@ class AttendanceScreenMarkAttendanceUiTest {
 
         // Then
         assertEquals(
-            listOf(Triple(student.id, nextAttendanceDate, 2)),
+            listOf(Triple(student.id, secondClassDate, 2)),
             markedAttendance,
         )
     }
@@ -288,7 +288,7 @@ class AttendanceScreenMarkAttendanceUiTest {
 
         // Then
         assertEquals(
-            listOf(Triple(student.id, nextAttendanceDate, 1)),
+            listOf(Triple(student.id, secondClassDate, 1)),
             markedAttendance,
         )
     }
@@ -300,7 +300,7 @@ class AttendanceScreenMarkAttendanceUiTest {
         val state = mutableStateOf(
             testStudentAttendanceUiState(
                 packageType = duoSpecialPackage,
-                visitsByDate = mapOf(firstAttendanceDate to 2),
+                visitsByDate = mapOf(firstClassDate to 2),
             ),
         )
 
@@ -373,7 +373,7 @@ class AttendanceScreenMarkAttendanceUiTest {
             .assertIsEnabled()
 
         assertEquals(
-            listOf(Triple(student.id, nextAttendanceDate, 1)),
+            listOf(Triple(student.id, secondClassDate, 1)),
             confirmedAttendance,
         )
 
@@ -384,8 +384,8 @@ class AttendanceScreenMarkAttendanceUiTest {
         // Then: both the date and visit count are preserved
         assertEquals(
             listOf(
-                Triple(student.id, nextAttendanceDate, 1),
-                Triple(student.id, nextAttendanceDate, 1),
+                Triple(student.id, secondClassDate, 1),
+                Triple(student.id, secondClassDate, 1),
             ),
             confirmedAttendance,
         )
@@ -406,10 +406,10 @@ class AttendanceScreenMarkAttendanceUiTest {
         // Given
         val state = testStudentAttendanceUiState(
             visitsByDate = mapOf(
-                firstAttendanceDate to 1,
-                nextAttendanceDate to 1,
+                firstClassDate to 1,
+                secondClassDate to 1,
             ),
-            currentDate = nextClassDate,
+            currentDate = thirdClassDate,
         )
 
         setContent {
@@ -446,8 +446,8 @@ class AttendanceScreenMarkAttendanceUiTest {
 
         val annaEntry = testStudentAttendanceUiState(
             visitsByDate = mapOf(
-                firstAttendanceDate to 1,
-                nextAttendanceDate to 1,
+                firstClassDate to 1,
+                secondClassDate to 1,
             ),
         ).attendance.entries.single()
 
@@ -484,7 +484,7 @@ class AttendanceScreenMarkAttendanceUiTest {
 
         // Then
         assertEquals(
-            listOf(Triple(bob.id, nextAttendanceDate, 1)),
+            listOf(Triple(bob.id, secondClassDate, 1)),
             confirmedAttendance,
         )
     }
@@ -492,11 +492,11 @@ class AttendanceScreenMarkAttendanceUiTest {
     @Test
     fun `attendance picker uses selected package registration date`() = runComposeUiTest {
         // Given
-        val packageRegistrationDate = nextAttendanceDate
+        val packageRegistrationDate = secondClassDate
 
         val state = testStudentAttendanceUiState(
             startedOn = packageRegistrationDate,
-            currentDate = nextClassDate,
+            currentDate = thirdClassDate,
         )
 
         setContent {

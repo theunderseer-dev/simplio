@@ -6,8 +6,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import kotlinx.datetime.LocalDate
@@ -19,8 +19,8 @@ class AttendanceScreenRemoveAttendanceUiTest {
     private val checkedAttendanceState =
         testStudentAttendanceUiState(
             visitsByDate = mapOf(
-                firstAttendanceDate to 1,
-                nextAttendanceDate to 1,
+                firstClassDate to 1,
+                secondClassDate to 1,
             ),
         )
 
@@ -62,7 +62,7 @@ class AttendanceScreenRemoveAttendanceUiTest {
             .assertIsDisplayed()
 
         assertEquals(
-            listOf(student.id to nextAttendanceDate),
+            listOf(student.id to secondClassDate),
             removedAttendance,
         )
     }

@@ -4,18 +4,21 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.studentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -29,13 +32,8 @@ import kotlin.test.assertTrue
 
 class RenewStudentPackageUseCaseIntegrationTest {
     private lateinit var database: AttendanceDatabase
+    private lateinit var repository: RoomStudentPackageRepository
     private lateinit var renewStudentPackage: RenewStudentPackageUseCase
-
-    private val studentEntity = testStudentEntity()
-
-    private val packageType = testClassPackage(plan = PackagePlan.FIVE_CLASSES)
-
-    private val groupId = 1
 
     @BeforeTest
     fun setUp() = runTest {
@@ -47,18 +45,17 @@ class RenewStudentPackageUseCaseIntegrationTest {
 
         database.studentGroupDao().insert(testStudentGroupEntity())
 
-        renewStudentPackage =
-            RenewStudentPackageUseCase(
-                repository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                ),
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
+        repository = RoomStudentPackageRepository(
+            studentPackageDao = database.studentPackageDao(),
+            attendanceDao = database.attendanceDao(),
+        )
+
+        renewStudentPackage = RenewStudentPackageUseCase(
+            repository = repository,
+            transactionRunner = RoomTransactionRunner(
+                database = database,
+            ),
+        )
     }
 
     @AfterTest
@@ -69,61 +66,23 @@ class RenewStudentPackageUseCaseIntegrationTest {
     @Test
     fun `renewing completed package persists new package and first attendance`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(studentEntity).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                    ),
-                ).toInt()
-
-        val packageType = packageType.copy(id = packageTypeId)
-
-        val oldStartedOn = LocalDate(2026, 8, 1)
-
-        val oldPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = oldStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        val oldAttendanceDates =
-            listOf(
-                LocalDate(2026, 8, 1),
-                LocalDate(2026, 8, 8),
-                LocalDate(2026, 8, 15),
-                LocalDate(2026, 8, 22),
-                LocalDate(2026, 8, 29),
-            )
-
-        oldAttendanceDates.forEach { date ->
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = oldPackageId,
-                    attendedOnEpochDay = date.toEpochDays(),
-                ),
-            )
-        }
-
-        val renewedOn = LocalDate(2026, 8, 30)
+        val studentId = createStudentId()
+        val packageType = persistPackageType()
+        val oldStartedOn = registrationDate
+        val oldAttendanceDates = listOf(
+            firstClassDate,
+            secondClassDate,
+            thirdClassDate,
+            LocalDate(2026, 10, 12),
+            LocalDate(2026, 10, 16),
+        )
+        val oldPackageId = seedPackage(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = oldStartedOn,
+            attendanceDates = oldAttendanceDates,
+        )
+        val renewedOn = LocalDate(2026, 10, 19)
 
         // When
         val result =
@@ -215,58 +174,20 @@ class RenewStudentPackageUseCaseIntegrationTest {
     @Test
     fun `renewing active package returns active package and persists no changes`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(studentEntity).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                    ),
-                ).toInt()
-
-        val packageType = packageType.copy(id = packageTypeId)
-
-        val startedOn = LocalDate(2026, 8, 1)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        val attendanceDates =
-            listOf(
-                LocalDate(2026, 8, 1),
-                LocalDate(2026, 8, 8),
-            )
-
-        attendanceDates.forEach { date ->
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = packageId,
-                    attendedOnEpochDay = date.toEpochDays(),
-                ),
-            )
-        }
-
-        val renewedOn = LocalDate(2026, 8, 30)
+        val studentId = createStudentId()
+        val packageType = persistPackageType()
+        val startedOn = registrationDate
+        val attendanceDates = listOf(
+            firstClassDate,
+            secondClassDate,
+        )
+        val packageId = seedPackage(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = startedOn,
+            attendanceDates = attendanceDates,
+        )
+        val renewedOn = thirdClassDate
 
         // When
         val result =
@@ -301,10 +222,7 @@ class RenewStudentPackageUseCaseIntegrationTest {
         )
 
         assertEquals(
-            setOf(
-                LocalDate(2026, 8, 1),
-                LocalDate(2026, 8, 8),
-            ),
+            attendanceDates.toSet(),
             activePackageExists.studentPackage.attendanceDates,
         )
 
@@ -337,58 +255,21 @@ class RenewStudentPackageUseCaseIntegrationTest {
     @Test
     fun `renewing expired incomplete package persists new package and first attendance`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(studentEntity).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                    ),
-                ).toInt()
-
-        val packageType = packageType.copy(id = packageTypeId)
-
+        // Given
+        val studentId = createStudentId()
+        val packageType = persistPackageType()
         val oldStartedOn = LocalDate(2026, 7, 1)
-
-        val oldPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = oldStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        val oldAttendanceDates =
-            listOf(
-                LocalDate(2026, 7, 1),
-                LocalDate(2026, 7, 8),
-            )
-
-        oldAttendanceDates.forEach { date ->
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = oldPackageId,
-                    attendedOnEpochDay = date.toEpochDays(),
-                ),
-            )
-        }
-
-        val renewedOn = LocalDate(2026, 9, 30)
+        val oldAttendanceDates = listOf(
+            oldStartedOn,
+            LocalDate(2026, 7, 8),
+        )
+        val oldPackageId = seedPackage(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = oldStartedOn,
+            attendanceDates = oldAttendanceDates,
+        )
+        val renewedOn = registrationDate
 
         // When
         val result =
@@ -473,57 +354,17 @@ class RenewStudentPackageUseCaseIntegrationTest {
     @Test
     fun `failed renewal rolls back new package and first attendance`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(studentEntity).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                    ),
-                ).toInt()
-
-        val packageType = packageType.copy(id = packageTypeId)
-
+        // Given
+        val studentId = createStudentId()
+        val packageType = persistPackageType()
         val oldStartedOn = LocalDate(2026, 7, 1)
-
-        val oldPackageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = packageType.name,
-                        totalClasses = packageType.totalClasses,
-                        validityWeeks = packageType.validityWeeks,
-                        price = packageType.price,
-                        startedOnEpochDay = oldStartedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = oldPackageId,
-                attendedOnEpochDay = oldStartedOn.toEpochDays(),
-            ),
+        val oldPackageId = seedPackage(
+            studentId = studentId,
+            packageType = packageType,
+            startedOn = oldStartedOn,
         )
-
-        val renewedOn = LocalDate(2026, 9, 30)
-
-        val roomRepository =
-            RoomStudentPackageRepository(
-                studentPackageDao = database.studentPackageDao(),
-                attendanceDao = database.attendanceDao(),
-            )
-
+        val renewedOn = registrationDate
+        val roomRepository = repository
         var createdPackageId: Int? = null
 
         val failingRepository =
@@ -614,5 +455,45 @@ class RenewStudentPackageUseCaseIntegrationTest {
                 .getForPackage(oldPackageId)
                 .map { it.attendedOnEpochDay },
         )
+    }
+
+    private suspend fun createStudentId(): Int = database.studentDao().insert(
+        studentEntity.copy(id = 0),
+    ).toInt()
+
+    private suspend fun persistPackageType(packageType: PackageType = fiveClassPackage): PackageType {
+        val id = database.packageTypeDao().insert(
+            testPackageTypeEntity(
+                packageType = packageType,
+            ).copy(id = 0),
+        ).toInt()
+
+        return packageType.copy(id = id)
+    }
+
+    private suspend fun seedPackage(
+        studentId: Int,
+        packageType: PackageType,
+        startedOn: LocalDate,
+        attendanceDates: List<LocalDate> = listOf(startedOn),
+    ): Int {
+        val packageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = packageType,
+                startedOnEpochDay = startedOn.toEpochDays(),
+            ).copy(id = 0),
+        ).toInt()
+
+        attendanceDates.forEach { date ->
+            database.attendanceDao().insert(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = date.toEpochDays(),
+                ),
+            )
+        }
+
+        return packageId
     }
 }

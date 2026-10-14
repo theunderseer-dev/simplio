@@ -4,8 +4,8 @@ import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageReposi
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -144,7 +144,7 @@ class AttendanceViewModelStudentManagementTest {
         studentPackageRepository.seed(
             studentId = student.id,
             packageType = fourClassPackage,
-            startedOn = nextAttendanceDate,
+            startedOn = secondClassDate,
         )
 
         val viewModel = createViewModel(

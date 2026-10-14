@@ -7,10 +7,10 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -24,9 +24,9 @@ class AttendanceShareFormatterTest {
             entries = listOf(
                 registeredStudent(
                     visitsByDate = mapOf(
-                        firstAttendanceDate to 1,
-                        nextAttendanceDate to 1,
-                        nextClassDate to 1,
+                        firstClassDate to 1,
+                        secondClassDate to 1,
+                        thirdClassDate to 1,
                     ),
                 ),
             ),
@@ -35,7 +35,7 @@ class AttendanceShareFormatterTest {
         // When
         val result = formatAttendanceForSharing(
             attendance = attendance,
-            currentDate = nextClassDate,
+            currentDate = thirdClassDate,
         )
 
         // Then
@@ -53,9 +53,9 @@ class AttendanceShareFormatterTest {
             entries = listOf(
                 registeredStudent(
                     visitsByDate = mapOf(
-                        firstAttendanceDate to 1,
-                        nextAttendanceDate to 1,
-                        nextClassDate to 1,
+                        firstClassDate to 1,
+                        secondClassDate to 1,
+                        thirdClassDate to 1,
                         fourthAttendanceDate to 1,
                     ),
                 ),
@@ -110,8 +110,8 @@ class AttendanceShareFormatterTest {
             entries = listOf(
                 registeredStudent(
                     visitsByDate = mapOf(
-                        firstAttendanceDate to 1,
-                        nextAttendanceDate to 1,
+                        firstClassDate to 1,
+                        secondClassDate to 1,
                     ),
                 ),
                 registeredStudent(
@@ -144,7 +144,7 @@ class AttendanceShareFormatterTest {
 
     private fun registeredStudent(
         student: Student = AttendanceTestData.student,
-        startedOn: LocalDate = firstAttendanceDate,
+        startedOn: LocalDate = firstClassDate,
         visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
     ): RegisteredStudent = RegisteredStudent(
         student = student,

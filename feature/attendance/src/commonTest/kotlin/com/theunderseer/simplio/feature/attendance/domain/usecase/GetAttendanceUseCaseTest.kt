@@ -4,10 +4,12 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,32 +18,23 @@ class GetAttendanceUseCaseTest {
     @Test
     fun `returns registered students with their packages`() = runTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
-
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
-
-        val anna =
-            studentRepository.seed(testStudent())
-
-        val bob =
-            studentRepository.seed(testStudent(id = 2, fullName = "Bob Lee"))
-
-        val packageType = testClassPackage()
-
-        val annaPackage =
-            studentPackageRepository.seed(
-                studentId = anna.id,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 1),
-            )
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val anna = studentRepository.seed(student)
+        val bob = studentRepository.seed(testStudent(id = 2, fullName = "Bob Lee"))
 
         val bobPackage =
             studentPackageRepository.seed(
                 studentId = bob.id,
-                packageType = packageType,
-                startedOn = LocalDate(2026, 10, 2),
+                packageType = fourClassPackage,
+                startedOn = secondClassDate,
+            )
+
+        val annaPackage =
+            studentPackageRepository.seed(
+                studentId = anna.id,
+                packageType = fourClassPackage,
+                startedOn = registrationDate,
             )
 
         val getAttendance =
@@ -97,15 +90,9 @@ class GetAttendanceUseCaseTest {
     @Test
     fun `fails when registered student has no package`() = runTest {
         // Given
-        val studentRepository =
-            FakeStudentRepository()
-
-        val studentPackageRepository =
-            FakeStudentPackageRepository()
-
-        val student =
-            studentRepository.seed(testStudent())
-
+        val studentRepository = FakeStudentRepository()
+        val studentPackageRepository = FakeStudentPackageRepository()
+        val student = studentRepository.seed(student)
         val getAttendance =
             GetAttendanceUseCase(
                 studentRepository = studentRepository,

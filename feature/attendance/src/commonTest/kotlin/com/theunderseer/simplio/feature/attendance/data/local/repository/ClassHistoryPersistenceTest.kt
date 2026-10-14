@@ -9,6 +9,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.model.ClassAttenda
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
@@ -23,10 +27,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ClassHistoryPersistenceTest {
-    private val firstClassDate = LocalDate(2026, 10, 2)
-    private val secondClassDate = LocalDate(2026, 10, 5)
-    private val latestClassDate = LocalDate(2026, 10, 9)
-
     private lateinit var database: AttendanceDatabase
     private lateinit var packageTypes: Map<PackagePlan, PackageType>
 
@@ -70,23 +70,23 @@ class ClassHistoryPersistenceTest {
     @Test
     fun `returns students from both groups ordered by class date and name`() = runTest {
         // Given
-        val anna = createStudent(
-            fullName = "Anna Smith",
-            groupId = DefaultStudentGroups.GROUP_A_ID,
-        )
         val bob = createStudent(
             fullName = "Bob Lee",
-            groupId = DefaultStudentGroups.GROUP_B_ID,
+            groupId = DefaultStudentGroups.GROUP_B.id,
+        )
+        val anna = createStudent(
+            fullName = "Anna Smith",
+            groupId = DefaultStudentGroups.GROUP_A.id,
         )
 
-        val annaPackageId = createPackage(student = anna)
         val bobPackageId = createPackage(
             student = bob,
             plan = PackagePlan.DUO_SPECIAL,
         )
+        val annaPackageId = createPackage(student = anna)
 
         record(annaPackageId, firstClassDate)
-        record(annaPackageId, latestClassDate)
+        record(annaPackageId, thirdClassDate)
         record(bobPackageId, firstClassDate, visitCount = 2)
         record(bobPackageId, secondClassDate)
 
@@ -95,7 +95,7 @@ class ClassHistoryPersistenceTest {
 
         // Then
         assertEquals(
-            listOf(latestClassDate, secondClassDate, firstClassDate),
+            listOf(thirdClassDate, secondClassDate, firstClassDate),
             rows.map {
                 LocalDate.fromEpochDays(it.attendedOnEpochDay)
             }.distinct(),
@@ -127,7 +127,7 @@ class ClassHistoryPersistenceTest {
     @Test
     fun `includes attendance from previous student packages`() = runTest {
         // Given
-        val student = createStudent(fullName = "Anna Smith")
+        val student = createStudent()
         val oldClassDate = LocalDate(2026, 8, 3)
 
         val oldPackageId = createPackage(
@@ -162,7 +162,7 @@ class ClassHistoryPersistenceTest {
             createStudent(fullName = "Anna Smith"),
             createStudent(
                 fullName = "Bob Lee",
-                groupId = DefaultStudentGroups.GROUP_B_ID,
+                groupId = DefaultStudentGroups.GROUP_B.id,
             ),
             createStudent(fullName = "Charlie Brown"),
         )
@@ -173,7 +173,7 @@ class ClassHistoryPersistenceTest {
 
         packageIds.forEach { packageId ->
             record(packageId, firstClassDate)
-            record(packageId, latestClassDate)
+            record(packageId, thirdClassDate)
         }
         record(packageIds.first(), secondClassDate)
 
@@ -183,7 +183,7 @@ class ClassHistoryPersistenceTest {
         // Then
         assertEquals(
             listOf(
-                latestClassDate.toEpochDays(),
+                thirdClassDate.toEpochDays(),
                 secondClassDate.toEpochDays(),
             ),
             firstPage.map { it.attendedOnEpochDay }.distinct(),
@@ -192,7 +192,7 @@ class ClassHistoryPersistenceTest {
             students.map { it.id },
             firstPage
                 .filter {
-                    it.attendedOnEpochDay == latestClassDate.toEpochDays()
+                    it.attendedOnEpochDay == thirdClassDate.toEpochDays()
                 }
                 .map { it.studentId },
         )
@@ -226,12 +226,12 @@ class ClassHistoryPersistenceTest {
     @Test
     fun `combines records for same student and date across packages`() = runTest {
         // Given
-        val student = createStudent(fullName = "Anna Smith")
+        val student = createStudent()
         val firstPackageId = createPackage(student = student)
         val secondPackageId = createPackage(student = student)
 
-        record(firstPackageId, latestClassDate)
-        record(secondPackageId, latestClassDate)
+        record(firstPackageId, thirdClassDate)
+        record(secondPackageId, thirdClassDate)
 
         // When
         val row = historyPage().single()
@@ -239,7 +239,7 @@ class ClassHistoryPersistenceTest {
         // Then
         assertEquals(student.id, row.studentId)
         assertEquals(student.fullName, row.fullName)
-        assertEquals(latestClassDate.toEpochDays(), row.attendedOnEpochDay)
+        assertEquals(thirdClassDate.toEpochDays(), row.attendedOnEpochDay)
         assertEquals(2, row.visitCount)
     }
 
@@ -248,7 +248,7 @@ class ClassHistoryPersistenceTest {
         // Given
         val student = createStudent(
             fullName = "Anna & John",
-            groupId = DefaultStudentGroups.GROUP_B_ID,
+            groupId = DefaultStudentGroups.GROUP_B.id,
         )
         val packageId = createPackage(
             student = student,
@@ -256,7 +256,7 @@ class ClassHistoryPersistenceTest {
         )
 
         record(packageId, firstClassDate, visitCount = 2)
-        record(packageId, latestClassDate, visitCount = 1)
+        record(packageId, thirdClassDate, visitCount = 1)
 
         val repository = RoomClassHistoryRepository(
             attendanceDao = database.attendanceDao(),
@@ -270,7 +270,7 @@ class ClassHistoryPersistenceTest {
 
         // Then
         assertEquals(
-            listOf(latestClassDate, firstClassDate),
+            listOf(thirdClassDate, firstClassDate),
             entries.map { it.date },
         )
 
@@ -291,8 +291,8 @@ class ClassHistoryPersistenceTest {
     }
 
     private suspend fun createStudent(
-        fullName: String,
-        groupId: Int = DefaultStudentGroups.GROUP_A_ID,
+        fullName: String = AttendanceTestData.student.fullName,
+        groupId: Int = DefaultStudentGroups.GROUP_A.id,
     ): StudentEntity {
         val entity = testStudentEntity(
             fullName = fullName,

@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.domain.model
 
-import kotlinx.datetime.LocalDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -13,8 +14,8 @@ class PackageAttendanceHistoryTest {
             PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
-                    LocalDate(2026, 10, 5) to 2,
-                    LocalDate(2026, 10, 9) to 1,
+                    firstClassDate to 2,
+                    secondClassDate to 1,
                 ),
             )
 
@@ -35,8 +36,8 @@ class PackageAttendanceHistoryTest {
             PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
-                    LocalDate(2026, 10, 5) to 2,
-                    LocalDate(2026, 10, 9) to 0,
+                    firstClassDate to 2,
+                    secondClassDate to 0,
                 ),
             )
         }
@@ -49,8 +50,8 @@ class PackageAttendanceHistoryTest {
             PackageAttendanceHistory(
                 visitsByDate =
                 mapOf(
-                    LocalDate(2026, 10, 5) to 2,
-                    LocalDate(2026, 10, 9) to -1,
+                    firstClassDate to 2,
+                    secondClassDate to -1,
                 ),
             )
         }
@@ -59,12 +60,10 @@ class PackageAttendanceHistoryTest {
     @Test
     fun `preserves package attendance history when source map changes`() {
         // Given
-        val firstDate = LocalDate(2026, 10, 5)
-        val secondDate = LocalDate(2026, 10, 9)
         val source =
             mutableMapOf(
-                firstDate to 2,
-                secondDate to 1,
+                firstClassDate to 2,
+                secondClassDate to 1,
             )
 
         val history =
@@ -73,13 +72,13 @@ class PackageAttendanceHistoryTest {
             )
 
         // When
-        source[firstDate] = 0
+        source[firstClassDate] = 0
 
         // Then
         assertEquals(
             mapOf(
-                firstDate to 2,
-                secondDate to 1,
+                firstClassDate to 2,
+                secondClassDate to 1,
             ),
             history.visitsByDate,
         )

@@ -4,14 +4,20 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
-import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
@@ -24,38 +30,36 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MarkStudentPresentUseCaseIntegrationTest {
+    private val groupId = DefaultStudentGroups.GROUP_A.id
     private lateinit var database: AttendanceDatabase
+    private lateinit var repository: RoomStudentPackageRepository
     private lateinit var markStudentPresent: MarkStudentPresentUseCase
-
-    private val groupId = 1
 
     @BeforeTest
     fun setUp() = runTest {
-        database =
-            Room
-                .inMemoryDatabaseBuilder<AttendanceDatabase>()
-                .setDriver(BundledSQLiteDriver())
-                .build()
+        database = Room
+            .inMemoryDatabaseBuilder<AttendanceDatabase>()
+            .setDriver(BundledSQLiteDriver())
+            .build()
 
         database.studentGroupDao().insert(
-            StudentGroupEntity(
+            testStudentGroupEntity(
                 id = groupId,
-                name = "Group A",
+                name = DefaultStudentGroups.GROUP_A.name,
             ),
         )
 
-        markStudentPresent =
-            MarkStudentPresentUseCase(
-                repository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                ),
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
+        repository = RoomStudentPackageRepository(
+            studentPackageDao = database.studentPackageDao(),
+            attendanceDao = database.attendanceDao(),
+        )
+
+        markStudentPresent = MarkStudentPresentUseCase(
+            repository = repository,
+            transactionRunner = RoomTransactionRunner(
+                database = database,
+            ),
+        )
     }
 
     @AfterTest
@@ -66,366 +70,257 @@ class MarkStudentPresentUseCaseIntegrationTest {
     @Test
     fun `marking student present persists attendance for active package`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
-        val startedOn = LocalDate(2026, 9, 25)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = packageId,
-                attendedOnEpochDay = startedOn.toEpochDays(),
-            ),
-        )
-
-        val attendanceDate = LocalDate(2026, 9, 27)
+        val studentId = createStudentId()
+        val packageId = seedPackage(studentId = studentId)
 
         // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = attendanceDate,
-            )
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = secondClassDate,
+        )
 
         // Then
-        val success =
-            assertIs<MarkStudentPresentResult.Success>(result)
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
 
+        assertEquals(packageId, success.studentPackage.id)
         assertEquals(
-            packageId,
-            success.studentPackage.id,
-        )
-
-        assertEquals(
-            setOf(
-                startedOn,
-                attendanceDate,
-            ),
+            setOf(registrationDate, secondClassDate),
             success.studentPackage.attendanceDates,
         )
+        assertEquals(2, success.studentPackage.usedClasses)
 
+        // And: both attendance rows are persisted
         assertEquals(
-            2,
-            success.studentPackage.usedClasses,
-        )
-
-        // And
-        // the new attendance is persisted in Room
-        val persistedAttendance =
-            database
-                .attendanceDao()
-                .getForPackage(packageId)
-
-        assertEquals(
-            2,
-            persistedAttendance.size,
-        )
-
-        assertEquals(
-            setOf(
-                startedOn.toEpochDays(),
-                attendanceDate.toEpochDays(),
+            listOf(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
+                    visitCount = 1,
+                ),
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = secondClassDate.toEpochDays(),
+                    visitCount = 1,
+                ),
             ),
-            persistedAttendance
-                .map { it.attendedOnEpochDay }
-                .toSet(),
+            database.attendanceDao().getForPackage(packageId),
         )
     }
 
     @Test
     fun `marking student present on same date does not duplicate attendance`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
-        val attendanceDate = LocalDate(2026, 9, 25)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = attendanceDate.toEpochDays(),
-                    ),
-                ).toInt()
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = packageId,
-                attendedOnEpochDay = attendanceDate.toEpochDays(),
-            ),
-        )
+        val studentId = createStudentId()
+        val packageId = seedPackage(studentId = studentId)
 
         // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = attendanceDate,
-            )
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = registrationDate,
+        )
 
         // Then
-        val success =
-            assertIs<MarkStudentPresentResult.Success>(result)
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
 
+        assertEquals(packageId, success.studentPackage.id)
         assertEquals(
-            packageId,
-            success.studentPackage.id,
-        )
-
-        assertEquals(
-            setOf(attendanceDate),
+            setOf(registrationDate),
             success.studentPackage.attendanceDates,
         )
+        assertEquals(1, success.studentPackage.usedClasses)
 
+        // And: the original attendance row is preserved
         assertEquals(
-            1,
-            success.studentPackage.usedClasses,
-        )
-
-        // And
-        // no duplicate attendance is persisted
-        val persistedAttendance =
-            database
-                .attendanceDao()
-                .getForPackage(packageId)
-
-        assertEquals(
-            1,
-            persistedAttendance.size,
-        )
-
-        val persistedDate =
-            persistedAttendance.single()
-
-        assertEquals(
-            packageId,
-            persistedDate.packageId,
-        )
-
-        assertEquals(
-            attendanceDate.toEpochDays(),
-            persistedDate.attendedOnEpochDay,
+            listOf(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
+                    visitCount = 1,
+                ),
+            ),
+            database.attendanceDao().getForPackage(packageId),
         )
     }
 
     @Test
     fun `marking attendance on completed package returns completed and persists no changes`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
-        val startedOn = LocalDate(2026, 9, 20)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        val attendanceDates =
-            listOf(
-                LocalDate(2026, 9, 20),
-                LocalDate(2026, 9, 22),
-                LocalDate(2026, 9, 24),
-                LocalDate(2026, 9, 26),
-                LocalDate(2026, 9, 28),
-            )
-
-        attendanceDates.forEach { date ->
-            database.attendanceDao().insert(
-                AttendanceEntity(
-                    packageId = packageId,
-                    attendedOnEpochDay = date.toEpochDays(),
-                ),
-            )
-        }
-
-        val nextAttendanceDate = LocalDate(2026, 9, 30)
+        val studentId = createStudentId()
+        val attendanceDates = setOf(
+            firstClassDate,
+            secondClassDate,
+            thirdClassDate,
+            LocalDate(2026, 10, 12),
+            LocalDate(2026, 10, 16),
+        )
+        val packageId = seedPackage(
+            studentId = studentId,
+            attendanceDates = attendanceDates,
+        )
+        val attendanceDate = LocalDate(2026, 10, 19)
 
         // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = nextAttendanceDate,
-            )
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = attendanceDate,
+        )
 
         // Then
-        val completed =
-            assertIs<MarkStudentPresentResult.PackageCompleted>(result)
+        val completed = assertIs<MarkStudentPresentResult.PackageCompleted>(result)
 
-        assertEquals(
-            packageId,
-            completed.studentPackage.id,
-        )
+        assertEquals(packageId, completed.studentPackage.id)
+        assertEquals(attendanceDates, completed.studentPackage.attendanceDates)
+        assertEquals(5, completed.studentPackage.usedClasses)
+        assertTrue(completed.studentPackage.isCompleted)
 
-        assertEquals(
-            attendanceDates.toSet(),
-            completed.studentPackage.attendanceDates,
-        )
+        // And: the stored history is unchanged
+        val persistedAttendance = database.attendanceDao().getForPackage(packageId)
 
-        assertEquals(
-            5,
-            completed.studentPackage.usedClasses,
-        )
-
-        assertTrue(
-            completed.studentPackage.isCompleted,
-        )
-
-        // And
-        // no new attendance is persisted
-        val persistedAttendance =
-            database
-                .attendanceDao()
-                .getForPackage(packageId)
-
-        assertEquals(
-            5,
-            persistedAttendance.size,
-        )
-
+        assertEquals(5, persistedAttendance.size)
         assertEquals(
             attendanceDates.map { it.toEpochDays() }.toSet(),
-            persistedAttendance
-                .map { it.attendedOnEpochDay }
-                .toSet(),
+            persistedAttendance.map { it.attendedOnEpochDay }.toSet(),
         )
     }
 
     @Test
     fun `marking attendance on expired package returns expired and persists no changes`() = runTest {
         // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
+        val studentId = createStudentId()
         val startedOn = LocalDate(2026, 8, 1)
+        val attendanceDates = setOf(
+            startedOn,
+            LocalDate(2026, 8, 8),
+        )
+        val packageId = seedPackage(
+            studentId = studentId,
+            startedOn = startedOn,
+            attendanceDates = attendanceDates,
+        )
 
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
+        // When
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = secondClassDate,
+        )
 
-        val attendanceDates =
-            listOf(
-                LocalDate(2026, 8, 1),
-                LocalDate(2026, 8, 8),
+        // Then
+        val expired = assertIs<MarkStudentPresentResult.PackageExpired>(result)
+
+        assertEquals(packageId, expired.studentPackage.id)
+        assertEquals(attendanceDates, expired.studentPackage.attendanceDates)
+        assertEquals(2, expired.studentPackage.usedClasses)
+
+        // And: the stored history is unchanged
+        val persistedAttendance = database.attendanceDao().getForPackage(packageId)
+
+        assertEquals(2, persistedAttendance.size)
+        assertEquals(
+            attendanceDates.map { it.toEpochDays() }.toSet(),
+            persistedAttendance.map { it.attendedOnEpochDay }.toSet(),
+        )
+    }
+
+    @Test
+    fun `marking attendance without package returns package not found and persists no changes`() = runTest {
+        // Given
+        val studentId = createStudentId()
+
+        // When
+        val result = markStudentPresent(
+            studentId = studentId,
+            attendanceDate = secondClassDate,
+        )
+
+        // Then
+        assertIs<MarkStudentPresentResult.PackageNotFound>(result)
+
+        // And: no package was created
+        assertNull(
+            database.studentPackageDao().getLatestForStudent(studentId),
+        )
+    }
+
+    @Test
+    fun `failed attendance marking rolls back persisted attendance`() = runTest {
+        // Given
+        val studentId = createStudentId()
+        val packageId = seedPackage(studentId = studentId)
+
+        var attendanceWasPersisted = false
+
+        val failingRepository =
+            object : StudentPackageRepository by repository {
+                override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
+                    repository.recordAttendance(
+                        packageId = packageId,
+                        attendedOn = attendedOn,
+                        visitCount = visitCount,
+                    )
+
+                    attendanceWasPersisted = true
+                    error("Attendance marking failed")
+                }
+            }
+
+        val failingMarkStudentPresent = MarkStudentPresentUseCase(
+            repository = failingRepository,
+            transactionRunner = RoomTransactionRunner(
+                database = database,
+            ),
+        )
+
+        // When
+        val exception = assertFailsWith<IllegalStateException> {
+            failingMarkStudentPresent(
+                studentId = studentId,
+                attendanceDate = secondClassDate,
             )
+        }
+
+        // Then
+        assertEquals("Attendance marking failed", exception.message)
+
+        // And: the real insert completed before the failure
+        assertTrue(attendanceWasPersisted)
+
+        // And: the new attendance was rolled back
+        assertEquals(
+            listOf(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = registrationDate.toEpochDays(),
+                    visitCount = 1,
+                ),
+            ),
+            database.attendanceDao().getForPackage(packageId),
+        )
+    }
+
+    private suspend fun createStudentId(): Int = database.studentDao().insert(
+        testStudentEntity(groupId = groupId),
+    ).toInt()
+
+    private suspend fun seedPackage(
+        studentId: Int,
+        startedOn: LocalDate = registrationDate,
+        attendanceDates: Set<LocalDate> = setOf(startedOn),
+    ): Int {
+        val template = fiveClassPackage.copy(validityWeeks = 6)
+
+        val packageTypeId = database.packageTypeDao().insert(
+            testPackageTypeEntity(
+                packageType = template,
+            ).copy(id = 0),
+        ).toInt()
+
+        val packageId = database.studentPackageDao().insert(
+            testStudentPackageEntity(
+                studentId = studentId,
+                packageType = template.copy(id = packageTypeId),
+                startedOnEpochDay = startedOn.toEpochDays(),
+            ).copy(id = 0),
+        ).toInt()
 
         attendanceDates.forEach { date ->
             database.attendanceDao().insert(
@@ -436,202 +331,6 @@ class MarkStudentPresentUseCaseIntegrationTest {
             )
         }
 
-        val attendanceDate = LocalDate(2026, 9, 20)
-
-        // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = attendanceDate,
-            )
-
-        // Then
-        val expired =
-            assertIs<MarkStudentPresentResult.PackageExpired>(result)
-
-        assertEquals(
-            packageId,
-            expired.studentPackage.id,
-        )
-
-        assertEquals(
-            attendanceDates.toSet(),
-            expired.studentPackage.attendanceDates,
-        )
-
-        assertEquals(
-            2,
-            expired.studentPackage.usedClasses,
-        )
-
-        // And
-        // no new attendance is persisted
-        val persistedAttendance =
-            database
-                .attendanceDao()
-                .getForPackage(packageId)
-
-        assertEquals(
-            2,
-            persistedAttendance.size,
-        )
-
-        assertEquals(
-            attendanceDates.map { it.toEpochDays() }.toSet(),
-            persistedAttendance
-                .map { it.attendedOnEpochDay }
-                .toSet(),
-        )
-    }
-
-    @Test
-    fun `marking attendance without package returns package not found and persists no changes`() = runTest {
-        // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        // When
-        val result =
-            markStudentPresent(
-                studentId = studentId,
-                attendanceDate = LocalDate(2026, 9, 30),
-            )
-
-        // Then
-        assertIs<MarkStudentPresentResult.PackageNotFound>(result)
-
-        // And
-        // no package was created
-        assertNull(
-            database
-                .studentPackageDao()
-                .getLatestForStudent(studentId),
-        )
-    }
-
-    @Test
-    fun `failed attendance marking rolls back persisted attendance`() = runTest {
-        // Given
-        val studentId =
-            database
-                .studentDao()
-                .insert(
-                    StudentEntity(
-                        fullName = "Anna Smith",
-                        groupId = groupId,
-                    ),
-                ).toInt()
-
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
-
-        val startedOn = LocalDate(2026, 9, 25)
-
-        val packageId =
-            database
-                .studentPackageDao()
-                .insert(
-                    StudentPackageEntity(
-                        studentId = studentId,
-                        packageTypeId = packageTypeId,
-                        packageName = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                        startedOnEpochDay = startedOn.toEpochDays(),
-                    ),
-                ).toInt()
-
-        database.attendanceDao().insert(
-            AttendanceEntity(
-                packageId = packageId,
-                attendedOnEpochDay = startedOn.toEpochDays(),
-            ),
-        )
-
-        val attendanceDate = LocalDate(2026, 9, 27)
-
-        val roomRepository =
-            RoomStudentPackageRepository(
-                studentPackageDao = database.studentPackageDao(),
-                attendanceDao = database.attendanceDao(),
-            )
-
-        var attendanceWasPersisted = false
-
-        val failingRepository =
-            object : StudentPackageRepository by roomRepository {
-                override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
-                    roomRepository.recordAttendance(
-                        packageId = packageId,
-                        attendedOn = attendedOn,
-                        visitCount = visitCount,
-                    )
-
-                    attendanceWasPersisted = true
-
-                    error("Attendance marking failed")
-                }
-            }
-
-        val failingMarkStudentPresent =
-            MarkStudentPresentUseCase(
-                repository = failingRepository,
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
-
-        // When
-        val exception =
-            assertFailsWith<IllegalStateException> {
-                failingMarkStudentPresent(
-                    studentId = studentId,
-                    attendanceDate = attendanceDate,
-                )
-            }
-
-        // Then
-        assertEquals(
-            "Attendance marking failed",
-            exception.message,
-        )
-
-        // the real Room insert completed before the later failure
-        assertTrue(attendanceWasPersisted)
-
-        // And
-        // the new attendance was rolled back
-        val persistedAttendance =
-            database
-                .attendanceDao()
-                .getForPackage(packageId)
-
-        assertEquals(
-            1,
-            persistedAttendance.size,
-        )
-
-        assertEquals(
-            startedOn.toEpochDays(),
-            persistedAttendance.single().attendedOnEpochDay,
-        )
+        return packageId
     }
 }

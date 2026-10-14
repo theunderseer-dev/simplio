@@ -9,11 +9,11 @@ import kotlinx.datetime.plus
 
 @Composable
 internal fun AttendanceDatePickerDialogForTest(
-    initialDate: LocalDate = AttendanceTestData.nextAttendanceDate,
+    initialDate: LocalDate = AttendanceTestData.secondClassDate,
     currentDate: LocalDate = AttendanceTestData.currentDate,
     maxVisitsPerAttendance: Int = 1,
     remainingClasses: Int = 3,
-    startedOn: LocalDate = AttendanceTestData.firstAttendanceDate,
+    startedOn: LocalDate = AttendanceTestData.firstClassDate,
     expiresOn: LocalDate = startedOn + DatePeriod(
         days = AttendanceTestData.fourClassPackage.validityWeeks * 7,
     ),

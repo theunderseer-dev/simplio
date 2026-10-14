@@ -6,8 +6,8 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistor
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
@@ -26,7 +26,7 @@ class AttendanceViewModelClassHistoryTest {
         // Given
         val recordedClass =
             testClassHistoryEntry(
-                date = firstAttendanceDate,
+                date = firstClassDate,
                 students = listOf(
                     ClassHistoryStudent(
                         student = student,
@@ -59,7 +59,7 @@ class AttendanceViewModelClassHistoryTest {
             ClassHistoryUiState.Content(
                 entries = listOf(
                     testClassHistoryEntry(
-                        date = nextAttendanceDate,
+                        date = secondClassDate,
                     ),
                     recordedClass,
                 ),
@@ -127,7 +127,7 @@ class AttendanceViewModelClassHistoryTest {
             ClassHistoryUiState.Content(
                 entries = listOf(
                     testClassHistoryEntry(
-                        date = nextAttendanceDate,
+                        date = secondClassDate,
                     ),
                 ),
                 nextBeforeDate = null,

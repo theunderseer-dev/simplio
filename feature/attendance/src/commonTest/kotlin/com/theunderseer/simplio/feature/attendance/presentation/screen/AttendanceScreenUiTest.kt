@@ -12,11 +12,11 @@ import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGr
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
@@ -31,11 +31,11 @@ class AttendanceScreenUiTest {
         // Given
         val state = testStudentAttendanceUiState(
             visitsByDate = mapOf(
-                firstAttendanceDate to 1,
-                nextAttendanceDate to 1,
-                nextClassDate to 1,
+                firstClassDate to 1,
+                secondClassDate to 1,
+                thirdClassDate to 1,
             ),
-            currentDate = nextClassDate,
+            currentDate = thirdClassDate,
         )
 
         // When
@@ -108,12 +108,12 @@ class AttendanceScreenUiTest {
     fun `displays students in their corresponding group sections`() = runComposeUiTest {
         // Given
         val groupAStudent = student.copy(
-            groupId = DefaultStudentGroups.GROUP_A_ID,
+            groupId = DefaultStudentGroups.GROUP_A.id,
         )
         val groupBStudent = testStudent(
             id = 8,
             fullName = "Bob Lee",
-            groupId = DefaultStudentGroups.GROUP_B_ID,
+            groupId = DefaultStudentGroups.GROUP_B.id,
         )
 
         // Group B deliberately appears first in the source attendance.
@@ -167,7 +167,7 @@ class AttendanceScreenUiTest {
         // Given
         val state = testStudentAttendanceUiState(
             student = student.copy(
-                groupId = DefaultStudentGroups.GROUP_A_ID,
+                groupId = DefaultStudentGroups.GROUP_A.id,
             ),
         )
 

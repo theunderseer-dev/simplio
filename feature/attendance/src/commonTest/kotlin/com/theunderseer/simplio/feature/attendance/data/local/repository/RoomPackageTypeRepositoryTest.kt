@@ -3,8 +3,11 @@ package com.theunderseer.simplio.feature.attendance.data.local.repository
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -13,21 +16,23 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class RoomPackageTypeRepositoryTest {
+    private val fiveClassPackage = testClassPackage(
+        plan = PackagePlan.FIVE_CLASSES,
+    ).copy(validityWeeks = 6)
+
     private lateinit var database: AttendanceDatabase
     private lateinit var repository: RoomPackageTypeRepository
 
     @BeforeTest
     fun setUp() {
-        database =
-            Room
-                .inMemoryDatabaseBuilder<AttendanceDatabase>()
-                .setDriver(BundledSQLiteDriver())
-                .build()
+        database = Room
+            .inMemoryDatabaseBuilder<AttendanceDatabase>()
+            .setDriver(BundledSQLiteDriver())
+            .build()
 
-        repository =
-            RoomPackageTypeRepository(
-                packageTypeDao = database.packageTypeDao(),
-            )
+        repository = RoomPackageTypeRepository(
+            packageTypeDao = database.packageTypeDao(),
+        )
     }
 
     @AfterTest
@@ -38,52 +43,17 @@ class RoomPackageTypeRepositoryTest {
     @Test
     fun `getting all package types returns persisted package types`() = runTest {
         // Given
-        val firstId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "4-class package",
-                        totalClasses = 4,
-                        validityWeeks = 5,
-                        price = 1400,
-                    ),
-                ).toInt()
-
-        val secondId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
+        val firstPackage = persistPackageType(
+            fourClassPackage.copy(validityWeeks = 5),
+        )
+        val secondPackage = persistPackageType(fiveClassPackage)
 
         // When
-        val packageTypes =
-            repository.getAll()
+        val packageTypes = repository.getAll()
 
         // Then
         assertEquals(
-            listOf(
-                PackageType(
-                    id = firstId,
-                    name = "4-class package",
-                    totalClasses = 4,
-                    validityWeeks = 5,
-                    price = 1400,
-                ),
-                PackageType(
-                    id = secondId,
-                    name = "5-class package",
-                    totalClasses = 5,
-                    validityWeeks = 6,
-                    price = 1700,
-                ),
-            ),
+            listOf(firstPackage, secondPackage),
             packageTypes,
         )
     }
@@ -91,44 +61,37 @@ class RoomPackageTypeRepositoryTest {
     @Test
     fun `getting package type by id returns persisted package type`() = runTest {
         // Given
-        val packageTypeId =
-            database
-                .packageTypeDao()
-                .insert(
-                    PackageTypeEntity(
-                        name = "5-class package",
-                        totalClasses = 5,
-                        validityWeeks = 6,
-                        price = 1700,
-                    ),
-                ).toInt()
+        persistPackageType(fourClassPackage)
+        val expected = persistPackageType(fiveClassPackage)
 
         // When
-        val packageType =
-            repository.getById(packageTypeId)
+        val packageType = repository.getById(expected.id)
 
         // Then
-        assertEquals(
-            PackageType(
-                id = packageTypeId,
-                name = "5-class package",
-                totalClasses = 5,
-                validityWeeks = 6,
-                price = 1700,
-            ),
-            packageType,
-        )
+        assertEquals(expected, packageType)
     }
 
     @Test
     fun `getting package type by missing id returns null`() = runTest {
+        // Given
+        persistPackageType(fourClassPackage)
+
         // When
-        val packageType =
-            repository.getById(
-                id = 999,
-            )
+        val packageType = repository.getById(
+            id = 999,
+        )
 
         // Then
         assertNull(packageType)
+    }
+
+    private suspend fun persistPackageType(packageType: PackageType): PackageType {
+        val entity = testPackageTypeEntity(
+            packageType = packageType,
+        ).copy(id = 0)
+
+        val id = database.packageTypeDao().insert(entity).toInt()
+
+        return packageType.copy(id = id)
     }
 }

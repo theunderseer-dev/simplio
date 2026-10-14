@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import kotlinx.coroutines.test.runTest
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -16,7 +18,8 @@ class RoomStudentRepositoryTest {
     private lateinit var database: AttendanceDatabase
     private lateinit var repository: RoomStudentRepository
 
-    private val groupId = 1
+    private val groupId = DefaultStudentGroups.GROUP_A.id
+    private val fullName = student.fullName
 
     @BeforeTest
     fun setUp() = runTest {
@@ -29,7 +32,7 @@ class RoomStudentRepositoryTest {
         database.studentGroupDao().insert(
             StudentGroupEntity(
                 id = groupId,
-                name = "Group A",
+                name = DefaultStudentGroups.GROUP_A.name,
             ),
         )
 
@@ -47,7 +50,6 @@ class RoomStudentRepositoryTest {
     @Test
     fun `creating student persists student with generated identity`() = runTest {
         // Given
-        val fullName = "Anna Smith"
 
         // When
         val student =
@@ -86,7 +88,7 @@ class RoomStudentRepositoryTest {
         // Given
         val anna =
             repository.create(
-                fullName = "Anna Smith",
+                fullName = fullName,
                 groupId = groupId,
             )
 

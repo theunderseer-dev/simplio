@@ -5,9 +5,9 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.nextAttendanceDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import kotlinx.datetime.LocalDate
@@ -22,8 +22,8 @@ class AttendanceCheckAvailabilityTest {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendanceDate),
-                currentDate = firstAttendanceDate,
+                attendanceDates = setOf(firstClassDate),
+                currentDate = firstClassDate,
             )
 
         // Then
@@ -36,8 +36,8 @@ class AttendanceCheckAvailabilityTest {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendanceDate),
-                currentDate = nextAttendanceDate,
+                attendanceDates = setOf(firstClassDate),
+                currentDate = secondClassDate,
             )
 
         // Then
@@ -50,8 +50,8 @@ class AttendanceCheckAvailabilityTest {
         // When
         val row =
             rowFor(
-                attendanceDates = setOf(firstAttendanceDate, nextAttendanceDate),
-                currentDate = nextAttendanceDate,
+                attendanceDates = setOf(firstClassDate, secondClassDate),
+                currentDate = secondClassDate,
             )
 
         // Then
@@ -71,7 +71,7 @@ class AttendanceCheckAvailabilityTest {
                             id = 1,
                             studentId = 1,
                             packageType = fourClassPackage,
-                            startedOn = firstAttendanceDate,
+                            startedOn = firstClassDate,
                             attendanceHistory =
                             PackageAttendanceHistory(
                                 visitsByDate = attendanceDates.associateWith { 1 },

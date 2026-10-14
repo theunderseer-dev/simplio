@@ -1,7 +1,8 @@
 package com.theunderseer.simplio.feature.attendance.data.local.mapper
 
-import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -9,59 +10,36 @@ class PackageTypeMapperTest {
     @Test
     fun `maps individual package with one visit per attendance`() {
         // Given
-        val entity =
-            PackageTypeEntity(
-                id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 4,
-                price = 1400,
-            )
+        val expected = fourClassPackage.copy(
+            id = 7,
+            name = "Custom individual package",
+            totalClasses = 7,
+            validityWeeks = 6,
+            price = 1900,
+        )
+        val entity = testPackageTypeEntity(
+            packageType = expected,
+        ).copy(id = expected.id)
 
         // When
         val result = entity.toDomain()
 
         // Then
-        assertEquals(
-            PackageType(
-                id = 1,
-                name = "4-class package",
-                totalClasses = 4,
-                validityWeeks = 4,
-                price = 1400,
-                maxVisitsPerAttendance = 1,
-            ),
-            result,
-        )
+        assertEquals(expected, result)
     }
 
     @Test
     fun `maps duo package with two visits per attendance`() {
         // Given
-        val entity =
-            PackageTypeEntity(
-                id = 2,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            )
+        val expected = duoSpecialPackage
+        val entity = testPackageTypeEntity(
+            packageType = expected,
+        ).copy(id = expected.id)
 
         // When
         val result = entity.toDomain()
 
         // Then
-        assertEquals(
-            PackageType(
-                id = 2,
-                name = "Duo 8 · Special rate",
-                totalClasses = 8,
-                validityWeeks = 4,
-                price = 2400,
-                maxVisitsPerAttendance = 2,
-            ),
-            result,
-        )
+        assertEquals(expected, result)
     }
 }

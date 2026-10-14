@@ -9,8 +9,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -24,9 +26,7 @@ class AttendanceMigration1To2Test {
     private val studentId = 7
     private val packageTypeId = 3
     private val packageId = 11
-    private val firstAttendance = LocalDate(2026, 10, 2)
-    private val secondAttendance = LocalDate(2026, 10, 5)
-
+    private val studentFullName = AttendanceTestData.student.fullName
     private lateinit var temporaryDirectory: Path
     private lateinit var databasePath: Path
     private lateinit var migrationHelper: MigrationTestHelper
@@ -92,12 +92,12 @@ class AttendanceMigration1To2Test {
                 listOf(
                     AttendanceEntity(
                         packageId = packageId,
-                        attendedOnEpochDay = firstAttendance.toEpochDays(),
+                        attendedOnEpochDay = firstClassDate.toEpochDays(),
                         visitCount = 1,
                     ),
                     AttendanceEntity(
                         packageId = packageId,
-                        attendedOnEpochDay = secondAttendance.toEpochDays(),
+                        attendedOnEpochDay = secondClassDate.toEpochDays(),
                         visitCount = 1,
                     ),
                 ),
@@ -133,7 +133,7 @@ class AttendanceMigration1To2Test {
             assertEquals(
                 StudentEntity(
                     id = studentId,
-                    fullName = "Anna Smith",
+                    fullName = studentFullName,
                     groupId = 1,
                 ),
                 persistedStudent,
@@ -150,14 +150,15 @@ class AttendanceMigration1To2Test {
                         totalClasses = 4,
                         validityWeeks = 4,
                         price = 1400,
+                        maxVisitsPerAttendance = 1,
                     ),
-                    startedOn = firstAttendance,
+                    startedOn = firstClassDate,
                     attendanceHistory =
                     PackageAttendanceHistory(
                         visitsByDate =
                         mapOf(
-                            firstAttendance to 1,
-                            secondAttendance to 1,
+                            firstClassDate to 1,
+                            secondClassDate to 1,
                         ),
                     ),
                 ),
@@ -172,12 +173,16 @@ class AttendanceMigration1To2Test {
 
     private fun createVersion1Database() {
         migrationHelper.createDatabase(version = 1).use { connection ->
-            connection.execSQL(
+            connection.prepare(
                 """
                 INSERT INTO students (id, fullName)
-                VALUES ($studentId, 'Anna Smith')
+                VALUES (?, ?)
                 """.trimIndent(),
-            )
+            ).use { statement ->
+                statement.bindLong(1, studentId.toLong())
+                statement.bindText(2, studentFullName)
+                statement.step()
+            }
 
             connection.execSQL(
                 """
@@ -196,7 +201,7 @@ class AttendanceMigration1To2Test {
                 )
                 VALUES (
                     $packageId, $studentId, $packageTypeId, '4-class package',
-                    4, 4, 1400, ${firstAttendance.toEpochDays()}
+                    4, 4, 1400, ${firstClassDate.toEpochDays()}
                 )
                 """.trimIndent(),
             )
@@ -205,8 +210,8 @@ class AttendanceMigration1To2Test {
                 """
                 INSERT INTO attendance (packageId, attendedOnEpochDay)
                 VALUES
-                    ($packageId, ${firstAttendance.toEpochDays()}),
-                    ($packageId, ${secondAttendance.toEpochDays()})
+                    ($packageId, ${firstClassDate.toEpochDays()}),
+                    ($packageId, ${secondClassDate.toEpochDays()})
                 """.trimIndent(),
             )
         }
