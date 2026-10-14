@@ -18,5 +18,7 @@ fun AttendanceRoute(onCopyAttendance: (String) -> Unit, viewModel: AttendanceVie
         onRemoveStudentAttendance = viewModel::removeStudentAttendance,
         onClearMarkStudentPresentState = viewModel::clearMarkStudentPresentState,
         onClearRemoveStudentAttendanceState = viewModel::clearRemoveStudentAttendanceState,
+        onLoadNextClassHistoryPage = viewModel::loadNextClassHistoryPage,
+        onRetryClassHistory = viewModel::retryClassHistory,
     )
 }

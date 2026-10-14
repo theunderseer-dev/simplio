@@ -333,8 +333,8 @@ class AttendanceViewModel(
                 classHistoryData.value = content.copy(
                     isLoadingNextPage = false,
                     nextPageErrorMessage =
-                        exception.message
-                            ?: "Failed to load more class history",
+                    exception.message
+                        ?: "Failed to load more class history",
                 )
             }
         }

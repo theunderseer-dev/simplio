@@ -36,10 +36,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         val repository =
             object : ClassHistoryRepository by storedRepository {
-                override suspend fun getPage(
-                    beforeDate: LocalDate?,
-                    limit: Int,
-                ): List<ClassHistoryEntry> {
+                override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     requestedBeforeDates += beforeDate
                     return storedRepository.getPage(beforeDate, limit)
                 }
@@ -97,10 +94,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         val repository =
             object : ClassHistoryRepository by storedRepository {
-                override suspend fun getPage(
-                    beforeDate: LocalDate?,
-                    limit: Int,
-                ): List<ClassHistoryEntry> {
+                override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     requestCount++
 
                     if (beforeDate != null) {
@@ -156,10 +150,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         val repository =
             object : ClassHistoryRepository by storedRepository {
-                override suspend fun getPage(
-                    beforeDate: LocalDate?,
-                    limit: Int,
-                ): List<ClassHistoryEntry> {
+                override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     requestedBeforeDates += beforeDate
 
                     if (beforeDate != null && !nextPageFailed) {
@@ -230,10 +221,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         val repository =
             object : ClassHistoryRepository by storedRepository {
-                override suspend fun getPage(
-                    beforeDate: LocalDate?,
-                    limit: Int,
-                ): List<ClassHistoryEntry> {
+                override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     if (beforeDate == null) {
                         firstPageRequests++
 
@@ -291,18 +279,14 @@ class AttendanceViewModelClassHistoryPaginationTest {
         assertEquals(refreshed, viewModel.uiState.value)
     }
 
-    private fun createHistoryViewModel(
-        repository: ClassHistoryRepository,
-    ): AttendanceViewModel = createViewModel(
+    private fun createHistoryViewModel(repository: ClassHistoryRepository): AttendanceViewModel = createViewModel(
         studentRepository = FakeStudentRepository(),
         studentPackageRepository = FakeStudentPackageRepository(),
         classHistoryRepository = repository,
         currentDates = flowOf(AttendanceTestData.firstClassDate),
     )
 
-    private fun historyState(
-        viewModel: AttendanceViewModel,
-    ): ClassHistoryUiState.Content {
+    private fun historyState(viewModel: AttendanceViewModel): ClassHistoryUiState.Content {
         val content = assertIs<AttendanceUiState.Content>(
             viewModel.uiState.value,
         )
@@ -312,15 +296,13 @@ class AttendanceViewModelClassHistoryPaginationTest {
         )
     }
 
-    private fun latestClassEntry(): ClassHistoryEntry =
-        testClassHistoryEntry(date = AttendanceTestData.firstClassDate)
+    private fun latestClassEntry(): ClassHistoryEntry = testClassHistoryEntry(date = AttendanceTestData.firstClassDate)
 
-    private fun historyEntries(count: Int): List<ClassHistoryEntry> =
-        List(count) { index ->
-            testClassHistoryEntry(
-                date = LocalDate.fromEpochDays(
-                    AttendanceTestData.firstClassDate.toEpochDays() - index - 1,
-                ),
-            )
-        }
+    private fun historyEntries(count: Int): List<ClassHistoryEntry> = List(count) { index ->
+        testClassHistoryEntry(
+            date = LocalDate.fromEpochDays(
+                AttendanceTestData.firstClassDate.toEpochDays() - index - 1,
+            ),
+        )
+    }
 }

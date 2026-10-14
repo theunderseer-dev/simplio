@@ -58,6 +58,8 @@ fun AttendanceScreen(
     onRemoveStudentAttendance: (Int, LocalDate) -> Unit,
     onClearMarkStudentPresentState: () -> Unit,
     onClearRemoveStudentAttendanceState: () -> Unit,
+    onLoadNextClassHistoryPage: () -> Unit,
+    onRetryClassHistory: () -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -105,7 +107,9 @@ fun AttendanceScreen(
                 },
             ) { contentPadding ->
                 Column(
-                    modifier = Modifier.padding(contentPadding),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
                 ) {
                     AttendanceContent(
                         state = state,
@@ -170,6 +174,21 @@ fun AttendanceScreen(
                                     attendanceDate = date,
                                 )
                         },
+                    )
+
+                    ClassHistorySection(
+                        state = state.classHistoryState,
+                        studentGroups = state.studentGroups,
+                        onLoadNextPage = onLoadNextClassHistoryPage,
+                        onRetry = onRetryClassHistory,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(
+                                start = 12.dp,
+                                end = 12.dp,
+                                top = 12.dp,
+                            ),
                     )
                 }
             }
