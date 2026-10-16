@@ -1,6 +1,7 @@
 package com.theunderseer.simplio
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.ClipEntry
@@ -12,10 +13,14 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.theunderseer.simplio.database.prepareSimplioDatabasePath
 import com.theunderseer.simplio.di.desktopAttendanceModule
+import com.theunderseer.simplio.di.desktopFirebaseModule
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
+import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
+import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -32,6 +37,7 @@ fun main() {
                 desktopAttendanceModule(
                     databasePath = prepareSimplioDatabasePath(),
                 ),
+                desktopFirebaseModule(),
             )
         }
 
@@ -64,17 +70,26 @@ fun main() {
                 CompositionLocalProvider(
                     LocalViewModelStoreOwner provides viewModelStoreOwner,
                 ) {
-                    AttendanceRoute(
-                        onCopyAttendance = { text ->
-                            coroutineScope.launch {
-                                clipboard.setClipEntry(
-                                    ClipEntry(
-                                        StringSelection(text),
-                                    ),
-                                )
-                            }
+                    FirebaseSignInGate(
+                        authClient = remember {
+                            koinApplication.koin.get<FirebaseAuthClient>()
                         },
-                    )
+                        accessChecker = remember {
+                            koinApplication.koin.get<FirestoreAccessChecker>()
+                        },
+                    ) { _ ->
+                        AttendanceRoute(
+                            onCopyAttendance = { text ->
+                                coroutineScope.launch {
+                                    clipboard.setClipEntry(
+                                        ClipEntry(
+                                            StringSelection(text),
+                                        ),
+                                    )
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }
