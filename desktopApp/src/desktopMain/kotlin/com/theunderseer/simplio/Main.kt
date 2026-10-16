@@ -19,7 +19,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupS
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
-import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,8 +71,8 @@ fun main() {
                     LocalViewModelStoreOwner provides viewModelStoreOwner,
                 ) {
                     FirebaseSignInGate(
-                        authClient = remember {
-                            koinApplication.koin.get<FirebaseAuthClient>()
+                        sessionManager = remember {
+                            koinApplication.koin.get<FirebaseSessionManager>()
                         },
                         accessChecker = remember {
                             koinApplication.koin.get<FirestoreAccessChecker>()

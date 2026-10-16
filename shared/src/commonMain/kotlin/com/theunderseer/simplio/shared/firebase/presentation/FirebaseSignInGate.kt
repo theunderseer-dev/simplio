@@ -16,6 +16,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,8 +28,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
-import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -36,11 +37,12 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun FirebaseSignInGate(
-    authClient: FirebaseAuthClient,
+    sessionManager: FirebaseSessionManager,
     accessChecker: FirestoreAccessChecker,
     content: @Composable (FirebaseSession) -> Unit,
 ) {
-    var session by remember { mutableStateOf<FirebaseSession?>(null) }
+    val session by sessionManager.session.collectAsState()
+    var verifiedUserId by remember { mutableStateOf<String?>(null) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isSigningIn by remember { mutableStateOf(false) }
@@ -49,7 +51,7 @@ fun FirebaseSignInGate(
     val coroutineScope = rememberCoroutineScope()
     val currentSession = session
 
-    if (currentSession != null) {
+    if (currentSession != null && currentSession.userId == verifiedUserId) {
         content(currentSession)
         return
     }
@@ -125,23 +127,28 @@ fun FirebaseSignInGate(
 
                                 isSigningIn = true
                                 errorMessage = null
+                                verifiedUserId = null
 
                                 coroutineScope.launch {
                                     var isCheckingAccess = false
 
                                     try {
-                                        val signedInSession = authClient.signIn(
+                                        val signedInSession = sessionManager.signIn(
                                             email = submittedEmail,
                                             password = submittedPassword,
                                         )
 
                                         isCheckingAccess = true
-                                        accessChecker.checkAccess(signedInSession)
+                                        accessChecker.checkAccess()
 
                                         currentCoroutineContext().ensureActive()
 
+                                        if (sessionManager.session.value !== signedInSession) {
+                                            throw CancellationException("Authentication state changed")
+                                        }
+
                                         password = ""
-                                        session = signedInSession
+                                        verifiedUserId = signedInSession.userId
                                     } catch (error: CancellationException) {
                                         throw error
                                     } catch (_: Exception) {

@@ -3,6 +3,7 @@ package com.theunderseer.simplio.di
 import com.theunderseer.simplio.shared.firebase.FirebaseConfig
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
 import org.koin.dsl.module
 import org.koin.dsl.onClose
@@ -30,6 +31,13 @@ internal fun desktopFirebaseModule() = module {
         FirestoreAccessChecker(
             httpClient = get(),
             config = get(),
+            sessionManager = get(),
+        )
+    }
+
+    single {
+        FirebaseSessionManager(
+            authApi = get<FirebaseAuthClient>(),
         )
     }
 }
