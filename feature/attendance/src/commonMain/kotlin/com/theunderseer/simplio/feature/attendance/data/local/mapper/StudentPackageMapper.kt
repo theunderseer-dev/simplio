@@ -19,9 +19,10 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
         price = price,
         maxVisitsPerAttendance = maxVisitsPerAttendance,
     ),
-    startedOn =
-    LocalDate.fromEpochDays(
-        startedOnEpochDay,
+    startedOn = LocalDate.fromEpochDays(
+        checkNotNull(startedOnEpochDay) {
+            "Package $id has not been activated"
+        },
     ),
     attendanceHistory =
     PackageAttendanceHistory(

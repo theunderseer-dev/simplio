@@ -28,6 +28,7 @@ class RoomStudentPackageRepository(
                 totalClasses = packageType.totalClasses,
                 validityWeeks = packageType.validityWeeks,
                 price = packageType.price,
+                purchasedOnEpochDay = startedOn.toEpochDays(),
                 startedOnEpochDay = startedOn.toEpochDays(),
                 maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
             )

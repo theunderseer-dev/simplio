@@ -15,7 +15,7 @@ interface StudentPackageDao {
         SELECT *
         FROM student_packages
         WHERE studentId = :studentId
-        ORDER BY startedOnEpochDay DESC, id DESC
+        ORDER BY purchasedOnEpochDay DESC, id DESC
         LIMIT 1
         """,
     )

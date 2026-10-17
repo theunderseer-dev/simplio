@@ -90,8 +90,10 @@ internal fun testPackageTypeEntity(packageType: PackageType, id: Int = 0): Packa
 internal fun testStudentPackageEntity(
     studentId: Int,
     packageType: PackageType,
-    startedOnEpochDay: Long,
+    startedOnEpochDay: Long?,
     id: Int = 0,
+    purchasedOnEpochDay: Long =
+        startedOnEpochDay ?: AttendanceTestData.registrationDate.toEpochDays(),
 ): StudentPackageEntity = StudentPackageEntity(
     id = id,
     studentId = studentId,
@@ -100,6 +102,7 @@ internal fun testStudentPackageEntity(
     totalClasses = packageType.totalClasses,
     validityWeeks = packageType.validityWeeks,
     price = packageType.price,
+    purchasedOnEpochDay = purchasedOnEpochDay,
     startedOnEpochDay = startedOnEpochDay,
     maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
 )
