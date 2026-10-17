@@ -6,11 +6,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -24,7 +27,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -106,91 +108,75 @@ fun AttendanceScreen(
                     )
                 },
             ) { contentPadding ->
-                Column(
+                AttendanceContent(
+                    state = state,
+                    onAddStudentClick = {
+                        showRegistrationDialog = true
+                    },
+                    onDeleteStudentClick = { studentId ->
+                        deleteStudentDialog = studentId
+                    },
+                    onCopyAttendanceClick = { groupId ->
+                        val groupAttendance = state.attendance.copy(
+                            entries = state.attendance.entries.filter { entry ->
+                                entry.student.groupId == groupId
+                            },
+                        )
+
+                        onCopyAttendance(
+                            formatAttendanceForSharing(
+                                attendance = groupAttendance,
+                                currentDate = state.currentDate,
+                            ),
+                        )
+
+                        coroutineScope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = "Copied to clipboard",
+                            )
+                        }
+                    },
+                    onCheckStudentClick = { row ->
+                        if (row.isCheckEnabled) {
+                            val student = row.registeredStudent.student
+
+                            when (row.checkState) {
+                                AttendanceCheckState.Pending -> {
+                                    onClearMarkStudentPresentState()
+                                    attendanceDatePickerStudentId = student.id
+                                }
+
+                                AttendanceCheckState.Checked -> {
+                                    onClearRemoveStudentAttendanceState()
+
+                                    attendanceRemovalRequest =
+                                        AttendanceRemovalRequest(
+                                            studentId = student.id,
+                                            studentName = student.fullName,
+                                            attendanceDate = state.latestClassDate,
+                                        )
+                                }
+                            }
+                        }
+                    },
+                    onRemoveStudentAttendanceClick = { row, date ->
+                        val student = row.registeredStudent.student
+
+                        onClearRemoveStudentAttendanceState()
+
+                        attendanceRemovalRequest =
+                            AttendanceRemovalRequest(
+                                studentId = student.id,
+                                studentName = student.fullName,
+                                attendanceDate = date,
+                            )
+                    },
+                    onLoadNextClassHistoryPage = onLoadNextClassHistoryPage,
+                    onRetryClassHistory = onRetryClassHistory,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(contentPadding),
-                ) {
-                    AttendanceContent(
-                        state = state,
-                        onAddStudentClick = {
-                            showRegistrationDialog = true
-                        },
-                        onDeleteStudentClick = { studentId ->
-                            deleteStudentDialog = studentId
-                        },
-                        onCopyAttendanceClick = { groupId ->
-                            val groupAttendance = state.attendance.copy(
-                                entries = state.attendance.entries.filter { entry ->
-                                    entry.student.groupId == groupId
-                                },
-                            )
-
-                            onCopyAttendance(
-                                formatAttendanceForSharing(
-                                    attendance = groupAttendance,
-                                    currentDate = state.currentDate,
-                                ),
-                            )
-
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Copied to clipboard",
-                                )
-                            }
-                        },
-                        onCheckStudentClick = { row ->
-                            if (row.isCheckEnabled) {
-                                val student = row.registeredStudent.student
-
-                                when (row.checkState) {
-                                    AttendanceCheckState.Pending -> {
-                                        onClearMarkStudentPresentState()
-                                        attendanceDatePickerStudentId = student.id
-                                    }
-
-                                    AttendanceCheckState.Checked -> {
-                                        onClearRemoveStudentAttendanceState()
-
-                                        attendanceRemovalRequest =
-                                            AttendanceRemovalRequest(
-                                                studentId = student.id,
-                                                studentName = student.fullName,
-                                                attendanceDate = state.latestClassDate,
-                                            )
-                                    }
-                                }
-                            }
-                        },
-                        onRemoveStudentAttendanceClick = { row, date ->
-                            val student = row.registeredStudent.student
-
-                            onClearRemoveStudentAttendanceState()
-
-                            attendanceRemovalRequest =
-                                AttendanceRemovalRequest(
-                                    studentId = student.id,
-                                    studentName = student.fullName,
-                                    attendanceDate = date,
-                                )
-                        },
-                    )
-
-                    ClassHistorySection(
-                        state = state.classHistoryState,
-                        studentGroups = state.studentGroups,
-                        onLoadNextPage = onLoadNextClassHistoryPage,
-                        onRetry = onRetryClassHistory,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                            .padding(
-                                start = 12.dp,
-                                end = 12.dp,
-                                top = 12.dp,
-                            ),
-                    )
-                }
+                )
             }
 
             if (showRegistrationDialog) {
@@ -343,103 +329,122 @@ private fun AttendanceContent(
     onCopyAttendanceClick: (Int) -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
     onRemoveStudentAttendanceClick: (StudentAttendanceUiState, LocalDate) -> Unit,
+    onLoadNextClassHistoryPage: () -> Unit,
+    onRetryClassHistory: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = Modifier.padding(
-            horizontal = 12.dp,
+    val rowsByGroup = state.rows.groupBy { row ->
+        row.registeredStudent.student.groupId
+    }
+
+    LazyColumn(
+        modifier = modifier.testTag("attendance-list"),
+        contentPadding = PaddingValues(
+            start = 12.dp,
+            end = 12.dp,
+            bottom = 12.dp,
         ),
     ) {
         if (state.rows.isEmpty()) {
-            Text(
-                text = "No students yet",
-            )
-        } else {
-            val rowsByGroup =
-                state.rows.groupBy { row ->
-                    row.registeredStudent.student.groupId
-                }
+            item(key = "students-empty", contentType = "students-empty") {
+                Text("No students yet")
+            }
+        }
 
-            state.studentGroups.forEach { group ->
-                val groupRows = rowsByGroup[group.id].orEmpty()
+        state.studentGroups.forEach { group ->
+            val groupRows = rowsByGroup[group.id].orEmpty()
 
-                if (groupRows.isNotEmpty()) {
-                    key(group.id) {
-                        Column(
-                            modifier = Modifier.testTag("student-group-${group.id}"),
+            if (groupRows.isNotEmpty()) {
+                item(
+                    key = "student-group-${group.id}",
+                    contentType = "student-group-header",
+                ) {
+                    Column(
+                        modifier = Modifier.testTag("student-group-${group.id}"),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(
+                                top = 8.dp,
+                                bottom = 2.dp,
+                            ),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Row(
-                                modifier = Modifier.padding(
-                                    top = 8.dp,
-                                    bottom = 2.dp,
-                                ),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = group.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                )
-
-                                Text(
-                                    text = "⧉",
-                                    modifier = Modifier
-                                        .clickable(
-                                            role = Role.Button,
-                                            onClick = {
-                                                onCopyAttendanceClick(group.id)
-                                            },
-                                        )
-                                        .semantics {
-                                            contentDescription =
-                                                "Copy attendance for ${group.name}"
-                                        }
-                                        .padding(
-                                            horizontal = 8.dp,
-                                            vertical = 2.dp,
-                                        ),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontSize = 16.sp,
-                                )
-                            }
-
-                            HorizontalDivider(
-                                thickness = 0.5.dp,
+                            Text(
+                                text = group.name,
+                                style = MaterialTheme.typography.titleSmall,
                             )
 
-                            groupRows.forEachIndexed { index, row ->
-                                key(row.registeredStudent.student.id) {
-                                    StudentAttendanceRow(
-                                        row = row,
-                                        onCheckClick = {
-                                            onCheckStudentClick(row)
-                                        },
-                                        onDeleteClick = {
-                                            onDeleteStudentClick(
-                                                row.registeredStudent.student.id,
-                                            )
-                                        },
-                                        onRemoveAttendanceClick = { date ->
-                                            onRemoveStudentAttendanceClick(row, date)
+                            Text(
+                                text = "⧉",
+                                modifier = Modifier
+                                    .clickable(
+                                        role = Role.Button,
+                                        onClick = {
+                                            onCopyAttendanceClick(group.id)
                                         },
                                     )
-
-                                    if (index < groupRows.lastIndex) {
-                                        HorizontalDivider(
-                                            thickness = 0.5.dp,
-                                        )
+                                    .semantics {
+                                        contentDescription =
+                                            "Copy attendance for ${group.name}"
                                     }
-                                }
-                            }
+                                    .padding(
+                                        horizontal = 8.dp,
+                                        vertical = 2.dp,
+                                    ),
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 16.sp,
+                            )
+                        }
+
+                        HorizontalDivider(thickness = 0.5.dp)
+                    }
+                }
+
+                itemsIndexed(
+                    items = groupRows,
+                    key = { _, row ->
+                        "student-${row.registeredStudent.student.id}"
+                    },
+                    contentType = { _, _ -> "student" },
+                ) { index, row ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("student-row-${row.registeredStudent.student.id}"),
+                    ) {
+                        StudentAttendanceRow(
+                            row = row,
+                            onCheckClick = {
+                                onCheckStudentClick(row)
+                            },
+                            onDeleteClick = {
+                                onDeleteStudentClick(row.registeredStudent.student.id)
+                            },
+                            onRemoveAttendanceClick = { date ->
+                                onRemoveStudentAttendanceClick(row, date)
+                            },
+                        )
+
+                        if (index < groupRows.lastIndex) {
+                            HorizontalDivider(thickness = 0.5.dp)
                         }
                     }
                 }
             }
         }
 
-        Button(
-            onClick = onAddStudentClick,
-        ) {
-            Text("Add Student")
+        item(key = "add-student", contentType = "add-student") {
+            Button(onClick = onAddStudentClick) {
+                Text("Add Student")
+            }
         }
+
+        classHistoryItems(
+            state = state.classHistoryState,
+            studentGroups = state.studentGroups,
+            onLoadNextPage = onLoadNextClassHistoryPage,
+            onRetry = onRetryClassHistory,
+        )
     }
 }
 

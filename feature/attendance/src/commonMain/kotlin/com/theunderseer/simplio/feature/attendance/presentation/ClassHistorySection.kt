@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -34,23 +35,49 @@ internal fun ClassHistorySection(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.testTag("class-history"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    LazyColumn(
+        modifier = modifier.testTag("class-history-list"),
+        contentPadding = PaddingValues(bottom = 12.dp),
     ) {
-        HorizontalDivider()
-
-        Text(
-            text = "Class History",
-            style = MaterialTheme.typography.titleLarge,
+        classHistoryItems(
+            state = state,
+            studentGroups = studentGroups,
+            onLoadNextPage = onLoadNextPage,
+            onRetry = onRetry,
         )
+    }
+}
 
-        when (state) {
-            ClassHistoryUiState.Loading -> {
+internal fun LazyListScope.classHistoryItems(
+    state: ClassHistoryUiState,
+    studentGroups: List<StudentGroup>,
+    onLoadNextPage: () -> Unit,
+    onRetry: () -> Unit,
+) {
+    item(key = "history-header", contentType = "history-header") {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp, bottom = 8.dp)
+                .testTag("class-history"),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            HorizontalDivider()
+
+            Text(
+                text = "Class History",
+                style = MaterialTheme.typography.titleSmall,
+            )
+        }
+    }
+
+    when (state) {
+        ClassHistoryUiState.Loading -> {
+            item(key = "history-loading", contentType = "history-loading") {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     CircularProgressIndicator(
@@ -58,8 +85,10 @@ internal fun ClassHistorySection(
                     )
                 }
             }
+        }
 
-            is ClassHistoryUiState.Error -> {
+        is ClassHistoryUiState.Error -> {
+            item(key = "history-error", contentType = "history-error") {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -73,48 +102,42 @@ internal fun ClassHistorySection(
                     }
                 }
             }
+        }
 
-            is ClassHistoryUiState.Content -> {
-                val groupNames = studentGroups.associate { group ->
-                    group.id to group.name
+        is ClassHistoryUiState.Content -> {
+            val groupNames = studentGroups.associate { group ->
+                group.id to group.name
+            }
+
+            if (state.entries.isEmpty()) {
+                item(key = "history-empty", contentType = "history-empty") {
+                    Text(
+                        text = "No class history yet",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+            }
 
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .testTag("class-history-list"),
-                    contentPadding = PaddingValues(bottom = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    if (state.entries.isEmpty()) {
-                        item(key = "history-empty") {
-                            Text(
-                                text = "No class history yet",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+            items(
+                items = state.entries,
+                key = { entry -> "history-entry-${entry.date.toEpochDays()}" },
+                contentType = { "history-entry" },
+            ) { entry ->
+                Box(modifier = Modifier.padding(bottom = 8.dp)) {
+                    ClassHistoryEntryCard(
+                        entry = entry,
+                        groupNames = groupNames,
+                    )
+                }
+            }
 
-                    items(
-                        items = state.entries,
-                        key = { entry -> entry.date.toEpochDays() },
-                    ) { entry ->
-                        ClassHistoryEntryCard(
-                            entry = entry,
-                            groupNames = groupNames,
-                        )
-                    }
-
-                    if (state.nextBeforeDate != null) {
-                        item(key = "history-pagination") {
-                            ClassHistoryPagination(
-                                state = state,
-                                onLoadNextPage = onLoadNextPage,
-                                onRetry = onRetry,
-                            )
-                        }
-                    }
+            if (state.nextBeforeDate != null) {
+                item(key = "history-pagination", contentType = "history-pagination") {
+                    ClassHistoryPagination(
+                        state = state,
+                        onLoadNextPage = onLoadNextPage,
+                        onRetry = onRetry,
+                    )
                 }
             }
         }

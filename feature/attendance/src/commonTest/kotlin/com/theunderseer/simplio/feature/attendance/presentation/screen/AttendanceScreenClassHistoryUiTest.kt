@@ -13,7 +13,14 @@ import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.eighthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fifthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.seventhClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.sixthClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
@@ -41,7 +48,7 @@ class AttendanceScreenClassHistoryUiTest {
             history = ClassHistoryUiState.Content(
                 entries = listOf(
                     testClassHistoryEntry(
-                        date = AttendanceTestData.secondClassDate,
+                        date = secondClassDate,
                         students = listOf(
                             ClassHistoryStudent(
                                 student = anna,
@@ -82,7 +89,7 @@ class AttendanceScreenClassHistoryUiTest {
         val state = screenState(
             history = ClassHistoryUiState.Content(
                 entries = listOf(
-                    testClassHistoryEntry(date = AttendanceTestData.secondClassDate),
+                    testClassHistoryEntry(date = secondClassDate),
                 ),
                 nextBeforeDate = null,
             ),
@@ -146,27 +153,27 @@ class AttendanceScreenClassHistoryUiTest {
     }
 
     @Test
-    fun `scrolls history to load more while add student stays in place`() = runComposeUiTest {
+    fun `scrolls screen to load more and back to add student`() = runComposeUiTest {
         // Given
         var loadRequests = 0
         val dates = listOf(
-            AttendanceTestData.eighthClassDate,
-            AttendanceTestData.seventhClassDate,
-            AttendanceTestData.sixthClassDate,
-            AttendanceTestData.fifthClassDate,
-            AttendanceTestData.fourthClassDate,
-            AttendanceTestData.thirdClassDate,
-            AttendanceTestData.secondClassDate,
-            AttendanceTestData.firstClassDate,
+            eighthClassDate,
+            seventhClassDate,
+            sixthClassDate,
+            fifthClassDate,
+            fourthClassDate,
+            thirdClassDate,
+            secondClassDate,
+            firstClassDate,
         )
         val state = screenState(
             history = ClassHistoryUiState.Content(
                 entries = dates.map { date ->
                     testClassHistoryEntry(date = date)
                 },
-                nextBeforeDate = AttendanceTestData.firstClassDate,
+                nextBeforeDate = firstClassDate,
             ),
-            currentDate = AttendanceTestData.eighthClassDate,
+            currentDate = eighthClassDate,
         )
 
         setContent {
@@ -176,12 +183,8 @@ class AttendanceScreenClassHistoryUiTest {
             )
         }
 
-        val addStudentBounds = onNodeWithText("Add Student")
-            .fetchSemanticsNode()
-            .boundsInRoot
-
         // When
-        onNodeWithTag("class-history-list")
+        onNodeWithTag("attendance-list")
             .performScrollToNode(hasText("Load more"))
 
         onNodeWithText("Load more")
@@ -190,13 +193,18 @@ class AttendanceScreenClassHistoryUiTest {
 
         // Then
         assertEquals(1, loadRequests)
-        onNodeWithText("Add Student").assertIsDisplayed()
-        assertEquals(
-            addStudentBounds,
-            onNodeWithText("Add Student")
-                .fetchSemanticsNode()
-                .boundsInRoot,
-        )
+
+        // When
+        onNodeWithTag("attendance-list")
+            .performScrollToNode(hasText("Add Student"))
+
+        onNodeWithText("Add Student")
+            .assertIsDisplayed()
+            .performClick()
+
+        // Then
+        onNodeWithText("Full name")
+            .assertIsDisplayed()
     }
 
     @Test
@@ -206,9 +214,9 @@ class AttendanceScreenClassHistoryUiTest {
         val state = screenState(
             history = ClassHistoryUiState.Content(
                 entries = listOf(
-                    testClassHistoryEntry(date = AttendanceTestData.secondClassDate),
+                    testClassHistoryEntry(date = secondClassDate),
                 ),
-                nextBeforeDate = AttendanceTestData.secondClassDate,
+                nextBeforeDate = secondClassDate,
                 isLoadingNextPage = true,
             ),
         )
@@ -241,9 +249,9 @@ class AttendanceScreenClassHistoryUiTest {
         val state = screenState(
             history = ClassHistoryUiState.Content(
                 entries = listOf(
-                    testClassHistoryEntry(date = AttendanceTestData.secondClassDate),
+                    testClassHistoryEntry(date = secondClassDate),
                 ),
-                nextBeforeDate = AttendanceTestData.secondClassDate,
+                nextBeforeDate = secondClassDate,
                 nextPageErrorMessage = "Older history unavailable",
             ),
         )
