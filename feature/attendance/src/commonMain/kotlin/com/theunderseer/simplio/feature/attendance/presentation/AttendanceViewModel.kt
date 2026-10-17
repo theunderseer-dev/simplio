@@ -182,6 +182,9 @@ class AttendanceViewModel(
 
                         MarkStudentPresentResult.InsufficientRemainingVisits ->
                             "Not enough visits remaining"
+
+                        is MarkStudentPresentResult.AttendanceDateTooEarly ->
+                            "Attendance cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
                     }
 
                 markAttendanceState.value =

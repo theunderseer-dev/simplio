@@ -16,6 +16,7 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.s
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackage
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.MarkStudentPresentUiState
 import kotlinx.coroutines.CompletableDeferred
@@ -412,6 +413,60 @@ class AttendanceViewModelMarkStudentPresentTest {
                 markStudentPresentState = MarkStudentPresentUiState.Idle,
             ),
             viewModel.uiState.value,
+        )
+    }
+
+    @Test
+    fun `reports attendance before purchase and preserves content`() = runViewModelTest {
+        // Given
+        val studentRepository = FakeStudentRepository()
+        val student = studentRepository.seed(testStudent())
+
+        val studentPackage = testStudentPackage(
+            studentId = student.id,
+            purchasedOn = secondClassDate,
+            startedOn = null,
+        )
+        val studentPackageRepository = FakeStudentPackageRepository(
+            initialPackages = listOf(studentPackage),
+        )
+
+        val viewModel = createViewModel(
+            studentRepository = studentRepository,
+            studentPackageRepository = studentPackageRepository,
+            currentDates = flowOf(secondClassDate),
+        )
+
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        val before = assertIs<AttendanceUiState.Content>(
+            viewModel.uiState.value,
+        )
+
+        // When
+        viewModel.markStudentPresent(
+            studentId = student.id,
+            attendanceDate = firstClassDate,
+        )
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(
+            before.copy(
+                markStudentPresentState = MarkStudentPresentUiState.Error(
+                    message = "Attendance cannot be before Oct 5",
+                ),
+            ),
+            viewModel.uiState.value,
+        )
+        assertEquals(
+            studentPackage,
+            studentPackageRepository.getLatestPackageForStudent(student.id),
+        )
+        assertEquals(
+            emptyList(),
+            studentPackageRepository.recordedAttendances,
         )
     }
 }
