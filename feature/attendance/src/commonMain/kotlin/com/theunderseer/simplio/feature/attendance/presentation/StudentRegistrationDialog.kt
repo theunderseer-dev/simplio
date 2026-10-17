@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -103,7 +105,9 @@ fun StudentRegistrationDialog(
             Text("Add Student")
         },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 OutlinedTextField(
                     value = fullName,
                     onValueChange = { fullName = it },
@@ -238,7 +242,10 @@ fun StudentRegistrationDialog(
                         Text("People attending")
 
                         SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .heightIn(min = 48.dp),
                         ) {
                             SegmentedButton(
                                 selected = selectedVisitCount == 1,
