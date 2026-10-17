@@ -4,6 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGr
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
@@ -13,6 +14,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RegisterStudentUseCaseTest {
@@ -141,5 +143,68 @@ class RegisterStudentUseCaseTest {
             selectedGroupId,
             studentRepository.students.single().groupId,
         )
+    }
+
+    @Test
+    fun `registering without first attendance preserves full package balance`() = runTest {
+        val packageTypes = listOf(
+            AttendanceTestData.fourClassPackage,
+            AttendanceTestData.fiveClassPackage,
+            AttendanceTestData.duoSpecialPackage,
+        )
+
+        packageTypes.forEach { packageType ->
+            // Given
+            val studentRepository = FakeStudentRepository()
+            val studentPackageRepository = FakeStudentPackageRepository()
+            val transactionRunner = FakeTransactionRunner()
+
+            val registerStudent = RegisterStudentUseCase(
+                studentRepository = studentRepository,
+                studentPackageRepository = studentPackageRepository,
+                transactionRunner = transactionRunner,
+            )
+
+            // When
+            val result = registerStudent(
+                fullName = AttendanceTestData.student.fullName,
+                groupId = AttendanceTestData.student.groupId,
+                packageType = packageType,
+                registeredOn = AttendanceTestData.registrationDate,
+                visitCount = packageType.maxVisitsPerAttendance,
+                recordFirstAttendance = false,
+            )
+
+            // Then
+            val studentPackage = result.studentPackage
+
+            assertEquals(packageType, studentPackage.packageType)
+            assertEquals(result.student.id, studentPackage.studentId)
+            assertEquals(
+                AttendanceTestData.registrationDate,
+                studentPackage.purchasedOn,
+            )
+            assertNull(studentPackage.startedOn)
+            assertNull(studentPackage.expiresOn)
+            assertTrue(studentPackage.attendanceDates.isEmpty())
+            assertEquals(0, studentPackage.usedClasses)
+            assertEquals(
+                packageType.totalClasses,
+                studentPackage.remainingClasses,
+                message = packageType.name,
+            )
+
+            assertEquals(
+                result.student,
+                studentRepository.students.single(),
+            )
+            assertEquals(
+                studentPackage,
+                studentPackageRepository.getLatestPackageForStudent(
+                    result.student.id,
+                ),
+            )
+            assertEquals(1, transactionRunner.runCount)
+        }
     }
 }

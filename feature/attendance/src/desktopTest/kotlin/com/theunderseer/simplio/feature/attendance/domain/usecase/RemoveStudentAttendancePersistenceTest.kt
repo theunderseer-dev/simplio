@@ -5,6 +5,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.createAtt
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
@@ -60,8 +61,11 @@ class RemoveStudentAttendancePersistenceTest {
                 val studentPackage = repository.create(
                     studentId = student.id,
                     packageType = packageType,
-                    startedOn = firstClassDate,
-                    visitCount = 2,
+                    purchasedOn = firstClassDate,
+                    initialAttendance = InitialAttendance(
+                        date = firstClassDate,
+                        visitCount = 2,
+                    ),
                 )
 
                 repository.recordAttendance(
@@ -119,6 +123,8 @@ class RemoveStudentAttendancePersistenceTest {
                 )
                 assertEquals(2, restoredPackage.usedClasses)
                 assertEquals(6, restoredPackage.remainingClasses)
+                assertEquals(firstClassDate, restoredPackage.purchasedOn)
+                assertEquals(firstClassDate, restoredPackage.startedOn)
             }
         } finally {
             temporaryDirectory.toFile().deleteRecursively()

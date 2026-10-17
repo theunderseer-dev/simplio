@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.domain.result
 
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import kotlinx.datetime.LocalDate
 
 sealed interface MarkStudentPresentResult {
     data class Success(val studentPackage: StudentPackage) : MarkStudentPresentResult
@@ -14,4 +15,6 @@ sealed interface MarkStudentPresentResult {
     data object InvalidVisitCount : MarkStudentPresentResult
 
     data object InsufficientRemainingVisits : MarkStudentPresentResult
+
+    data class AttendanceDateTooEarly(val earliestAllowedDate: LocalDate) : MarkStudentPresentResult
 }

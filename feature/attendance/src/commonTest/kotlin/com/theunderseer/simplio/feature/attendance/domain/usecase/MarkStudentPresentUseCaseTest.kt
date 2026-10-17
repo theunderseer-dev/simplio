@@ -17,6 +17,7 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.s
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.seventhClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.sixthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackage
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.BeforeTest
@@ -633,6 +634,112 @@ class MarkStudentPresentUseCaseTest {
                 ),
             ),
             repository.recordedAttendances,
+        )
+    }
+
+    @Test
+    fun `rejects attendance before purchase and preserves prepaid package`() = runTest {
+        // Given
+        val studentPackage = testStudentPackage(
+            purchasedOn = secondClassDate,
+            startedOn = null,
+        )
+        val repository = FakeStudentPackageRepository(
+            initialPackages = listOf(studentPackage),
+        )
+        val markStudentPresent = MarkStudentPresentUseCase(
+            repository = repository,
+            transactionRunner = FakeTransactionRunner(),
+        )
+
+        // When
+        val result = markStudentPresent(
+            studentId = studentPackage.studentId,
+            attendanceDate = firstClassDate,
+        )
+
+        // Then
+        assertEquals(
+            MarkStudentPresentResult.AttendanceDateTooEarly(
+                earliestAllowedDate = secondClassDate,
+            ),
+            result,
+        )
+        assertEquals(
+            studentPackage,
+            repository.getLatestPackageForStudent(studentPackage.studentId),
+        )
+        assertTrue(repository.recordedAttendances.isEmpty())
+    }
+
+    @Test
+    fun `rejects attendance before activation even when package was already purchased`() = runTest {
+        // Given
+        val studentPackage = testStudentPackage(
+            purchasedOn = firstClassDate,
+            startedOn = thirdClassDate,
+        )
+        val repository = FakeStudentPackageRepository(
+            initialPackages = listOf(studentPackage),
+        )
+        val markStudentPresent = MarkStudentPresentUseCase(
+            repository = repository,
+            transactionRunner = FakeTransactionRunner(),
+        )
+
+        // When
+        val result = markStudentPresent(
+            studentId = studentPackage.studentId,
+            attendanceDate = secondClassDate,
+        )
+
+        // Then
+        assertEquals(
+            MarkStudentPresentResult.AttendanceDateTooEarly(
+                earliestAllowedDate = thirdClassDate,
+            ),
+            result,
+        )
+        assertEquals(
+            studentPackage,
+            repository.getLatestPackageForStudent(studentPackage.studentId),
+        )
+        assertTrue(repository.recordedAttendances.isEmpty())
+    }
+
+    @Test
+    fun `first attendance on purchase date activates prepaid package`() = runTest {
+        // Given
+        val studentPackage = testStudentPackage(
+            purchasedOn = firstClassDate,
+            startedOn = null,
+        )
+        val repository = FakeStudentPackageRepository(
+            initialPackages = listOf(studentPackage),
+        )
+        val markStudentPresent = MarkStudentPresentUseCase(
+            repository = repository,
+            transactionRunner = FakeTransactionRunner(),
+        )
+
+        // When
+        val result = markStudentPresent(
+            studentId = studentPackage.studentId,
+            attendanceDate = firstClassDate,
+        )
+
+        // Then
+        val success = assertIs<MarkStudentPresentResult.Success>(result)
+
+        assertEquals(firstClassDate, success.studentPackage.purchasedOn)
+        assertEquals(firstClassDate, success.studentPackage.startedOn)
+        assertEquals(
+            mapOf(firstClassDate to 1),
+            success.studentPackage.attendanceHistory.visitsByDate,
+        )
+        assertEquals(
+            success.studentPackage,
+            repository.getLatestPackageForStudent(studentPackage.studentId),
         )
     }
 }

@@ -1,15 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
-import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -60,27 +54,8 @@ class AttendanceCheckAvailabilityTest {
     }
 
     private fun rowFor(attendanceDates: Set<LocalDate>, currentDate: LocalDate): StudentAttendanceUiState =
-        testAttendanceContentUiState(
-            attendance =
-            Attendance(
-                entries = listOf(
-                    RegisteredStudent(
-                        student = testStudent(),
-                        studentPackage =
-                        StudentPackage(
-                            id = 1,
-                            studentId = 1,
-                            packageType = fourClassPackage,
-                            startedOn = firstClassDate,
-                            attendanceHistory =
-                            PackageAttendanceHistory(
-                                visitsByDate = attendanceDates.associateWith { 1 },
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-            packageTypes = listOf(fourClassPackage),
+        testStudentAttendanceUiState(
+            visitsByDate = attendanceDates.associateWith { 1 },
             currentDate = currentDate,
         ).rows.single()
 }

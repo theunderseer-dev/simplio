@@ -7,25 +7,21 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.StudentRegistrationTestCallback
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalTestApi::class)
 class StudentRegistrationDialogGroupUiTest {
     @Test
     fun `registration provides selected group id`() = runComposeUiTest {
         // Given
-        var registeredGroupId: Int? = null
+        val registrationCallback = StudentRegistrationTestCallback()
 
         setContent {
             StudentRegistrationDialogForTest(
-                packageTypes = listOf(testClassPackage()),
-                initialDate = registrationDate,
-                onRegister = { _, groupId, _, _, _ ->
-                    registeredGroupId = groupId
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
@@ -40,6 +36,11 @@ class StudentRegistrationDialogGroupUiTest {
             .performClick()
 
         // Then
-        assertEquals(DefaultStudentGroups.GROUP_B.id, registeredGroupId)
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals(
+            DefaultStudentGroups.GROUP_B.id,
+            submission.groupId,
+        )
     }
 }

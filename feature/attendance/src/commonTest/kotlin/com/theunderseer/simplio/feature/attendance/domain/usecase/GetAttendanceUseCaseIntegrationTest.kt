@@ -7,14 +7,15 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceE
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackageEntity
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -75,34 +76,20 @@ class GetAttendanceUseCaseIntegrationTest {
 
         val packageType = packageTemplate.copy(id = packageTypeId)
 
-        val latestStartedOn =
-            LocalDate(
-                2026,
-                10,
-                1,
-            )
-
         val latestPackageId = database.studentPackageDao().insert(
             testStudentPackageEntity(
                 studentId = studentId,
                 packageType = packageType,
-                startedOnEpochDay = latestStartedOn.toEpochDays(),
+                startedOnEpochDay = firstClassDate.toEpochDays(),
             ),
         ).toInt()
-
-        val secondAttendanceDate =
-            LocalDate(
-                2026,
-                10,
-                3,
-            )
 
         database
             .attendanceDao()
             .insert(
                 AttendanceEntity(
                     packageId = latestPackageId,
-                    attendedOnEpochDay = latestStartedOn.toEpochDays(),
+                    attendedOnEpochDay = firstClassDate.toEpochDays(),
                 ),
             )
 
@@ -111,7 +98,7 @@ class GetAttendanceUseCaseIntegrationTest {
             .insert(
                 AttendanceEntity(
                     packageId = latestPackageId,
-                    attendedOnEpochDay = secondAttendanceDate.toEpochDays(),
+                    attendedOnEpochDay = secondClassDate.toEpochDays(),
                 ),
             )
 
@@ -153,19 +140,15 @@ class GetAttendanceUseCaseIntegrationTest {
                 listOf(
                     RegisteredStudent(
                         student = testStudent(id = studentId),
-                        studentPackage =
-                        StudentPackage(
+                        studentPackage = testStudentPackage(
                             id = latestPackageId,
                             studentId = studentId,
                             packageType = packageType,
-                            startedOn = latestStartedOn,
-                            attendanceHistory =
-                            PackageAttendanceHistory(
-                                visitsByDate =
-                                mapOf(
-                                    latestStartedOn to 1,
-                                    secondAttendanceDate to 1,
-                                ),
+                            purchasedOn = firstClassDate,
+                            startedOn = firstClassDate,
+                            visitsByDate = mapOf(
+                                firstClassDate to 1,
+                                secondClassDate to 1,
                             ),
                         ),
                     ),

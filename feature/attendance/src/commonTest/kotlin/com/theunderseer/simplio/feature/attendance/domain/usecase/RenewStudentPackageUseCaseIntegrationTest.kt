@@ -6,14 +6,18 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fifthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.registrationDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.sixthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.studentEntity
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testPackageTypeEntity
@@ -73,8 +77,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
             firstClassDate,
             secondClassDate,
             thirdClassDate,
-            LocalDate(2026, 10, 12),
-            LocalDate(2026, 10, 16),
+            fourthClassDate,
+            fifthClassDate,
         )
         val oldPackageId = seedPackage(
             studentId = studentId,
@@ -82,7 +86,7 @@ class RenewStudentPackageUseCaseIntegrationTest {
             startedOn = oldStartedOn,
             attendanceDates = oldAttendanceDates,
         )
-        val renewedOn = LocalDate(2026, 10, 19)
+        val renewedOn = sixthClassDate
 
         // When
         val result =
@@ -95,6 +99,7 @@ class RenewStudentPackageUseCaseIntegrationTest {
         // Then
         val success =
             assertIs<RenewStudentPackageResult.Success>(result)
+        assertEquals(renewedOn, success.studentPackage.purchasedOn)
 
         assertTrue(
             success.studentPackage.id != oldPackageId,
@@ -283,6 +288,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val success =
             assertIs<RenewStudentPackageResult.Success>(result)
 
+        assertEquals(renewedOn, success.studentPackage.purchasedOn)
+
         assertTrue(
             success.studentPackage.id != oldPackageId,
         )
@@ -372,16 +379,15 @@ class RenewStudentPackageUseCaseIntegrationTest {
                 override suspend fun create(
                     studentId: Int,
                     packageType: PackageType,
-                    startedOn: LocalDate,
-                    visitCount: Int,
+                    purchasedOn: LocalDate,
+                    initialAttendance: InitialAttendance?,
                 ): StudentPackage {
-                    val studentPackage =
-                        roomRepository.create(
-                            studentId = studentId,
-                            packageType = packageType,
-                            startedOn = startedOn,
-                            visitCount = visitCount,
-                        )
+                    val studentPackage = roomRepository.create(
+                        studentId = studentId,
+                        packageType = packageType,
+                        purchasedOn = purchasedOn,
+                        initialAttendance = initialAttendance,
+                    )
 
                     createdPackageId = studentPackage.id
 

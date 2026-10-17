@@ -51,7 +51,7 @@ import kotlinx.datetime.LocalDate
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    onRegisterStudent: (String, Int, PackageType, LocalDate, Int) -> Unit,
+    onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
@@ -198,13 +198,14 @@ fun AttendanceScreen(
                     studentGroups = state.studentGroups,
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
-                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount ->
+                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount, recordFirstAttendance ->
                         onRegisterStudent(
                             fullName,
                             groupId,
                             packageType,
                             registeredOn,
                             visitCount,
+                            recordFirstAttendance,
                         )
                         showRegistrationDialog = false
                     },
@@ -226,6 +227,7 @@ fun AttendanceScreen(
                     maxVisitsPerAttendance =
                     studentPackage.packageType.maxVisitsPerAttendance,
                     remainingClasses = studentPackage.remainingClasses,
+                    purchasedOn = studentPackage.purchasedOn,
                     startedOn = studentPackage.startedOn,
                     expiresOn = studentPackage.expiresOn,
                     recordedAttendanceDates = studentPackage.attendanceDates,
@@ -597,12 +599,12 @@ private fun StudentAttendanceRow(
         }
 
         Text(
-            text = studentPackage.startedOn.toDisplayDate(),
+            text = studentPackage.startedOn?.toDisplayDate().orEmpty(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 
         Text(
-            text = studentPackage.expiresOn.toDisplayDate(),
+            text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 

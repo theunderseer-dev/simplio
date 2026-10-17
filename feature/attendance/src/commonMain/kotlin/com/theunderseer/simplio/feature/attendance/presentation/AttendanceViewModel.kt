@@ -117,6 +117,7 @@ class AttendanceViewModel(
         packageType: PackageType,
         registeredOn: LocalDate,
         visitCount: Int = 1,
+        recordFirstAttendance: Boolean = true,
     ) {
         viewModelScope.launch {
             try {
@@ -126,6 +127,7 @@ class AttendanceViewModel(
                     packageType = packageType,
                     registeredOn = registeredOn,
                     visitCount = visitCount,
+                    recordFirstAttendance = recordFirstAttendance,
                 )
 
                 refreshAttendance()
@@ -182,6 +184,9 @@ class AttendanceViewModel(
 
                         MarkStudentPresentResult.InsufficientRemainingVisits ->
                             "Not enough visits remaining"
+
+                        is MarkStudentPresentResult.AttendanceDateTooEarly ->
+                            "Attendance cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
                     }
 
                 markAttendanceState.value =

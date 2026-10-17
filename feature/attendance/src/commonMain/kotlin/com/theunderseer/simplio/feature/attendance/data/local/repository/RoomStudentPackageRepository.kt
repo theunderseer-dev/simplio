@@ -5,6 +5,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentPackage
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -17,34 +18,38 @@ class RoomStudentPackageRepository(
     override suspend fun create(
         studentId: Int,
         packageType: PackageType,
-        startedOn: LocalDate,
-        visitCount: Int,
+        purchasedOn: LocalDate,
+        initialAttendance: InitialAttendance?,
     ): StudentPackage {
-        val entity =
-            StudentPackageEntity(
-                studentId = studentId,
-                packageTypeId = packageType.id,
-                packageName = packageType.name,
-                totalClasses = packageType.totalClasses,
-                validityWeeks = packageType.validityWeeks,
-                price = packageType.price,
-                startedOnEpochDay = startedOn.toEpochDays(),
-                maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
-            )
+        val entity = StudentPackageEntity(
+            studentId = studentId,
+            packageTypeId = packageType.id,
+            packageName = packageType.name,
+            totalClasses = packageType.totalClasses,
+            validityWeeks = packageType.validityWeeks,
+            price = packageType.price,
+            purchasedOnEpochDay = purchasedOn.toEpochDays(),
+            startedOnEpochDay = initialAttendance?.date?.toEpochDays(),
+            maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
+        )
 
         val id = studentPackageDao.insert(entity).toInt()
-        val firstAttendance =
+
+        val attendance = initialAttendance?.let {
             AttendanceEntity(
                 packageId = id,
-                attendedOnEpochDay = startedOn.toEpochDays(),
-                visitCount = visitCount,
+                attendedOnEpochDay = it.date.toEpochDays(),
+                visitCount = it.visitCount,
             )
+        }
 
-        attendanceDao.insert(firstAttendance)
+        if (attendance != null) {
+            attendanceDao.insert(attendance)
+        }
 
         return entity
             .copy(id = id)
-            .toDomain(attendance = listOf(firstAttendance))
+            .toDomain(attendance = listOfNotNull(attendance))
     }
 
     override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? {
@@ -61,6 +66,11 @@ class RoomStudentPackageRepository(
     }
 
     override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
+        studentPackageDao.activateIfNeeded(
+            packageId = packageId,
+            startedOnEpochDay = attendedOn.toEpochDays(),
+        )
+
         attendanceDao.insert(
             AttendanceEntity(
                 packageId = packageId,

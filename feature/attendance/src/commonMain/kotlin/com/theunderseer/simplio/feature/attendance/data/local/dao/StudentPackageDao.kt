@@ -15,9 +15,19 @@ interface StudentPackageDao {
         SELECT *
         FROM student_packages
         WHERE studentId = :studentId
-        ORDER BY startedOnEpochDay DESC, id DESC
+        ORDER BY purchasedOnEpochDay DESC, id DESC
         LIMIT 1
         """,
     )
     suspend fun getLatestForStudent(studentId: Int): StudentPackageEntity?
+
+    @Query(
+        """
+        UPDATE student_packages
+        SET startedOnEpochDay = :startedOnEpochDay
+        WHERE id = :packageId
+          AND startedOnEpochDay IS NULL
+        """,
+    )
+    suspend fun activateIfNeeded(packageId: Int, startedOnEpochDay: Long)
 }

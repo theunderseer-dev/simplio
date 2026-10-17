@@ -19,6 +19,15 @@ class MarkStudentPresentUseCase(
             repository.getLatestPackageForStudent(studentId)
                 ?: return@run MarkStudentPresentResult.PackageNotFound
 
+        val earliestAllowedDate =
+            studentPackage.startedOn ?: studentPackage.purchasedOn
+
+        if (attendanceDate < earliestAllowedDate) {
+            return@run MarkStudentPresentResult.AttendanceDateTooEarly(
+                earliestAllowedDate = earliestAllowedDate,
+            )
+        }
+
         if (studentPackage.isCompleted) {
             return@run MarkStudentPresentResult.PackageCompleted(
                 studentPackage = studentPackage,
@@ -47,6 +56,7 @@ class MarkStudentPresentUseCase(
 
         val updatedPackage =
             studentPackage.copy(
+                startedOn = studentPackage.startedOn ?: attendanceDate,
                 attendanceHistory =
                 PackageAttendanceHistory(
                     visitsByDate =

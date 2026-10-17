@@ -36,7 +36,8 @@ data class StudentPackageEntity(
     val totalClasses: Int,
     val validityWeeks: Int,
     val price: Int,
-    val startedOnEpochDay: Long,
+    val purchasedOnEpochDay: Long,
+    val startedOnEpochDay: Long? = null,
 
     @ColumnInfo(defaultValue = "1")
     val maxVisitsPerAttendance: Int = 1,

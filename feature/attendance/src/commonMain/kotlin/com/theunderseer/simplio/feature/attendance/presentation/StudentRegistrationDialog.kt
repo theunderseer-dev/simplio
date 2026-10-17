@@ -3,9 +3,16 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -27,7 +34,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -45,7 +54,7 @@ fun StudentRegistrationDialog(
     studentGroups: List<StudentGroup>,
     packageTypes: List<PackageType>,
     initialDate: LocalDate,
-    onRegister: (String, Int, PackageType, LocalDate, Int) -> Unit,
+    onRegister: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var fullName by remember {
@@ -63,6 +72,10 @@ fun StudentRegistrationDialog(
                     it.maxVisitsPerAttendance == 1
             },
         )
+    }
+
+    var recordFirstAttendance by remember {
+        mutableStateOf(true)
     }
 
     val isPairedPackage =
@@ -92,7 +105,9 @@ fun StudentRegistrationDialog(
             Text("Add Student")
         },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 OutlinedTextField(
                     value = fullName,
                     onValueChange = { fullName = it },
@@ -194,43 +209,70 @@ fun StudentRegistrationDialog(
                             )
                         }
                     }
+                }
 
-                    if (isPairedPackage) {
-                        Column(
-                            modifier = Modifier.padding(top = 16.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .toggleable(
+                            value = recordFirstAttendance,
+                            role = Role.Checkbox,
+                            onValueChange = {
+                                recordFirstAttendance = it
+                            },
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Checkbox(
+                        checked = recordFirstAttendance,
+                        onCheckedChange = null,
+                    )
+
+                    Text(
+                        text = "Record first attendance",
+                        modifier = Modifier.padding(start = 12.dp),
+                    )
+                }
+
+                if (isPairedPackage && recordFirstAttendance) {
+                    Column(
+                        modifier = Modifier.padding(top = 16.dp),
+                    ) {
+                        Text("People attending")
+
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp)
+                                .heightIn(min = 48.dp),
                         ) {
-                            Text("People attending")
-
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier.padding(top = 8.dp),
+                            SegmentedButton(
+                                selected = selectedVisitCount == 1,
+                                onClick = {
+                                    selectedVisitCount = 1
+                                },
+                                shape =
+                                SegmentedButtonDefaults.itemShape(
+                                    index = 0,
+                                    count = 2,
+                                ),
                             ) {
-                                SegmentedButton(
-                                    selected = selectedVisitCount == 1,
-                                    onClick = {
-                                        selectedVisitCount = 1
-                                    },
-                                    shape =
-                                    SegmentedButtonDefaults.itemShape(
-                                        index = 0,
-                                        count = 2,
-                                    ),
-                                ) {
-                                    Text("1 person")
-                                }
+                                Text("1 person")
+                            }
 
-                                SegmentedButton(
-                                    selected = selectedVisitCount == 2,
-                                    onClick = {
-                                        selectedVisitCount = 2
-                                    },
-                                    shape =
-                                    SegmentedButtonDefaults.itemShape(
-                                        index = 1,
-                                        count = 2,
-                                    ),
-                                ) {
-                                    Text("2 people")
-                                }
+                            SegmentedButton(
+                                selected = selectedVisitCount == 2,
+                                onClick = {
+                                    selectedVisitCount = 2
+                                },
+                                shape =
+                                SegmentedButtonDefaults.itemShape(
+                                    index = 1,
+                                    count = 2,
+                                ),
+                            ) {
+                                Text("2 people")
                             }
                         }
                     }
@@ -250,6 +292,7 @@ fun StudentRegistrationDialog(
                         checkNotNull(selectedPackage),
                         selectedDate,
                         selectedVisitCount,
+                        recordFirstAttendance,
                     )
                 },
             ) {

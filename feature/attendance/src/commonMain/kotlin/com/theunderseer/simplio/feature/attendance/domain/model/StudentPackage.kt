@@ -8,10 +8,11 @@ data class StudentPackage(
     val id: Int,
     val studentId: Int,
     val packageType: PackageType,
-    val startedOn: LocalDate,
+    val purchasedOn: LocalDate,
+    val startedOn: LocalDate? = null,
     val attendanceHistory: PackageAttendanceHistory =
         PackageAttendanceHistory(
-            visitsByDate = mapOf(startedOn to 1),
+            visitsByDate = emptyMap(),
         ),
 ) {
     val attendanceDates: Set<LocalDate>
@@ -23,16 +24,15 @@ data class StudentPackage(
     val remainingClasses: Int
         get() = (packageType.totalClasses - usedClasses).coerceAtLeast(0)
 
-    val expiresOn: LocalDate
-        get() =
-            startedOn.plus(
-                DatePeriod(days = packageType.validityWeeks * 7),
-            )
+    val expiresOn: LocalDate?
+        get() = startedOn?.plus(
+            DatePeriod(days = packageType.validityWeeks * 7),
+        )
 
     val isCompleted: Boolean
         get() = usedClasses >= packageType.totalClasses
 
-    fun isExpiredOn(attendanceDate: LocalDate): Boolean = attendanceDate > expiresOn
+    fun isExpiredOn(attendanceDate: LocalDate): Boolean = expiresOn?.let { attendanceDate > it } ?: false
 
     fun isActiveOn(attendanceDate: LocalDate): Boolean = !isExpiredOn(attendanceDate) && !isCompleted
 

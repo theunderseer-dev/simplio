@@ -19,10 +19,10 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
         price = price,
         maxVisitsPerAttendance = maxVisitsPerAttendance,
     ),
-    startedOn =
-    LocalDate.fromEpochDays(
-        startedOnEpochDay,
-    ),
+    purchasedOn = LocalDate.fromEpochDays(purchasedOnEpochDay),
+    startedOn = startedOnEpochDay?.let {
+        LocalDate.fromEpochDays(it)
+    },
     attendanceHistory =
     PackageAttendanceHistory(
         visitsByDate =

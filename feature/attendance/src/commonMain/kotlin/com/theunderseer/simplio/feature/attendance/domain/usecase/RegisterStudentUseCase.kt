@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -18,24 +19,33 @@ class RegisterStudentUseCase(
         packageType: PackageType,
         registeredOn: LocalDate,
         visitCount: Int = 1,
+        recordFirstAttendance: Boolean = true,
     ): RegisteredStudent = transactionRunner.run {
-        require(packageType.allowsVisitCount(visitCount)) {
-            "Visit count is not allowed for the selected package"
-        }
+        val initialAttendance =
+            if (recordFirstAttendance) {
+                require(packageType.allowsVisitCount(visitCount)) {
+                    "Visit count is not allowed for the selected package"
+                }
 
-        val student =
-            studentRepository.create(
-                fullName = fullName,
-                groupId = groupId,
-            )
+                InitialAttendance(
+                    date = registeredOn,
+                    visitCount = visitCount,
+                )
+            } else {
+                null
+            }
 
-        val studentPackage =
-            studentPackageRepository.create(
-                studentId = student.id,
-                packageType = packageType,
-                startedOn = registeredOn,
-                visitCount = visitCount,
-            )
+        val student = studentRepository.create(
+            fullName = fullName,
+            groupId = groupId,
+        )
+
+        val studentPackage = studentPackageRepository.create(
+            studentId = student.id,
+            packageType = packageType,
+            purchasedOn = registeredOn,
+            initialAttendance = initialAttendance,
+        )
 
         RegisteredStudent(
             student = student,
