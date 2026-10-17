@@ -6,6 +6,4 @@ sealed interface RemoveStudentAttendanceResult {
     data class Success(val studentPackage: StudentPackage) : RemoveStudentAttendanceResult
 
     data object PackageNotFound : RemoveStudentAttendanceResult
-
-    data object FirstAttendanceCannotBeRemoved : RemoveStudentAttendanceResult
 }

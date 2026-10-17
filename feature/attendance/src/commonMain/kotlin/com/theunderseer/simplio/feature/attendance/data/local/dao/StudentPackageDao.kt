@@ -30,4 +30,17 @@ interface StudentPackageDao {
         """,
     )
     suspend fun activateIfNeeded(packageId: Int, startedOnEpochDay: Long)
+
+    @Query(
+        """
+        UPDATE student_packages
+        SET startedOnEpochDay = (
+            SELECT MIN(attendedOnEpochDay)
+            FROM attendance
+            WHERE packageId = :packageId
+        )
+        WHERE id = :packageId
+        """,
+    )
+    suspend fun updateStartedOnFromAttendance(packageId: Int)
 }

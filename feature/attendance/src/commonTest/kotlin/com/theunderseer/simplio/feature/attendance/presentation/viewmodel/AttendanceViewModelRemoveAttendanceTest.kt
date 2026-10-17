@@ -28,6 +28,8 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelRemoveAttendanceTest {
@@ -99,54 +101,47 @@ class AttendanceViewModelRemoveAttendanceTest {
     }
 
     @Test
-    fun `keeps attendance content when first attendance removal is rejected`() = runViewModelTest {
+    fun `removing the only attendance resets package dates and updates row state`() = runViewModelTest {
         // Given
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
         val student = studentRepository.seed(student)
-        val studentPackage =
-            studentPackageRepository.seed(
-                studentId = student.id,
-                packageType = fourClassPackage,
-                startedOn = firstClassDate,
-            )
+        val studentPackage = studentPackageRepository.seed(
+            studentId = student.id,
+            packageType = fourClassPackage,
+            startedOn = firstClassDate,
+        )
         val viewModel = createViewModel(
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
             currentDates = flowOf(firstClassDate),
         )
-
         observeUiState(viewModel)
         advanceUntilIdle()
-        val before =
-            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
 
         // When
-        viewModel.removeStudentAttendance(
-            studentId = student.id,
-            attendanceDate = firstClassDate,
-        )
+        viewModel.removeStudentAttendance(student.id, firstClassDate)
         advanceUntilIdle()
 
-        // Then: the table remains available with an operation error
-        val after =
-            assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
-
-        assertEquals(
-            before.copy(
-                removeStudentAttendanceState =
-                RemoveStudentAttendanceUiState.Error(
-                    message = "The first attendance cannot be removed",
-                ),
-            ),
-            after,
+        // Then
+        val after = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+        val row = after.rows.single()
+        val updatedPackage = row.registeredStudent.studentPackage
+        val expectedPackage = studentPackage.copy(
+            startedOn = null,
+            attendanceHistory = PackageAttendanceHistory(visitsByDate = emptyMap()),
         )
 
-        // And: the stored package remains unchanged
-        assertEquals(
-            studentPackage,
-            studentPackageRepository.getLatestPackageForStudent(student.id),
-        )
+        assertEquals(RemoveStudentAttendanceUiState.Success, after.removeStudentAttendanceState)
+        assertEquals(expectedPackage, updatedPackage)
+        assertEquals(expectedPackage, after.attendance.entries.single().studentPackage)
+        assertEquals(0, updatedPackage.usedClasses)
+        assertEquals(4, updatedPackage.remainingClasses)
+        assertNull(updatedPackage.startedOn)
+        assertNull(updatedPackage.expiresOn)
+        assertEquals(AttendanceCheckState.Pending, row.checkState)
+        assertTrue(row.isCheckEnabled)
+        assertEquals(expectedPackage, studentPackageRepository.getLatestPackageForStudent(student.id))
     }
 
     @Test

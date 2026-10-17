@@ -16,15 +16,13 @@ class RemoveStudentAttendanceUseCase(
                 repository.getLatestPackageForStudent(studentId)
                     ?: return@run RemoveStudentAttendanceResult.PackageNotFound
 
-            if (attendanceDate == studentPackage.startedOn) {
-                return@run RemoveStudentAttendanceResult.FirstAttendanceCannotBeRemoved
-            }
-
             if (attendanceDate !in studentPackage.attendanceDates) {
                 return@run RemoveStudentAttendanceResult.Success(
                     studentPackage = studentPackage,
                 )
             }
+
+            val remainingVisits = studentPackage.attendanceHistory.visitsByDate - attendanceDate
 
             repository.removeAttendance(
                 packageId = studentPackage.id,
@@ -32,13 +30,10 @@ class RemoveStudentAttendanceUseCase(
             )
 
             RemoveStudentAttendanceResult.Success(
-                studentPackage =
-                studentPackage.copy(
-                    attendanceHistory =
-                    PackageAttendanceHistory(
-                        visitsByDate =
-                        studentPackage.attendanceHistory.visitsByDate -
-                            attendanceDate,
+                studentPackage = studentPackage.copy(
+                    startedOn = remainingVisits.keys.minOrNull(),
+                    attendanceHistory = PackageAttendanceHistory(
+                        visitsByDate = remainingVisits,
                     ),
                 ),
             )

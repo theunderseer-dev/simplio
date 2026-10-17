@@ -57,12 +57,9 @@ class RoomStudentPackageRepository(
             studentPackageDao.getLatestForStudent(studentId)
                 ?: return null
 
-        val attendance =
-            attendanceDao.getForPackage(entity.id)
+        val attendance = attendanceDao.getForPackage(entity.id)
 
-        return entity.toDomain(
-            attendance = attendance,
-        )
+        return entity.toDomain(attendance = attendance)
     }
 
     override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
@@ -85,5 +82,7 @@ class RoomStudentPackageRepository(
             packageId = packageId,
             attendedOnEpochDay = attendedOn.toEpochDays(),
         )
+
+        studentPackageDao.updateStartedOnFromAttendance(packageId)
     }
 }

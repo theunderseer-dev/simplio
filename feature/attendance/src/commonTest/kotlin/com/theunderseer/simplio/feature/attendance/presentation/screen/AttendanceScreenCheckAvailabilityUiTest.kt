@@ -5,7 +5,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -21,7 +21,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenCheckAvailabilityUiTest {
     @Test
-    fun `first attendance check is disabled and cannot open an attendance dialog`() = runComposeUiTest {
+    fun `first attendance check is enabled and removal requires confirmation`() = runComposeUiTest {
         // Given
         val state = testStudentAttendanceUiState(
             currentDate = firstClassDate,
@@ -41,12 +41,12 @@ class AttendanceScreenCheckAvailabilityUiTest {
             )
         }
 
-        // Then: the first attendance still appears checked
+        // Then: the first attendance is checked and its action is enabled
         val check = onNodeWithContentDescription(
             "Mark ${student.fullName} present",
         )
 
-        check.assertIsNotEnabled()
+        check.assertIsEnabled()
         check.assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.StateDescription,
@@ -55,14 +55,21 @@ class AttendanceScreenCheckAvailabilityUiTest {
         )
         onNodeWithText("1 / 4").assertIsDisplayed()
 
-        // When: a click is attempted
+        // When
         check.performClick()
 
-        // Then: neither attendance action is opened or dispatched
-        onNodeWithText("Remove attendance?").assertDoesNotExist()
+        // Then: opening confirmation does not change attendance
+        onNodeWithText("Remove attendance?").assertIsDisplayed()
         onNodeWithText("Select attendance date").assertDoesNotExist()
         assertEquals(emptyList(), markedAttendance)
         assertEquals(emptyList(), removedAttendance)
+
+        // When
+        onNodeWithText("Remove").performClick()
+
+        // Then: only the confirmed removal is dispatched
+        assertEquals(listOf(student.id to firstClassDate), removedAttendance)
+        assertEquals(emptyList(), markedAttendance)
     }
 
     @Test

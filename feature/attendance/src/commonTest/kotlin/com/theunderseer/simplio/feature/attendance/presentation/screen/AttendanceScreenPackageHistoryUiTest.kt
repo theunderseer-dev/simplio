@@ -33,7 +33,7 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenPackageHistoryUiTest {
     @Test
-    fun `shows removal actions only for attendance after registration date`() = runComposeUiTest {
+    fun `shows removal actions for every recorded attendance date`() = runComposeUiTest {
         // Given
         val state = packageHistoryState()
 
@@ -60,11 +60,12 @@ class AttendanceScreenPackageHistoryUiTest {
             .assertIsDisplayed()
             .assertHasClickAction()
 
-        // And: registration attendance has no removal button
+        // And: first attendance can also be removed
         onNodeWithContentDescription(
             "Remove attendance on Oct 2 for Anna Smith",
         )
-            .assertDoesNotExist()
+            .assertIsDisplayed()
+            .assertHasClickAction()
 
         onNodeWithText("Package history")
             .assertIsDisplayed()
@@ -169,12 +170,13 @@ class AttendanceScreenPackageHistoryUiTest {
                         currentState.attendance.entries.map { entry ->
                             if (entry.student.id == studentId) {
                                 val studentPackage = entry.studentPackage
+                                val remainingVisits = studentPackage.attendanceHistory.visitsByDate - date
 
                                 entry.copy(
                                     studentPackage = studentPackage.copy(
+                                        startedOn = remainingVisits.keys.minOrNull(),
                                         attendanceHistory = PackageAttendanceHistory(
-                                            visitsByDate =
-                                            studentPackage.attendanceHistory.visitsByDate - date,
+                                            visitsByDate = remainingVisits,
                                         ),
                                     ),
                                 )
@@ -445,10 +447,10 @@ class AttendanceScreenPackageHistoryUiTest {
             "Visits on Oct 9 for ${student.fullName}",
         ).assertTextEquals("2").assertIsDisplayed()
 
-        // Registration attendance still cannot be removed.
+        // First attendance can be removed with all visits for that date.
         onNodeWithContentDescription(
             "Remove attendance on Oct 2 for ${student.fullName}",
-        ).assertDoesNotExist()
+        ).assertIsDisplayed().assertHasClickAction()
     }
 
     @Test

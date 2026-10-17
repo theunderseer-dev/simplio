@@ -231,12 +231,6 @@ class AttendanceViewModel(
                             RemoveStudentAttendanceUiState.Success
                     }
 
-                    RemoveStudentAttendanceResult.FirstAttendanceCannotBeRemoved ->
-                        removeAttendanceState.value =
-                            RemoveStudentAttendanceUiState.Error(
-                                message = "The first attendance cannot be removed",
-                            )
-
                     RemoveStudentAttendanceResult.PackageNotFound ->
                         removeAttendanceState.value =
                             RemoveStudentAttendanceUiState.Error(

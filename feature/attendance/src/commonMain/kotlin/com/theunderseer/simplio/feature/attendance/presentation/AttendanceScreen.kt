@@ -572,31 +572,29 @@ private fun StudentAttendanceRow(
                                 modifier = Modifier.width(32.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (date != studentPackage.startedOn) {
-                                    Text(
-                                        text = "×",
-                                        modifier =
-                                        Modifier
-                                            .clickable(
-                                                role = Role.Button,
-                                                onClick = {
-                                                    onRemoveAttendanceClick(date)
-                                                },
-                                            )
-                                            .semantics {
-                                                contentDescription =
-                                                    "Remove attendance on ${date.toDisplayDate()} " +
-                                                    "for ${registeredStudent.student.fullName}"
-                                            }
-                                            .padding(
-                                                horizontal = 6.dp,
-                                                vertical = 2.dp,
-                                            ),
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontSize = 20.sp,
-                                        lineHeight = 20.sp,
-                                    )
-                                }
+                                Text(
+                                    text = "×",
+                                    modifier =
+                                    Modifier
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClick = {
+                                                onRemoveAttendanceClick(date)
+                                            },
+                                        )
+                                        .semantics {
+                                            contentDescription =
+                                                "Remove attendance on ${date.toDisplayDate()} " +
+                                                "for ${registeredStudent.student.fullName}"
+                                        }
+                                        .padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp,
+                                        ),
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 20.sp,
+                                    lineHeight = 20.sp,
+                                )
                             }
                         }
                     }
