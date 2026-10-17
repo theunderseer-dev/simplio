@@ -18,7 +18,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
-import kotlin.collections.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -48,13 +47,30 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         assertEquals(
             ClassHistoryUiState.Content(
-                entries = listOf(latestClassEntry()) + entries.take(10),
-                nextBeforeDate = entries[9].date,
+                entries = listOf(latestClassEntry()) + entries.take(4),
+                nextBeforeDate = entries[3].date,
             ),
             historyState(viewModel),
         )
 
-        // When
+        // When: the second page is loaded
+        viewModel.loadNextClassHistoryPage()
+        advanceUntilIdle()
+
+        // Then
+        assertEquals(
+            ClassHistoryUiState.Content(
+                entries = listOf(latestClassEntry()) + entries.take(9),
+                nextBeforeDate = entries[8].date,
+            ),
+            historyState(viewModel),
+        )
+        assertEquals(
+            listOf(null, entries[3].date),
+            requestedBeforeDates,
+        )
+
+        // When: the remaining entries are loaded
         viewModel.loadNextClassHistoryPage()
         advanceUntilIdle()
 
@@ -66,7 +82,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         assertEquals(expectedHistory, historyState(viewModel))
         assertEquals(
-            listOf(null, entries[9].date),
+            listOf(null, entries[3].date, entries[8].date),
             requestedBeforeDates,
         )
 
@@ -77,7 +93,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
         // Then
         assertEquals(expectedHistory, historyState(viewModel))
         assertEquals(
-            listOf(null, entries[9].date),
+            listOf(null, entries[3].date, entries[8].date),
             requestedBeforeDates,
         )
     }
@@ -130,8 +146,8 @@ class AttendanceViewModelClassHistoryPaginationTest {
         // Then
         assertEquals(
             ClassHistoryUiState.Content(
-                entries = listOf(latestClassEntry()) + entries,
-                nextBeforeDate = null,
+                entries = listOf(latestClassEntry()) + entries.take(9),
+                nextBeforeDate = entries[8].date,
             ),
             historyState(viewModel),
         )
@@ -192,8 +208,8 @@ class AttendanceViewModelClassHistoryPaginationTest {
         // Then
         assertEquals(
             ClassHistoryUiState.Content(
-                entries = listOf(latestClassEntry()) + entries,
-                nextBeforeDate = null,
+                entries = listOf(latestClassEntry()) + entries.take(9),
+                nextBeforeDate = entries[8].date,
             ),
             historyState(viewModel),
         )
@@ -204,7 +220,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         assertEquals(before.attendance, after.attendance)
         assertEquals(
-            listOf(null, entries[9].date, entries[9].date),
+            listOf(null, entries[3].date, entries[3].date),
             requestedBeforeDates,
         )
     }

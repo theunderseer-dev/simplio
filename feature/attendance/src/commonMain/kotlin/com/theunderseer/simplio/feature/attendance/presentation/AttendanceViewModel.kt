@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -40,7 +41,7 @@ class AttendanceViewModel(
     private val removeStudentAttendanceUseCase: RemoveStudentAttendanceUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
     private val getClassHistoryUseCase: GetClassHistoryUseCase,
-    currentDates: Flow<LocalDate>,
+    private val currentDates: Flow<LocalDate>,
 ) : ViewModel() {
     private val attendanceData =
         MutableStateFlow<AttendanceDataState>(
@@ -302,22 +303,40 @@ class AttendanceViewModel(
     }
 
     fun loadNextClassHistoryPage() {
-        val content =
+        val initialContent =
             classHistoryData.value as? ClassHistoryUiState.Content
                 ?: return
-        val beforeDate = content.nextBeforeDate ?: return
 
-        if (content.isLoadingNextPage) {
+        if (initialContent.isLoadingNextPage) {
             return
         }
 
-        classHistoryData.value = content.copy(
+        classHistoryData.value = initialContent.copy(
             isLoadingNextPage = true,
             nextPageErrorMessage = null,
         )
 
         classHistoryJob = viewModelScope.launch {
+            var content = initialContent
+
             try {
+                // Use the displayed boundary, including a possible empty latest class.
+                content = content.withLatestClassDate(
+                    latestClassDate = latestScheduledClassDate(
+                        today = currentDates.first(),
+                    ),
+                )
+
+                val beforeDate = content.nextBeforeDate
+
+                if (beforeDate == null) {
+                    classHistoryData.value = content.copy(
+                        isLoadingNextPage = false,
+                        nextPageErrorMessage = null,
+                    )
+                    return@launch
+                }
+
                 val page = getClassHistoryUseCase(
                     beforeDate = beforeDate,
                 )

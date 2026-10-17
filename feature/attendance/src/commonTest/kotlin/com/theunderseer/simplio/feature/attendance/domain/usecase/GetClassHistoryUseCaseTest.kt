@@ -23,7 +23,7 @@ class GetClassHistoryUseCaseTest {
         // Then
         assertEquals(emptyList(), page.entries)
         assertNull(page.nextBeforeDate)
-        assertEquals(11, repository.lastLimit)
+        assertEquals(6, repository.lastLimit)
     }
 
     @Test
@@ -43,9 +43,9 @@ class GetClassHistoryUseCaseTest {
     }
 
     @Test
-    fun `exactly twenty entries do not require another page`() = runTest {
+    fun `exactly five entries do not require another page`() = runTest {
         // Given
-        val entries = historyEntries(count = 10)
+        val entries = historyEntries(count = 5)
         val getHistory = GetClassHistoryUseCase(
             FakeClassHistoryRepository(entries),
         )
@@ -59,7 +59,7 @@ class GetClassHistoryUseCaseTest {
     }
 
     @Test
-    fun `loads older page without repeating previous entries`() = runTest {
+    fun `loads older pages without repeating or skipping entries`() = runTest {
         // Given
         val entries = historyEntries(count = 11)
         val repository = FakeClassHistoryRepository(entries)
@@ -69,8 +69,8 @@ class GetClassHistoryUseCaseTest {
         val firstPage = getHistory()
 
         // Then
-        assertEquals(entries.take(10), firstPage.entries)
-        assertEquals(entries[9].date, firstPage.nextBeforeDate)
+        assertEquals(entries.take(5), firstPage.entries)
+        assertEquals(entries[4].date, firstPage.nextBeforeDate)
 
         // When
         val secondPage = getHistory(
@@ -78,9 +78,23 @@ class GetClassHistoryUseCaseTest {
         )
 
         // Then
-        assertEquals(entries.takeLast(1), secondPage.entries)
-        assertNull(secondPage.nextBeforeDate)
+        assertEquals(entries.subList(5, 10), secondPage.entries)
+        assertEquals(entries[9].date, secondPage.nextBeforeDate)
+        assertEquals(entries[4].date, repository.lastBeforeDate)
+
+        // When
+        val thirdPage = getHistory(
+            beforeDate = secondPage.nextBeforeDate,
+        )
+
+        // Then
+        assertEquals(entries.takeLast(1), thirdPage.entries)
+        assertNull(thirdPage.nextBeforeDate)
         assertEquals(entries[9].date, repository.lastBeforeDate)
+        assertEquals(
+            entries,
+            firstPage.entries + secondPage.entries + thirdPage.entries,
+        )
     }
 
     private fun historyEntries(count: Int): List<ClassHistoryEntry> = List(count) { index ->
