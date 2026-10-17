@@ -37,7 +37,13 @@ jobs:
           cache-provider: basic
 
       - name: Run verification
-        run: ./gradlew check ktlintCheck detekt :feature:attendance:koverVerify
+        run: >
+            ./gradlew
+            check ktlintCheck detekt
+            :feature:attendance:koverVerify
+            --refresh-dependencies
+            --info
+            --stacktrace
 
       - name: Generate coverage report
         if: ${{ !cancelled() }}
