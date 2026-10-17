@@ -173,3 +173,35 @@ internal fun testStudentAttendanceUiState(
     packageTypes = listOf(packageType),
     currentDate = currentDate,
 )
+
+internal data class StudentRegistrationSubmission(
+    val fullName: String,
+    val groupId: Int,
+    val packageType: PackageType,
+    val registeredOn: LocalDate,
+    val visitCount: Int,
+    val recordFirstAttendance: Boolean,
+)
+
+internal class StudentRegistrationTestCallback {
+    var submission: StudentRegistrationSubmission? = null
+        private set
+
+    fun onRegister(
+        fullName: String,
+        groupId: Int,
+        packageType: PackageType,
+        registeredOn: LocalDate,
+        visitCount: Int,
+        recordFirstAttendance: Boolean,
+    ) {
+        submission = StudentRegistrationSubmission(
+            fullName = fullName,
+            groupId = groupId,
+            packageType = packageType,
+            registeredOn = registeredOn,
+            visitCount = visitCount,
+            recordFirstAttendance = recordFirstAttendance,
+        )
+    }
+}

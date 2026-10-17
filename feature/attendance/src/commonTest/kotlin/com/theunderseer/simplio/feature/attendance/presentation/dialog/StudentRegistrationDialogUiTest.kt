@@ -12,43 +12,33 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.StudentRegistrationTestCallback
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 @OptIn(ExperimentalTestApi::class)
 class StudentRegistrationDialogUiTest {
-    private val today = LocalDate(2026, 10, 5)
+    private val fourClassPackage = AttendanceTestData.fourClassPackage
+    private val fiveClassPackage = AttendanceTestData.fiveClassPackage
 
-    private val fourClassPackage = testClassPackage()
-
-    private val fiveClassPackage = testClassPackage(
-        id = 2,
-        plan = PackagePlan.FIVE_CLASSES,
-    )
-
-    private val duoPackage = testClassPackage(
-        id = 3,
-        plan = PackagePlan.DUO_SPECIAL,
-    )
-
-    private val individualPackages = listOf(
-        fourClassPackage,
-        fiveClassPackage,
-    )
+    private val individualPackages = AttendanceTestData.availablePackages
 
     private val packagesWithDuo = listOf(
         fourClassPackage,
-        duoPackage,
+        AttendanceTestData.duoSpecialPackage,
     )
+
+    private val registrationCallback = StudentRegistrationTestCallback()
 
     @Test
     fun `displays student registration form`() = runComposeUiTest {
         setContent {
-            StudentRegistrationDialogForTest(packageTypes = individualPackages)
+            StudentRegistrationDialogForTest(
+                packageTypes = individualPackages,
+            )
         }
 
         onNodeWithText("Add Student")
@@ -75,7 +65,7 @@ class StudentRegistrationDialogUiTest {
         // When
         setContent {
             StudentRegistrationDialogForTest(
-                initialDate = LocalDate(2026, 10, 5),
+                initialDate = AttendanceTestData.secondClassDate,
             )
         }
 
@@ -90,16 +80,10 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `registers student with entered name and selected package`() = runComposeUiTest {
         // Given
-        var registeredName: String? = null
-        var registeredPackage: PackageType? = null
-
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = listOf(fiveClassPackage),
-                onRegister = { fullName, _, selectedPackage, _, _ ->
-                    registeredName = fullName
-                    registeredPackage = selectedPackage
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
@@ -110,7 +94,7 @@ class StudentRegistrationDialogUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        // Then: a package must still be selected
+        // Then
         onNodeWithText("Register")
             .assertIsNotEnabled()
 
@@ -126,20 +110,18 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        assertEquals("Anna Smith", registeredName)
-        assertEquals(fiveClassPackage, registeredPackage)
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals("Anna Smith", submission.fullName)
+        assertEquals(fiveClassPackage, submission.packageType)
     }
 
     @Test
     fun `registers student with selected registration date`() = runComposeUiTest {
         // Given
-        var registeredOn: LocalDate? = null
-
         setContent {
             StudentRegistrationDialogForTest(
-                onRegister = { _, _, _, date, _ ->
-                    registeredOn = date
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
@@ -150,8 +132,10 @@ class StudentRegistrationDialogUiTest {
         onNodeWithContentDescription("Registration date")
             .performClick()
 
-        onNodeWithText("Saturday, October 3, 2026")
-            .performClick()
+        onNodeWithText(
+            text = "Thursday, October 1, 2026",
+            substring = true,
+        ).performClick()
 
         onNodeWithText("OK")
             .performClick()
@@ -163,9 +147,11 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
+        val submission = assertNotNull(registrationCallback.submission)
+
         assertEquals(
-            LocalDate(2026, 10, 3),
-            registeredOn,
+            LocalDate(2026, 10, 1),
+            submission.registeredOn,
         )
     }
 
@@ -197,40 +183,31 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         onNodeWithText(
-            text = "Saturday, October 3, 2026",
+            text = "Thursday, October 1, 2026",
             substring = true,
-        )
-            .performClick()
+        ).performClick()
 
         onNodeWithText("OK")
             .performClick()
 
-        onNodeWithText("Oct 3")
+        // Then
+        onNodeWithText("Oct 1")
             .assertIsDisplayed()
     }
 
     @Test
     fun `registration uses four class package by default regardless of list order`() = runComposeUiTest {
         // Given
-        val fourClassPackage = testClassPackage(id = 7)
-
-        val fiveClassPackage = testClassPackage(
-            id = 1,
-            plan = PackagePlan.FIVE_CLASSES,
-        )
-
-        var registeredPackage: PackageType? = null
+        val fourClassPackage = AttendanceTestData.fourClassPackage.copy(id = 7)
+        val fiveClassPackage = AttendanceTestData.fiveClassPackage.copy(id = 1)
 
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = listOf(fiveClassPackage, fourClassPackage),
-                onRegister = { _, _, selectedPackage, _, _ ->
-                    registeredPackage = selectedPackage
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
-        // Then: name is still required
         onNodeWithText("Group A")
             .performClick()
 
@@ -241,36 +218,26 @@ class StudentRegistrationDialogUiTest {
         onNode(hasSetTextAction())
             .performTextInput("Anna Smith")
 
-        // Then: package selection requires no additional action
         onNodeWithText("Register")
             .assertIsEnabled()
-
-        // When
-        onNodeWithText("Register")
             .performClick()
 
         // Then
-        assertEquals(
-            fourClassPackage,
-            registeredPackage,
-        )
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals(fourClassPackage, submission.packageType)
     }
 
     @Test
     fun `registers student with package selected from dropdown`() = runComposeUiTest {
         // Given
-        var registeredPackage: PackageType? = null
-
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = individualPackages,
-                onRegister = { _, _, selectedPackage, _, _ ->
-                    registeredPackage = selectedPackage
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
-        // Then: unselected options are initially hidden
         onNodeWithText("Group A")
             .performClick()
 
@@ -281,15 +248,11 @@ class StudentRegistrationDialogUiTest {
         onNodeWithText("Package")
             .performClick()
 
-        // Then
         onNodeWithText("5-class package")
             .assertIsDisplayed()
-
-        // When
-        onNodeWithText("5-class package")
             .performClick()
 
-        // Then: the selected package is displayed and the menu is closed
+        // Then
         onNodeWithText("5-class package")
             .assertIsDisplayed()
 
@@ -304,20 +267,20 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        assertEquals(
-            fiveClassPackage,
-            registeredPackage,
-        )
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals(fiveClassPackage, submission.packageType)
     }
 
     @Test
     fun `selecting duo package defaults first attendance to two people`() = runComposeUiTest {
         // Given
         setContent {
-            StudentRegistrationDialogForTest(packageTypes = packagesWithDuo)
+            StudentRegistrationDialogForTest(
+                packageTypes = packagesWithDuo,
+            )
         }
 
-        // Then: the individual package requires no visit count selection
         onNodeWithText("1 person")
             .assertDoesNotExist()
 
@@ -343,14 +306,10 @@ class StudentRegistrationDialogUiTest {
     @Test
     fun `provides one visit when one person is selected for duo registration`() = runComposeUiTest {
         // Given
-        var registeredVisitCount: Int? = null
-
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = packagesWithDuo,
-                onRegister = { _, _, _, _, visitCount ->
-                    registeredVisitCount = visitCount
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
@@ -382,23 +341,18 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        assertEquals(
-            1,
-            registeredVisitCount,
-        )
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals(1, submission.visitCount)
     }
 
     @Test
     fun `provides two visits by default when duo student is registered`() = runComposeUiTest {
         // Given
-        var registeredVisitCount: Int? = null
-
         setContent {
             StudentRegistrationDialogForTest(
                 packageTypes = packagesWithDuo,
-                onRegister = { _, _, _, _, visitCount ->
-                    registeredVisitCount = visitCount
-                },
+                onRegister = registrationCallback::onRegister,
             )
         }
 
@@ -419,9 +373,9 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        assertEquals(
-            2,
-            registeredVisitCount,
-        )
+        val submission = assertNotNull(registrationCallback.submission)
+
+        assertEquals(2, submission.visitCount)
+        assertEquals(true, submission.recordFirstAttendance)
     }
 }
