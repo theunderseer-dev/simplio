@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -157,8 +158,11 @@ class AttendanceViewModelRemoveAttendanceTest {
         val studentPackage = studentPackageRepository.create(
             studentId = student.id,
             packageType = duoSpecialPackage,
-            startedOn = firstClassDate,
-            visitCount = 2,
+            purchasedOn = firstClassDate,
+            initialAttendance = InitialAttendance(
+                date = firstClassDate,
+                visitCount = 2,
+            ),
         )
 
         studentPackageRepository.recordAttendance(

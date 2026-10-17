@@ -18,18 +18,15 @@ internal fun formatAttendanceForSharing(attendance: Attendance, currentDate: Loc
                 ""
             }
 
-        val expirationDate =
-            "(until " +
-                studentPackage.expiresOn.day
-                    .toString()
-                    .padStart(2, '0') +
-                "/" +
-                studentPackage.expiresOn.month.number
-                    .toString()
-                    .padStart(2, '0') +
-                ")"
+        val expirationText =
+            studentPackage.expiresOn?.let { date ->
+                val day = date.day.toString().padStart(2, '0')
+                val month = date.month.number.toString().padStart(2, '0')
+
+                " (until $day/$month)"
+            }.orEmpty()
 
         "$renewalMarker${registeredStudent.student.fullName} " +
-            "${studentPackage.usedClasses}/${studentPackage.packageType.totalClasses} " +
-            expirationDate
+            "${studentPackage.usedClasses}/${studentPackage.packageType.totalClasses}" +
+            expirationText
     }

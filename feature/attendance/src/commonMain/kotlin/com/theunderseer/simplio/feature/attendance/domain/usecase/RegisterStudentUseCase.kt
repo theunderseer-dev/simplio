@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -33,8 +34,11 @@ class RegisterStudentUseCase(
             studentPackageRepository.create(
                 studentId = student.id,
                 packageType = packageType,
-                startedOn = registeredOn,
-                visitCount = visitCount,
+                purchasedOn = registeredOn,
+                initialAttendance = InitialAttendance(
+                    date = registeredOn,
+                    visitCount = visitCount,
+                ),
             )
 
         RegisteredStudent(

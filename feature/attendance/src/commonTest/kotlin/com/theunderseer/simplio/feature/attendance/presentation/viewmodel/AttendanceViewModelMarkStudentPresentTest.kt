@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
@@ -7,10 +8,13 @@ import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageReposi
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fifthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourthClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.MarkStudentPresentUiState
@@ -94,8 +98,11 @@ class AttendanceViewModelMarkStudentPresentTest {
         studentPackageRepository.create(
             studentId = student.id,
             packageType = duoSpecialPackage,
-            startedOn = firstClassDate,
-            visitCount = 2,
+            purchasedOn = firstClassDate,
+            initialAttendance = InitialAttendance(
+                date = firstClassDate,
+                visitCount = 2,
+            ),
         )
 
         val viewModel = createViewModel(
@@ -150,7 +157,6 @@ class AttendanceViewModelMarkStudentPresentTest {
     @Test
     fun `reports insufficient remaining visits and preserves stored package`() = runViewModelTest {
         // Given
-        val firstAttendance = LocalDate(2026, 9, 21)
         val studentRepository = FakeStudentRepository()
         val studentPackageRepository = FakeStudentPackageRepository()
         val student = studentRepository.seed(student)
@@ -159,14 +165,17 @@ class AttendanceViewModelMarkStudentPresentTest {
             studentPackageRepository.create(
                 studentId = student.id,
                 packageType = duoSpecialPackage,
-                startedOn = firstAttendance,
-                visitCount = 2,
+                purchasedOn = firstClassDate,
+                initialAttendance = InitialAttendance(
+                    date = firstClassDate,
+                    visitCount = 2,
+                ),
             )
 
         mapOf(
-            LocalDate(2026, 9, 25) to 2,
-            LocalDate(2026, 9, 28) to 2,
-            LocalDate(2026, 10, 2) to 1,
+            secondClassDate to 2,
+            thirdClassDate to 2,
+            fourthClassDate to 1,
         ).forEach { (date, visitCount) ->
             studentPackageRepository.recordAttendance(
                 packageId = studentPackage.id,
@@ -182,7 +191,7 @@ class AttendanceViewModelMarkStudentPresentTest {
             studentRepository = studentRepository,
             studentPackageRepository = studentPackageRepository,
             packageTypes = listOf(duoSpecialPackage),
-            currentDates = flowOf(secondClassDate),
+            currentDates = flowOf(fifthClassDate),
         )
 
         observeUiState(viewModel)
@@ -201,7 +210,7 @@ class AttendanceViewModelMarkStudentPresentTest {
         // When
         viewModel.markStudentPresent(
             studentId = student.id,
-            attendanceDate = secondClassDate,
+            attendanceDate = fifthClassDate,
             visitCount = 2,
         )
 

@@ -10,14 +10,12 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -25,8 +23,7 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenRegistrationUiTest {
-    private val today = LocalDate(2026, 10, 5)
-
+    private val today = AttendanceTestData.registrationDate
     private val packageType = testClassPackage()
 
     @Test
@@ -55,33 +52,11 @@ class AttendanceScreenRegistrationUiTest {
     @Test
     fun `displays add student action when attendance has students`() = runComposeUiTest {
         // Given
-        val student = testStudent()
-        val state =
-            testAttendanceContentUiState(
-                attendance =
-                Attendance(
-                    entries =
-                    listOf(
-                        RegisteredStudent(
-                            student = student,
-                            studentPackage =
-                            StudentPackage(
-                                id = 1,
-                                studentId = student.id,
-                                packageType = packageType,
-                                startedOn = today,
-                                attendanceHistory =
-                                PackageAttendanceHistory(
-                                    visitsByDate =
-                                    mapOf(today to 1),
-                                ),
-                            ),
-                        ),
-                    ),
-                ),
-                packageTypes = listOf(packageType),
-                currentDate = today,
-            )
+        val state = testStudentAttendanceUiState(
+            packageType = packageType,
+            startedOn = today,
+            currentDate = today,
+        )
 
         // When
         setContent {
@@ -122,10 +97,9 @@ class AttendanceScreenRegistrationUiTest {
             .performClick()
 
         onNodeWithText(
-            text = "Saturday, October 3, 2026",
+            text = "Thursday, October 1, 2026",
             substring = true,
-        )
-            .performClick()
+        ).performClick()
 
         onNodeWithText("OK")
             .performClick()
@@ -138,7 +112,7 @@ class AttendanceScreenRegistrationUiTest {
 
         // Then
         assertEquals(
-            LocalDate(2026, 10, 3),
+            LocalDate(2026, 10, 1),
             registeredOn,
         )
     }

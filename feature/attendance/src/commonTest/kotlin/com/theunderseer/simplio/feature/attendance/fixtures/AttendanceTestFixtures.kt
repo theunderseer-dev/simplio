@@ -87,6 +87,25 @@ internal fun testPackageTypeEntity(packageType: PackageType, id: Int = 0): Packa
     maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
 )
 
+internal fun testStudentPackage(
+    id: Int = 1,
+    studentId: Int = AttendanceTestData.student.id,
+    packageType: PackageType = AttendanceTestData.fourClassPackage,
+    startedOn: LocalDate? = AttendanceTestData.firstClassDate,
+    purchasedOn: LocalDate = startedOn ?: AttendanceTestData.registrationDate,
+    visitsByDate: Map<LocalDate, Int> =
+        startedOn?.let { mapOf(it to 1) } ?: emptyMap(),
+): StudentPackage = StudentPackage(
+    id = id,
+    studentId = studentId,
+    packageType = packageType,
+    purchasedOn = purchasedOn,
+    startedOn = startedOn,
+    attendanceHistory = PackageAttendanceHistory(
+        visitsByDate = visitsByDate,
+    ),
+)
+
 internal fun testStudentPackageEntity(
     studentId: Int,
     packageType: PackageType,
@@ -131,22 +150,22 @@ internal fun testClassHistoryEntry(
 internal fun testStudentAttendanceUiState(
     student: Student = AttendanceTestData.student,
     packageType: PackageType = AttendanceTestData.fourClassPackage,
-    startedOn: LocalDate = AttendanceTestData.firstClassDate,
-    visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
+    startedOn: LocalDate? = AttendanceTestData.firstClassDate,
+    visitsByDate: Map<LocalDate, Int> =
+        startedOn?.let { mapOf(it to 1) } ?: emptyMap(),
     currentDate: LocalDate = AttendanceTestData.currentDate,
+    purchasedOn: LocalDate = startedOn ?: AttendanceTestData.registrationDate,
 ): AttendanceUiState.Content = testAttendanceContentUiState(
     attendance = Attendance(
         entries = listOf(
             RegisteredStudent(
                 student = student,
-                studentPackage = StudentPackage(
-                    id = 1,
+                studentPackage = testStudentPackage(
                     studentId = student.id,
                     packageType = packageType,
+                    purchasedOn = purchasedOn,
                     startedOn = startedOn,
-                    attendanceHistory = PackageAttendanceHistory(
-                        visitsByDate = visitsByDate,
-                    ),
+                    visitsByDate = visitsByDate,
                 ),
             ),
         ),

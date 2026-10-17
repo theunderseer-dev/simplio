@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
@@ -29,7 +30,10 @@ class RenewStudentPackageUseCase(
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = renewedOn,
+                purchasedOn = renewedOn,
+                initialAttendance = InitialAttendance(
+                    date = renewedOn,
+                ),
             )
 
         RenewStudentPackageResult.Success(studentPackage = newStudentPackage)

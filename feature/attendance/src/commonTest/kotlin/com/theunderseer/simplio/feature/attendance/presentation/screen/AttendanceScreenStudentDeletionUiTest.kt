@@ -6,50 +6,20 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
-import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
-import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
-import kotlinx.datetime.LocalDate
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenStudentDeletionUiTest {
-    private val today = LocalDate(2026, 10, 5)
-
     private val student = testStudent()
-
-    private val packageType = testClassPackage()
-
-    private val state =
-        testAttendanceContentUiState(
-            attendance =
-            Attendance(
-                entries =
-                listOf(
-                    RegisteredStudent(
-                        student = student,
-                        studentPackage =
-                        StudentPackage(
-                            id = 1,
-                            studentId = student.id,
-                            packageType = packageType,
-                            startedOn = today,
-                            attendanceHistory =
-                            PackageAttendanceHistory(
-                                visitsByDate = mapOf(today to 1),
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-            packageTypes = listOf(packageType),
-            currentDate = today,
-        )
+    private val state = testStudentAttendanceUiState(
+        student = student,
+        startedOn = AttendanceTestData.firstClassDate,
+        currentDate = AttendanceTestData.registrationDate,
+    )
 
     @Test
     fun `shows delete action for registered student`() = runComposeUiTest {

@@ -1,17 +1,15 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
-import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
-import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
-import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testStudentPackage
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -142,20 +140,54 @@ class AttendanceShareFormatterTest {
         )
     }
 
+    @Test
+    fun `formats package without activation without expiration date`() {
+        val cases = listOf(
+            AttendanceTestData.fourClassPackage to "Anna Smith 0/4",
+            AttendanceTestData.fiveClassPackage to "Anna Smith 0/5",
+        )
+
+        cases.forEach { (packageType, expectedText) ->
+            // Given
+            val attendance = Attendance(
+                entries = listOf(
+                    RegisteredStudent(
+                        student = AttendanceTestData.student,
+                        studentPackage = testStudentPackage(
+                            packageType = packageType,
+                            startedOn = null,
+                        ),
+                    ),
+                ),
+            )
+
+            // When
+            val result = formatAttendanceForSharing(
+                attendance = attendance,
+                currentDate = currentDate,
+            )
+
+            // Then
+            assertEquals(
+                expectedText,
+                result,
+                message = "Package: ${packageType.name}",
+            )
+        }
+    }
+
     private fun registeredStudent(
         student: Student = AttendanceTestData.student,
-        startedOn: LocalDate = firstClassDate,
-        visitsByDate: Map<LocalDate, Int> = mapOf(startedOn to 1),
+        startedOn: LocalDate? = firstClassDate,
+        visitsByDate: Map<LocalDate, Int> =
+            startedOn?.let { mapOf(it to 1) } ?: emptyMap(),
     ): RegisteredStudent = RegisteredStudent(
         student = student,
-        studentPackage = StudentPackage(
+        studentPackage = testStudentPackage(
             id = student.id,
             studentId = student.id,
-            packageType = fourClassPackage,
             startedOn = startedOn,
-            attendanceHistory = PackageAttendanceHistory(
-                visitsByDate = visitsByDate,
-            ),
+            visitsByDate = visitsByDate,
         ),
     )
 }

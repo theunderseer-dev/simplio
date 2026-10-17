@@ -226,6 +226,7 @@ fun AttendanceScreen(
                     maxVisitsPerAttendance =
                     studentPackage.packageType.maxVisitsPerAttendance,
                     remainingClasses = studentPackage.remainingClasses,
+                    purchasedOn = studentPackage.purchasedOn,
                     startedOn = studentPackage.startedOn,
                     expiresOn = studentPackage.expiresOn,
                     recordedAttendanceDates = studentPackage.attendanceDates,
@@ -597,12 +598,12 @@ private fun StudentAttendanceRow(
         }
 
         Text(
-            text = studentPackage.startedOn.toDisplayDate(),
+            text = studentPackage.startedOn?.toDisplayDate().orEmpty(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 
         Text(
-            text = studentPackage.expiresOn.toDisplayDate(),
+            text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
             modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
         )
 

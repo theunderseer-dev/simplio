@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.fake
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
@@ -7,9 +8,8 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPack
 import kotlinx.datetime.LocalDate
 
 class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = emptyList()) : StudentPackageRepository {
-    private val storedPackages = mutableListOf<StudentPackage>()
-    private val storedRecordedAttendances =
-        mutableListOf<RecordedAttendance>()
+    private val storedPackages = initialPackages.toMutableList()
+    private val storedRecordedAttendances = mutableListOf<RecordedAttendance>()
 
     val packages: List<StudentPackage>
         get() = storedPackages
@@ -22,15 +22,17 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
     override suspend fun create(
         studentId: Int,
         packageType: PackageType,
-        startedOn: LocalDate,
-        visitCount: Int,
+        purchasedOn: LocalDate,
+        initialAttendance: InitialAttendance?,
     ): StudentPackage = addPackage(
         studentId = studentId,
         packageType = packageType,
-        startedOn = startedOn,
-        packageAttendanceHistory =
-        PackageAttendanceHistory(
-            visitsByDate = mapOf(startedOn to visitCount),
+        purchasedOn = purchasedOn,
+        startedOn = initialAttendance?.date,
+        packageAttendanceHistory = PackageAttendanceHistory(
+            visitsByDate = initialAttendance?.let {
+                mapOf(it.date to it.visitCount)
+            } ?: emptyMap(),
         ),
     )
 
@@ -39,25 +41,28 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         packageType: PackageType,
         startedOn: LocalDate,
         attendanceDates: Set<LocalDate> = setOf(startedOn),
+        purchasedOn: LocalDate = startedOn,
     ): StudentPackage = addPackage(
         studentId = studentId,
         packageType = packageType,
+        purchasedOn = purchasedOn,
         startedOn = startedOn,
-        packageAttendanceHistory =
-        PackageAttendanceHistory(
+        packageAttendanceHistory = PackageAttendanceHistory(
             visitsByDate = attendanceDates.associateWith { 1 },
         ),
     )
 
     override suspend fun getLatestPackageForStudent(studentId: Int): StudentPackage? = storedPackages
         .filter { it.studentId == studentId }
-        .maxByOrNull { it.startedOn }
+        .maxWithOrNull(
+            compareBy<StudentPackage> { it.purchasedOn }
+                .thenBy { it.id },
+        )
 
     override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
-        val index =
-            storedPackages.indexOfFirst {
-                it.id == packageId
-            }
+        val index = storedPackages.indexOfFirst {
+            it.id == packageId
+        }
 
         require(index >= 0) {
             "Student package with id $packageId not found"
@@ -66,29 +71,25 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         val currentPackage = storedPackages[index]
         val visitsByDate = currentPackage.attendanceHistory.visitsByDate
 
-        storedPackages[index] =
-            currentPackage.copy(
-                attendanceHistory =
-                PackageAttendanceHistory(
-                    visitsByDate =
-                    visitsByDate +
-                        (attendedOn to (visitsByDate[attendedOn] ?: visitCount)),
-                ),
-            )
+        storedPackages[index] = currentPackage.copy(
+            startedOn = currentPackage.startedOn ?: attendedOn,
+            attendanceHistory = PackageAttendanceHistory(
+                visitsByDate = visitsByDate +
+                    (attendedOn to (visitsByDate[attendedOn] ?: visitCount)),
+            ),
+        )
 
-        storedRecordedAttendances +=
-            RecordedAttendance(
-                packageId = packageId,
-                attendedOn = attendedOn,
-                visitCount = visitCount,
-            )
+        storedRecordedAttendances += RecordedAttendance(
+            packageId = packageId,
+            attendedOn = attendedOn,
+            visitCount = visitCount,
+        )
     }
 
     override suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate) {
-        val index =
-            storedPackages.indexOfFirst {
-                it.id == packageId
-            }
+        val index = storedPackages.indexOfFirst {
+            it.id == packageId
+        }
 
         require(index >= 0) {
             "Student package with id $packageId not found"
@@ -96,31 +97,29 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
 
         val currentPackage = storedPackages[index]
 
-        storedPackages[index] =
-            currentPackage.copy(
-                attendanceHistory =
-                PackageAttendanceHistory(
-                    visitsByDate =
-                    currentPackage.attendanceHistory.visitsByDate -
-                        attendedOn,
-                ),
-            )
+        storedPackages[index] = currentPackage.copy(
+            attendanceHistory = PackageAttendanceHistory(
+                visitsByDate =
+                currentPackage.attendanceHistory.visitsByDate - attendedOn,
+            ),
+        )
     }
 
     private fun addPackage(
         studentId: Int,
         packageType: PackageType,
-        startedOn: LocalDate,
+        purchasedOn: LocalDate,
+        startedOn: LocalDate?,
         packageAttendanceHistory: PackageAttendanceHistory,
     ): StudentPackage {
-        val studentPackage =
-            StudentPackage(
-                id = nextId++,
-                studentId = studentId,
-                packageType = packageType,
-                startedOn = startedOn,
-                attendanceHistory = packageAttendanceHistory,
-            )
+        val studentPackage = StudentPackage(
+            id = nextId++,
+            studentId = studentId,
+            packageType = packageType,
+            purchasedOn = purchasedOn,
+            startedOn = startedOn,
+            attendanceHistory = packageAttendanceHistory,
+        )
 
         storedPackages += studentPackage
 

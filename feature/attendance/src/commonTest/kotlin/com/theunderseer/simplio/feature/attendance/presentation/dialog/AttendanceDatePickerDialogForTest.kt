@@ -13,10 +13,14 @@ internal fun AttendanceDatePickerDialogForTest(
     currentDate: LocalDate = AttendanceTestData.currentDate,
     maxVisitsPerAttendance: Int = 1,
     remainingClasses: Int = 3,
-    startedOn: LocalDate = AttendanceTestData.firstClassDate,
-    expiresOn: LocalDate = startedOn + DatePeriod(
-        days = AttendanceTestData.fourClassPackage.validityWeeks * 7,
+    startedOn: LocalDate? = AttendanceTestData.firstClassDate,
+    expiresOn: LocalDate? = startedOn?.plus(
+        DatePeriod(
+            days = AttendanceTestData.fourClassPackage.validityWeeks * 7,
+        ),
     ),
+    purchasedOn: LocalDate =
+        startedOn ?: AttendanceTestData.registrationDate,
     recordedAttendanceDates: Set<LocalDate> = emptySet(),
     isSaving: Boolean = false,
     errorMessage: String? = null,
@@ -28,6 +32,7 @@ internal fun AttendanceDatePickerDialogForTest(
         currentDate = currentDate,
         maxVisitsPerAttendance = maxVisitsPerAttendance,
         remainingClasses = remainingClasses,
+        purchasedOn = purchasedOn,
         startedOn = startedOn,
         expiresOn = expiresOn,
         recordedAttendanceDates = recordedAttendanceDates,

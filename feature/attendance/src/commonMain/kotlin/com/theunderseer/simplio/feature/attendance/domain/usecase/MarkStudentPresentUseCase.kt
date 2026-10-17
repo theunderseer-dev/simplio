@@ -47,6 +47,7 @@ class MarkStudentPresentUseCase(
 
         val updatedPackage =
             studentPackage.copy(
+                startedOn = studentPackage.startedOn ?: attendanceDate,
                 attendanceHistory =
                 PackageAttendanceHistory(
                     visitsByDate =

@@ -152,6 +152,7 @@ class AttendanceMigration1To2Test {
                         price = 1400,
                         maxVisitsPerAttendance = 1,
                     ),
+                    purchasedOn = firstClassDate,
                     startedOn = firstClassDate,
                     attendanceHistory =
                     PackageAttendanceHistory(

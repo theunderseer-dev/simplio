@@ -4,6 +4,7 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -67,7 +68,10 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         // Then
@@ -95,6 +99,11 @@ class RoomStudentPackageRepositoryTest {
             studentPackage.startedOn,
         )
 
+        assertEquals(
+            registrationDate,
+            studentPackage.purchasedOn,
+        )
+
         // And
         // the first attendance is recorded automatically
         assertEquals(
@@ -110,6 +119,11 @@ class RoomStudentPackageRepositoryTest {
                     .studentPackageDao()
                     .getLatestForStudent(studentId),
             )
+
+        assertEquals(
+            registrationDate.toEpochDays(),
+            persistedPackage.purchasedOnEpochDay,
+        )
 
         assertEquals(
             studentPackage.id,
@@ -176,7 +190,6 @@ class RoomStudentPackageRepositoryTest {
         // Given
         // an existing student
         val studentId = createStudentId()
-
         // And
         // the current package type has updated terms
         val currentPackageType = seedPackageType(
@@ -230,9 +243,9 @@ class RoomStudentPackageRepositoryTest {
         // Then
         // the latest package is returned
         val latestPackage = assertNotNull(studentPackage)
-
         assertEquals(latestPackageId, latestPackage.id)
         assertEquals(studentId, latestPackage.studentId)
+        assertEquals(registrationDate, latestPackage.purchasedOn)
         assertEquals(purchasedPackageType, latestPackage.packageType)
         assertEquals(registrationDate, latestPackage.startedOn)
         assertEquals(
@@ -319,7 +332,10 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         repository.recordAttendance(
@@ -452,14 +468,20 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         val otherStudentPackage =
             repository.create(
                 studentId = otherStudentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         repository.recordAttendance(
@@ -573,7 +595,10 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         database.attendanceDao().insert(
@@ -615,7 +640,10 @@ class RoomStudentPackageRepositoryTest {
             repository.create(
                 studentId = studentId,
                 packageType = packageType,
-                startedOn = registrationDate,
+                purchasedOn = registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = registrationDate,
+                ),
             )
 
         // When
@@ -651,7 +679,10 @@ class RoomStudentPackageRepositoryTest {
         repository.create(
             studentId = studentId,
             packageType = packageType,
-            startedOn = registrationDate,
+            purchasedOn = registrationDate,
+            initialAttendance = InitialAttendance(
+                date = registrationDate,
+            ),
         )
 
         // When
@@ -665,6 +696,105 @@ class RoomStudentPackageRepositoryTest {
             packageType,
             reloadedPackage.packageType,
         )
+    }
+
+    @Test
+    fun `creating prepaid package persists purchase without activation or attendance`() = runTest {
+        // Given
+        val studentId = createStudentId()
+        val packageType = seedPackageType(plan = PackagePlan.FOUR_CLASSES)
+
+        // When
+        val studentPackage = repository.create(
+            studentId = studentId,
+            packageType = packageType,
+            purchasedOn = registrationDate,
+            initialAttendance = null,
+        )
+
+        val reloadedPackage = assertNotNull(
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        // Then
+        assertEquals(studentPackage, reloadedPackage)
+        assertEquals(registrationDate, reloadedPackage.purchasedOn)
+        assertNull(reloadedPackage.startedOn)
+        assertNull(reloadedPackage.expiresOn)
+        assertEquals(0, reloadedPackage.usedClasses)
+        assertEquals(4, reloadedPackage.remainingClasses)
+
+        val persistedPackage = assertNotNull(
+            database.studentPackageDao().getLatestForStudent(studentId),
+        )
+
+        assertEquals(
+            registrationDate.toEpochDays(),
+            persistedPackage.purchasedOnEpochDay,
+        )
+        assertNull(persistedPackage.startedOnEpochDay)
+        assertTrue(
+            database.attendanceDao().getForPackage(studentPackage.id).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `duo activation records two visits and later attendance preserves activation date`() = runTest {
+        // Given
+        val studentId = createStudentId()
+        val packageType = seedPackageType(plan = PackagePlan.DUO_SPECIAL)
+        val studentPackage = repository.create(
+            studentId = studentId,
+            packageType = packageType,
+            purchasedOn = registrationDate,
+            initialAttendance = null,
+        )
+
+        // When
+        repository.recordAttendance(
+            packageId = studentPackage.id,
+            attendedOn = secondClassDate,
+            visitCount = 2,
+        )
+
+        val activatedPackage = assertNotNull(
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        // Then
+        assertEquals(secondClassDate, activatedPackage.startedOn)
+        assertEquals(LocalDate(2026, 11, 2), activatedPackage.expiresOn)
+        assertEquals(
+            mapOf(secondClassDate to 2),
+            activatedPackage.attendanceHistory.visitsByDate,
+        )
+        assertEquals(2, activatedPackage.usedClasses)
+        assertEquals(6, activatedPackage.remainingClasses)
+
+        // When
+        repository.recordAttendance(
+            packageId = studentPackage.id,
+            attendedOn = thirdClassDate,
+            visitCount = 1,
+        )
+
+        val reloadedPackage = assertNotNull(
+            repository.getLatestPackageForStudent(studentId),
+        )
+
+        // Then
+        assertEquals(registrationDate, reloadedPackage.purchasedOn)
+        assertEquals(secondClassDate, reloadedPackage.startedOn)
+        assertEquals(activatedPackage.expiresOn, reloadedPackage.expiresOn)
+        assertEquals(
+            mapOf(
+                secondClassDate to 2,
+                thirdClassDate to 1,
+            ),
+            reloadedPackage.attendanceHistory.visitsByDate,
+        )
+        assertEquals(3, reloadedPackage.usedClasses)
+        assertEquals(5, reloadedPackage.remainingClasses)
     }
 
     private suspend fun seedPackageType(plan: PackagePlan): PackageType {

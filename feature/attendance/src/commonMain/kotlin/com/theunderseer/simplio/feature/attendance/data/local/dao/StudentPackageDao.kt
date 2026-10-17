@@ -20,4 +20,14 @@ interface StudentPackageDao {
         """,
     )
     suspend fun getLatestForStudent(studentId: Int): StudentPackageEntity?
+
+    @Query(
+        """
+        UPDATE student_packages
+        SET startedOnEpochDay = :startedOnEpochDay
+        WHERE id = :packageId
+          AND startedOnEpochDay IS NULL
+        """,
+    )
+    suspend fun activateIfNeeded(packageId: Int, startedOnEpochDay: Long)
 }
