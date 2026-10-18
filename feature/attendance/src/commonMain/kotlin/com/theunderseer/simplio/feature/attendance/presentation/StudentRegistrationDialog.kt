@@ -42,9 +42,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
@@ -98,6 +100,17 @@ fun StudentRegistrationDialog(
     var showDatePicker by remember {
         mutableStateOf(false)
     }
+
+    val packageExpirationDate =
+        if (recordFirstAttendance) {
+            selectedPackage?.let { packageType ->
+                selectedDate.plus(
+                    DatePeriod(days = packageType.validityWeeks * 7),
+                )
+            }
+        } else {
+            null
+        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -179,6 +192,16 @@ fun StudentRegistrationDialog(
                         label = {
                             Text("Package")
                         },
+                        supportingText =
+                            if (packageExpirationDate != null) {
+                                {
+                                    Text(
+                                        text = "Valid until ${packageExpirationDate.toDisplayDate()}, ${packageExpirationDate.year}",
+                                    )
+                                }
+                            } else {
+                                null
+                            },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(
                                 expanded = isPackageMenuExpanded,
