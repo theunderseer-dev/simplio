@@ -1,3 +1,3 @@
 package com.theunderseer.simplio.feature.attendance.domain.model
 
-data class Student(val id: Int, val fullName: String, val groupId: Int)
+data class Student(val id: Int, val fullName: String, val groupId: Int, val note: String = "")

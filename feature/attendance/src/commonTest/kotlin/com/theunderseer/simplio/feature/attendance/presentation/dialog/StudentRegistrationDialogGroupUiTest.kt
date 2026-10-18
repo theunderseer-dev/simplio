@@ -1,7 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation.dialog
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -26,7 +26,7 @@ class StudentRegistrationDialogGroupUiTest {
         }
 
         // When
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         onNodeWithText("Group B")

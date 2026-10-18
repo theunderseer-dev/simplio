@@ -13,7 +13,6 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.f
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.studentGroups
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.ClassHistoryUiState
 import com.theunderseer.simplio.feature.attendance.presentation.StudentAttendanceUiState
@@ -68,11 +67,7 @@ class AttendanceViewModelLoadingTest {
                 attendance = expectedAttendance,
                 packageTypes = availablePackages,
                 classHistoryState = ClassHistoryUiState.Content(
-                    entries = listOf(
-                        testClassHistoryEntry(
-                            date = secondClassDate,
-                        ),
-                    ),
+                    entries = emptyList(),
                     nextBeforeDate = null,
                 ),
                 studentGroups = studentGroups,

@@ -1,5 +1,6 @@
 package com.theunderseer.simplio
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -29,7 +30,9 @@ import org.koin.core.context.stopKoin
 import java.awt.datatransfer.StringSelection
 
 @OptIn(ExperimentalComposeUiApi::class)
-fun main() {
+fun main(appArgs: Array<String>) {
+    val isLocalMode = "--local" in appArgs
+
     val koinApplication =
         startKoin {
             modules(
@@ -37,8 +40,11 @@ fun main() {
                 desktopAttendanceModule(
                     databasePath = prepareSimplioDatabasePath(),
                 ),
-                desktopFirebaseModule(),
             )
+
+            if (!isLocalMode) {
+                modules(desktopFirebaseModule())
+            }
         }
 
     val viewModelStoreOwner =
@@ -62,7 +68,7 @@ fun main() {
         ) {
             Window(
                 onCloseRequest = ::exitApplication,
-                title = "Simplio",
+                title = if (isLocalMode) "Simplio (local)" else "Simplio",
             ) {
                 val clipboard = LocalClipboard.current
                 val coroutineScope = rememberCoroutineScope()
@@ -70,14 +76,7 @@ fun main() {
                 CompositionLocalProvider(
                     LocalViewModelStoreOwner provides viewModelStoreOwner,
                 ) {
-                    FirebaseSignInGate(
-                        sessionManager = remember {
-                            koinApplication.koin.get<FirebaseSessionManager>()
-                        },
-                        accessChecker = remember {
-                            koinApplication.koin.get<FirestoreAccessChecker>()
-                        },
-                    ) { _ ->
+                    val attendanceContent: @Composable () -> Unit = {
                         AttendanceRoute(
                             onCopyAttendance = { text ->
                                 coroutineScope.launch {
@@ -89,6 +88,21 @@ fun main() {
                                 }
                             },
                         )
+                    }
+
+                    if (isLocalMode) {
+                        attendanceContent()
+                    } else {
+                        FirebaseSignInGate(
+                            sessionManager = remember {
+                                koinApplication.koin.get<FirebaseSessionManager>()
+                            },
+                            accessChecker = remember {
+                                koinApplication.koin.get<FirestoreAccessChecker>()
+                            },
+                        ) { _ ->
+                            attendanceContent()
+                        }
                     }
                 }
             }

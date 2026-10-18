@@ -20,6 +20,8 @@ import com.theunderseer.simplio.feature.attendance.presentation.attendanceConten
 import kotlinx.datetime.LocalDate
 
 internal object AttendanceTestData {
+    val studentNote = "Return 100 THB next time"
+
     val student = testStudent()
     val studentEntity = testStudentEntity()
     val studentGroups = testStudentGroups()
@@ -63,16 +65,23 @@ fun testStudentGroupEntity(
     name = name,
 )
 
-fun testStudent(id: Int = 1, fullName: String = "Anna Smith", groupId: Int = 1): Student = Student(
+fun testStudent(id: Int = 1, fullName: String = "Anna Smith", groupId: Int = 1, note: String = ""): Student = Student(
     id = id,
     fullName = fullName,
     groupId = groupId,
+    note = note,
 )
 
-fun testStudentEntity(id: Int = 0, fullName: String = "Anna Smith", groupId: Int = 1): StudentEntity = StudentEntity(
+fun testStudentEntity(
+    id: Int = 0,
+    fullName: String = "Anna Smith",
+    groupId: Int = 1,
+    note: String = "",
+): StudentEntity = StudentEntity(
     id = id,
     fullName = fullName,
     groupId = groupId,
+    note = note,
 )
 
 internal fun testClassPackage(id: Int = 1, plan: PackagePlan = PackagePlan.FOUR_CLASSES): PackageType =
@@ -181,6 +190,7 @@ internal data class StudentRegistrationSubmission(
     val registeredOn: LocalDate,
     val visitCount: Int,
     val recordFirstAttendance: Boolean,
+    val note: String = "",
 )
 
 internal class StudentRegistrationTestCallback {
@@ -194,6 +204,7 @@ internal class StudentRegistrationTestCallback {
         registeredOn: LocalDate,
         visitCount: Int,
         recordFirstAttendance: Boolean,
+        note: String,
     ) {
         submission = StudentRegistrationSubmission(
             fullName = fullName,
@@ -202,6 +213,7 @@ internal class StudentRegistrationTestCallback {
             registeredOn = registeredOn,
             visitCount = visitCount,
             recordFirstAttendance = recordFirstAttendance,
+            note = note,
         )
     }
 }

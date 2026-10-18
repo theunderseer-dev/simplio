@@ -13,6 +13,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGrou
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
@@ -77,6 +78,7 @@ internal fun createViewModel(
             studentPackageRepository = studentPackageRepository,
         ),
 ): AttendanceViewModel = AttendanceViewModel(
+    updateStudentNoteUseCase = UpdateStudentNoteUseCase(studentRepository = studentRepository),
     getAttendanceUseCase = GetAttendanceUseCase(
         studentRepository = studentRepository,
         studentPackageRepository = studentPackageRepository,

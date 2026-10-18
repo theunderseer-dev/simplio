@@ -1,0 +1,319 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "7a56021fa595772ea37addddd6ab9e1e",
+    "entities": [
+      {
+        "tableName": "student_groups",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "students",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fullName` TEXT NOT NULL, `groupId` INTEGER NOT NULL, `note` TEXT NOT NULL DEFAULT '', FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fullName",
+            "columnName": "fullName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "groupId",
+            "columnName": "groupId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_students_groupId",
+            "unique": false,
+            "columnNames": [
+              "groupId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_students_groupId` ON `${TABLE_NAME}` (`groupId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "student_groups",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "groupId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "package_types",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `totalClasses` INTEGER NOT NULL, `validityWeeks` INTEGER NOT NULL, `price` INTEGER NOT NULL, `maxVisitsPerAttendance` INTEGER NOT NULL DEFAULT 1)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalClasses",
+            "columnName": "totalClasses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validityWeeks",
+            "columnName": "validityWeeks",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "price",
+            "columnName": "price",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxVisitsPerAttendance",
+            "columnName": "maxVisitsPerAttendance",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "student_packages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `studentId` INTEGER NOT NULL, `packageTypeId` INTEGER NOT NULL, `packageName` TEXT NOT NULL, `totalClasses` INTEGER NOT NULL, `validityWeeks` INTEGER NOT NULL, `price` INTEGER NOT NULL, `purchasedOnEpochDay` INTEGER NOT NULL, `startedOnEpochDay` INTEGER, `maxVisitsPerAttendance` INTEGER NOT NULL DEFAULT 1, FOREIGN KEY(`studentId`) REFERENCES `students`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`packageTypeId`) REFERENCES `package_types`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "studentId",
+            "columnName": "studentId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageTypeId",
+            "columnName": "packageTypeId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packageName",
+            "columnName": "packageName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalClasses",
+            "columnName": "totalClasses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validityWeeks",
+            "columnName": "validityWeeks",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "price",
+            "columnName": "price",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "purchasedOnEpochDay",
+            "columnName": "purchasedOnEpochDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedOnEpochDay",
+            "columnName": "startedOnEpochDay",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "maxVisitsPerAttendance",
+            "columnName": "maxVisitsPerAttendance",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_student_packages_studentId",
+            "unique": false,
+            "columnNames": [
+              "studentId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_student_packages_studentId` ON `${TABLE_NAME}` (`studentId`)"
+          },
+          {
+            "name": "index_student_packages_packageTypeId",
+            "unique": false,
+            "columnNames": [
+              "packageTypeId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_student_packages_packageTypeId` ON `${TABLE_NAME}` (`packageTypeId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "students",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "studentId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "package_types",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "packageTypeId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "attendance",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`packageId` INTEGER NOT NULL, `attendedOnEpochDay` INTEGER NOT NULL, `visitCount` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`packageId`, `attendedOnEpochDay`), FOREIGN KEY(`packageId`) REFERENCES `student_packages`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "packageId",
+            "columnName": "packageId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attendedOnEpochDay",
+            "columnName": "attendedOnEpochDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "visitCount",
+            "columnName": "visitCount",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "packageId",
+            "attendedOnEpochDay"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_attendance_packageId",
+            "unique": false,
+            "columnNames": [
+              "packageId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_attendance_packageId` ON `${TABLE_NAME}` (`packageId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "student_packages",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "packageId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7a56021fa595772ea37addddd6ab9e1e')"
+    ]
+  }
+}

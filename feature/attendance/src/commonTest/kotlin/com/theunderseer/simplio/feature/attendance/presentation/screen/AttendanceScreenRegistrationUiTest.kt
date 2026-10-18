@@ -4,10 +4,11 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
@@ -42,7 +43,7 @@ class AttendanceScreenRegistrationUiTest {
             .performClick()
 
         // Then
-        onNodeWithText("Record first attendance")
+        onNodeWithText("Record first attendance").performScrollTo()
             .assertIsDisplayed()
             .assertIsOn()
 
@@ -105,7 +106,7 @@ class AttendanceScreenRegistrationUiTest {
         onNodeWithText("OK")
             .performClick()
 
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         onNodeWithText("Register")
@@ -150,7 +151,7 @@ class AttendanceScreenRegistrationUiTest {
         onNodeWithText("Duo 8 · Special rate")
             .performClick()
 
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna & John")
 
         onNodeWithText("Register")
@@ -180,12 +181,12 @@ class AttendanceScreenRegistrationUiTest {
         onNodeWithText("Group A")
             .performClick()
 
-        onNodeWithText("Record first attendance")
+        onNodeWithText("Record first attendance").performScrollTo()
             .assertIsOn()
             .performClick()
             .assertIsOff()
 
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput(AttendanceTestData.student.fullName)
 
         onNodeWithText("Register")
@@ -220,14 +221,14 @@ class AttendanceScreenRegistrationUiTest {
         onNodeWithText("Duo 8 · Special rate")
             .performClick()
 
-        onNodeWithText("1 person")
+        onNodeWithText("1 person").performScrollTo()
             .assertIsDisplayed()
 
-        onNodeWithText("2 people")
+        onNodeWithText("2 people").performScrollTo()
             .assertIsDisplayed()
 
         // When
-        onNodeWithText("Record first attendance")
+        onNodeWithText("Record first attendance").performScrollTo()
             .performClick()
 
         // Then
@@ -241,14 +242,14 @@ class AttendanceScreenRegistrationUiTest {
             .assertDoesNotExist()
 
         // When
-        onNodeWithText("Record first attendance")
+        onNodeWithText("Record first attendance").performScrollTo()
             .performClick()
 
         // Then
-        onNodeWithText("1 person")
+        onNodeWithText("1 person").performScrollTo()
             .assertIsDisplayed()
 
-        onNodeWithText("2 people")
+        onNodeWithText("2 people").performScrollTo()
             .assertIsDisplayed()
     }
 

@@ -14,7 +14,7 @@ internal fun StudentRegistrationDialogForTest(
     initialDate: LocalDate = AttendanceTestData.registrationDate,
     packageTypes: List<PackageType> = listOf(testClassPackage()),
     studentGroups: List<StudentGroup> = testStudentGroups(),
-    onRegister: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onRegister: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit = { _, _, _, _, _, _, _ -> },
     onDismiss: () -> Unit = {},
 ) {
     StudentRegistrationDialog(

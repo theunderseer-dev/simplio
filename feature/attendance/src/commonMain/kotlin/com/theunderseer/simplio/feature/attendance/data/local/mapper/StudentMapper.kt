@@ -7,4 +7,5 @@ fun StudentEntity.toDomain(): Student = Student(
     id = id,
     fullName = fullName,
     groupId = groupId,
+    note = note,
 )

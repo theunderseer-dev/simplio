@@ -96,11 +96,12 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
         }
 
         val currentPackage = storedPackages[index]
+        val remainingVisits = currentPackage.attendanceHistory.visitsByDate - attendedOn
 
         storedPackages[index] = currentPackage.copy(
+            startedOn = remainingVisits.keys.minOrNull(),
             attendanceHistory = PackageAttendanceHistory(
-                visitsByDate =
-                currentPackage.attendanceHistory.visitsByDate - attendedOn,
+                visitsByDate = remainingVisits,
             ),
         )
     }

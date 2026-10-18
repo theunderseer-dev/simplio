@@ -1,12 +1,16 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageAttendanceHistory
+import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.duoSpecialPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fourClassPackage
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
 import kotlinx.coroutines.test.runTest
@@ -16,6 +20,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RemoveStudentAttendanceUseCaseTest {
@@ -101,6 +106,8 @@ class RemoveStudentAttendanceUseCaseTest {
 
     @Test
     fun `removing attendance returns package not found when student has no package`() = runTest {
+        // Given
+
         // When
         val result =
             removeStudentAttendance(
@@ -280,57 +287,141 @@ class RemoveStudentAttendanceUseCaseTest {
     }
 
     @Test
-    fun `removing the only attendance is rejected and preserves the package`() = runTest {
+    fun `removing the only attendance resets activation and restores the full balance`() = runTest {
         // Given
-        val studentPackage =
-            repository.seed(
+        listOf(fourClassPackage, fiveClassPackage, duoSpecialPackage).forEach { packageType ->
+            val studentPackage = repository.create(
                 studentId = studentId,
-                packageType = fiveClassPackage,
-                startedOn = firstClassDate,
-            )
-
-        // When
-        val result =
-            removeStudentAttendance(
-                studentId = studentPackage.studentId,
-                attendanceDate = firstClassDate,
-            )
-
-        // Then
-        assertEquals(RemoveStudentAttendanceResult.FirstAttendanceCannotBeRemoved, result)
-        assertEquals(
-            studentPackage,
-            repository.getLatestPackageForStudent(studentPackage.studentId),
-        )
-    }
-
-    @Test
-    fun `removing first attendance is rejected even when later attendance exists`() = runTest {
-        // Given
-        val studentPackage =
-            repository.seed(
-                studentId = studentId,
-                packageType = fiveClassPackage,
-                startedOn = firstClassDate,
-                attendanceDates = setOf(
-                    firstClassDate,
-                    secondClassDate,
-                    thirdClassDate,
+                packageType = packageType,
+                purchasedOn = AttendanceTestData.registrationDate,
+                initialAttendance = InitialAttendance(
+                    date = firstClassDate,
+                    visitCount = packageType.maxVisitsPerAttendance,
                 ),
             )
 
-        // When
-        val result =
-            removeStudentAttendance(
-                studentId = studentPackage.studentId,
+            // When
+            val result = removeStudentAttendance(
+                studentId = studentId,
                 attendanceDate = firstClassDate,
             )
 
-        // Then
-        assertEquals(RemoveStudentAttendanceResult.FirstAttendanceCannotBeRemoved, result)
-        assertEquals(
-            studentPackage,
-            repository.getLatestPackageForStudent(studentPackage.studentId),
+            // Then
+            val updatedPackage = assertIs<RemoveStudentAttendanceResult.Success>(result).studentPackage
+            val expectedPackage = studentPackage.copy(
+                startedOn = null,
+                attendanceHistory = PackageAttendanceHistory(visitsByDate = emptyMap()),
+            )
+
+            assertEquals(expectedPackage, updatedPackage)
+            assertEquals(0, updatedPackage.usedClasses)
+            assertEquals(packageType.totalClasses, updatedPackage.remainingClasses)
+            assertNull(updatedPackage.startedOn)
+            assertNull(updatedPackage.expiresOn)
+            assertEquals(expectedPackage, repository.getLatestPackageForStudent(studentId))
+        }
+    }
+
+    @Test
+    fun `removing first attendance activates package from earliest remaining date`() = runTest {
+        // Given
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = firstClassDate,
+            attendanceDates = setOf(thirdClassDate, firstClassDate, secondClassDate),
         )
+
+        // When
+        val result = removeStudentAttendance(
+            studentId = studentId,
+            attendanceDate = firstClassDate,
+        )
+
+        // Then
+        val updatedPackage = assertIs<RemoveStudentAttendanceResult.Success>(result).studentPackage
+        val expectedPackage = studentPackage.copy(
+            startedOn = secondClassDate,
+            attendanceHistory = PackageAttendanceHistory(
+                visitsByDate = mapOf(secondClassDate to 1, thirdClassDate to 1),
+            ),
+        )
+
+        assertEquals(expectedPackage, updatedPackage)
+        assertEquals(LocalDate(2026, 11, 9), updatedPackage.expiresOn)
+        assertEquals(expectedPackage, repository.getLatestPackageForStudent(studentId))
+    }
+
+    @Test
+    fun `removing the only attendance again keeps package unactivated`() = runTest {
+        // Given
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = firstClassDate,
+        )
+
+        // When
+        val firstResult = removeStudentAttendance(studentId, firstClassDate)
+        val repeatedResult = removeStudentAttendance(studentId, firstClassDate)
+
+        // Then
+        val updatedPackage = assertIs<RemoveStudentAttendanceResult.Success>(firstResult).studentPackage
+        assertEquals(firstResult, repeatedResult)
+        assertEquals(studentPackage.purchasedOn, updatedPackage.purchasedOn)
+        assertEquals(0, updatedPackage.usedClasses)
+        assertNull(updatedPackage.startedOn)
+        assertNull(updatedPackage.expiresOn)
+        assertEquals(updatedPackage, repository.getLatestPackageForStudent(studentId))
+    }
+
+    @Test
+    fun `attendance after resetting activation starts validity from the new visit`() = runTest {
+        // Given
+        val studentPackage = repository.seed(
+            studentId = studentId,
+            packageType = fiveClassPackage,
+            startedOn = firstClassDate,
+        )
+        removeStudentAttendance(studentId, firstClassDate)
+        val markStudentPresent = MarkStudentPresentUseCase(repository, transactionRunner)
+
+        // When
+        val result = markStudentPresent(studentId, secondClassDate)
+
+        // Then
+        val updatedPackage = assertIs<MarkStudentPresentResult.Success>(result).studentPackage
+        assertEquals(studentPackage.id, updatedPackage.id)
+        assertEquals(studentPackage.purchasedOn, updatedPackage.purchasedOn)
+        assertEquals(secondClassDate, updatedPackage.startedOn)
+        assertEquals(LocalDate(2026, 11, 9), updatedPackage.expiresOn)
+        assertEquals(mapOf(secondClassDate to 1), updatedPackage.attendanceHistory.visitsByDate)
+        assertEquals(updatedPackage, repository.getLatestPackageForStudent(studentId))
+    }
+
+    @Test
+    fun `removing first duo attendance restores both visits and preserves later visit counts`() = runTest {
+        // Given
+        val studentPackage = repository.create(
+            studentId = studentId,
+            packageType = duoSpecialPackage,
+            purchasedOn = AttendanceTestData.registrationDate,
+            initialAttendance = InitialAttendance(date = firstClassDate, visitCount = 2),
+        )
+        repository.recordAttendance(studentPackage.id, secondClassDate, visitCount = 1)
+        repository.recordAttendance(studentPackage.id, thirdClassDate, visitCount = 2)
+
+        // When
+        val result = removeStudentAttendance(studentId, firstClassDate)
+
+        // Then
+        val updatedPackage = assertIs<RemoveStudentAttendanceResult.Success>(result).studentPackage
+        assertEquals(studentPackage.purchasedOn, updatedPackage.purchasedOn)
+        assertEquals(secondClassDate, updatedPackage.startedOn)
+        assertEquals(LocalDate(2026, 11, 2), updatedPackage.expiresOn)
+        assertEquals(mapOf(secondClassDate to 1, thirdClassDate to 2), updatedPackage.attendanceHistory.visitsByDate)
+        assertEquals(3, updatedPackage.usedClasses)
+        assertEquals(5, updatedPackage.remainingClasses)
+        assertEquals(updatedPackage, repository.getLatestPackageForStudent(studentId))
     }
 }

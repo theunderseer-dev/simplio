@@ -23,6 +23,7 @@ import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanc
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenUiTest {
@@ -133,33 +134,51 @@ class AttendanceScreenUiTest {
         }
 
         // Then
-        onNode(
+        val groupAHeader = onNode(
             hasText(DefaultStudentGroups.GROUP_A.name) and
                 hasAnyAncestor(
                     hasTestTag("student-group-${groupAStudent.groupId}"),
                 ),
         ).assertIsDisplayed()
 
-        onNode(
+        val groupARow = onNode(
             hasText(groupAStudent.fullName) and
                 hasAnyAncestor(
-                    hasTestTag("student-group-${groupAStudent.groupId}"),
+                    hasTestTag("student-row-${groupAStudent.id}"),
                 ),
         ).assertIsDisplayed()
 
-        onNode(
+        val groupBHeader = onNode(
             hasText(DefaultStudentGroups.GROUP_B.name) and
                 hasAnyAncestor(
                     hasTestTag("student-group-${groupBStudent.groupId}"),
                 ),
         ).assertIsDisplayed()
 
-        onNode(
+        val groupBRow = onNode(
             hasText(groupBStudent.fullName) and
                 hasAnyAncestor(
-                    hasTestTag("student-group-${groupBStudent.groupId}"),
+                    hasTestTag("student-row-${groupBStudent.id}"),
                 ),
         ).assertIsDisplayed()
+
+        val groupAHeaderBounds = groupAHeader.fetchSemanticsNode().boundsInRoot
+        val groupARowBounds = groupARow.fetchSemanticsNode().boundsInRoot
+        val groupBHeaderBounds = groupBHeader.fetchSemanticsNode().boundsInRoot
+        val groupBRowBounds = groupBRow.fetchSemanticsNode().boundsInRoot
+
+        assertTrue(
+            groupAHeaderBounds.bottom <= groupARowBounds.top,
+            "Group A student must appear below the Group A header",
+        )
+        assertTrue(
+            groupARowBounds.bottom <= groupBHeaderBounds.top,
+            "Group A students must appear before the Group B header",
+        )
+        assertTrue(
+            groupBHeaderBounds.bottom <= groupBRowBounds.top,
+            "Group B student must appear below the Group B header",
+        )
     }
 
     @Test

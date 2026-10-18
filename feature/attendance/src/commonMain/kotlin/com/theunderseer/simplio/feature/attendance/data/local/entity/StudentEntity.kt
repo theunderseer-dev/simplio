@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -23,4 +24,6 @@ data class StudentEntity(
     val id: Int = 0,
     val fullName: String,
     val groupId: Int,
+    @ColumnInfo(defaultValue = "''")
+    val note: String = "",
 )
