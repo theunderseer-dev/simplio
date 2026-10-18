@@ -53,7 +53,7 @@ import kotlinx.datetime.LocalDate
 @Composable
 fun AttendanceScreen(
     state: AttendanceUiState,
-    onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit,
+    onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDeleteStudent: (Int) -> Unit,
     onCopyAttendance: (String) -> Unit,
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit,
@@ -62,6 +62,8 @@ fun AttendanceScreen(
     onClearRemoveStudentAttendanceState: () -> Unit,
     onLoadNextClassHistoryPage: () -> Unit,
     onRetryClassHistory: () -> Unit,
+    onUpdateStudentNote: (Int, String) -> Unit,
+    onClearUpdateStudentNoteState: () -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -79,6 +81,8 @@ fun AttendanceScreen(
         mutableStateOf<AttendanceRemovalRequest?>(null)
     }
 
+    var noteStudentId by remember { mutableStateOf<Int?>(null) }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -86,6 +90,14 @@ fun AttendanceScreen(
         is AttendanceUiState.Content -> {
             val markState = state.markStudentPresentState
             val removeState = state.removeStudentAttendanceState
+            val noteState = state.updateStudentNoteState
+
+            LaunchedEffect(noteState) {
+                if (noteState is UpdateStudentNoteUiState.Success && noteState.studentId == noteStudentId) {
+                    noteStudentId = null
+                    onClearUpdateStudentNoteState()
+                }
+            }
 
             LaunchedEffect(markState) {
                 if (markState == MarkStudentPresentUiState.Success) {
@@ -173,6 +185,10 @@ fun AttendanceScreen(
                     },
                     onLoadNextClassHistoryPage = onLoadNextClassHistoryPage,
                     onRetryClassHistory = onRetryClassHistory,
+                    onEditNoteClick = { studentId ->
+                        onClearUpdateStudentNoteState()
+                        noteStudentId = studentId
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(contentPadding),
@@ -184,7 +200,7 @@ fun AttendanceScreen(
                     studentGroups = state.studentGroups,
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
-                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount, recordFirstAttendance ->
+                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount, recordFirstAttendance, note ->
                         onRegisterStudent(
                             fullName,
                             groupId,
@@ -192,6 +208,7 @@ fun AttendanceScreen(
                             registeredOn,
                             visitCount,
                             recordFirstAttendance,
+                            note,
                         )
                         showRegistrationDialog = false
                     },
@@ -199,6 +216,23 @@ fun AttendanceScreen(
                         showRegistrationDialog = false
                     },
                 )
+            }
+
+            noteStudentId?.let { studentId ->
+                state.attendance.entries.firstOrNull { it.student.id == studentId }?.student?.let { student ->
+                    StudentNoteDialog(
+                        student = student,
+                        isSaving = noteState == UpdateStudentNoteUiState.Saving(studentId),
+                        errorMessage = (noteState as? UpdateStudentNoteUiState.Error)
+                            ?.takeIf { it.studentId == studentId }
+                            ?.message,
+                        onSave = { note -> onUpdateStudentNote(studentId, note) },
+                        onDismiss = {
+                            noteStudentId = null
+                            onClearUpdateStudentNoteState()
+                        },
+                    )
+                }
             }
 
             attendanceDatePickerStudentId?.let { studentId ->
@@ -331,6 +365,7 @@ private fun AttendanceContent(
     onRemoveStudentAttendanceClick: (StudentAttendanceUiState, LocalDate) -> Unit,
     onLoadNextClassHistoryPage: () -> Unit,
     onRetryClassHistory: () -> Unit,
+    onEditNoteClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rowsByGroup = state.rows.groupBy { row ->
@@ -423,6 +458,26 @@ private fun AttendanceContent(
                             onRemoveAttendanceClick = { date ->
                                 onRemoveStudentAttendanceClick(row, date)
                             },
+                        )
+
+                        val student = row.registeredStudent.student
+
+                        Text(
+                            text = student.note.ifBlank { "Add note" },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (student.note.isBlank()) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("student-note-${student.id}")
+                                .clickable(role = Role.Button) { onEditNoteClick(student.id) }
+                                .semantics { contentDescription = "Edit note for ${student.fullName}" }
+                                .padding(top = 2.dp, bottom = 8.dp),
                         )
 
                         if (index < groupRows.lastIndex) {

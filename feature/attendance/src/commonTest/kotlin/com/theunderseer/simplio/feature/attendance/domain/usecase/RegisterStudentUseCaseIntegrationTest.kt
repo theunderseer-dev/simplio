@@ -148,7 +148,7 @@ class RegisterStudentUseCaseIntegrationTest {
 
         val trackingStudentRepository =
             object : StudentRepository by studentRepository {
-                override suspend fun create(fullName: String, groupId: Int): Student {
+                override suspend fun create(fullName: String, groupId: Int, note: String): Student {
                     val createdStudent = studentRepository.create(
                         fullName = fullName,
                         groupId = groupId,

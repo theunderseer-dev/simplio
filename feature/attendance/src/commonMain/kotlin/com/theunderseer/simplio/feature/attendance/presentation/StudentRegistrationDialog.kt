@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -56,12 +57,14 @@ fun StudentRegistrationDialog(
     studentGroups: List<StudentGroup>,
     packageTypes: List<PackageType>,
     initialDate: LocalDate,
-    onRegister: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit,
+    onRegister: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var fullName by remember {
         mutableStateOf("")
     }
+
+    var note by remember { mutableStateOf("") }
 
     var selectedGroupId by remember(studentGroups) {
         mutableStateOf<Int?>(null)
@@ -124,6 +127,8 @@ fun StudentRegistrationDialog(
                 OutlinedTextField(
                     value = fullName,
                     onValueChange = { fullName = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("registration-full-name"),
                     label = {
                         Text("Full name")
                     },
@@ -300,6 +305,17 @@ fun StudentRegistrationDialog(
                         }
                     }
                 }
+
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text("Note (optional)") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .testTag("registration-note"),
+                )
             }
         },
         confirmButton = {
@@ -316,6 +332,7 @@ fun StudentRegistrationDialog(
                         selectedDate,
                         selectedVisitCount,
                         recordFirstAttendance,
+                        note.trim(),
                     )
                 },
             ) {

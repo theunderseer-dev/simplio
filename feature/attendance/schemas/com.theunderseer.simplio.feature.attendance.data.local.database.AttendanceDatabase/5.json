@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 5,
-    "identityHash": "b5920287854372f673c4826409afc43e",
+    "identityHash": "7a56021fa595772ea37addddd6ab9e1e",
     "entities": [
       {
         "tableName": "student_groups",
@@ -30,7 +30,7 @@
       },
       {
         "tableName": "students",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fullName` TEXT NOT NULL, `groupId` INTEGER NOT NULL, FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fullName` TEXT NOT NULL, `groupId` INTEGER NOT NULL, `note` TEXT NOT NULL DEFAULT '', FOREIGN KEY(`groupId`) REFERENCES `student_groups`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -49,6 +49,13 @@
             "columnName": "groupId",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
           }
         ],
         "primaryKey": {
@@ -306,7 +313,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b5920287854372f673c4826409afc43e')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7a56021fa595772ea37addddd6ab9e1e')"
     ]
   }
 }

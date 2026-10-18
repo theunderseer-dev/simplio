@@ -9,7 +9,7 @@ import kotlinx.datetime.LocalDate
 @Composable
 internal fun AttendanceScreenForTest(
     state: AttendanceUiState,
-    onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit = { _, _, _, _, _, _, _ -> },
     onDeleteStudent: (Int) -> Unit = {},
     onCopyAttendance: (String) -> Unit = {},
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit = { _, _, _ -> },
@@ -18,6 +18,8 @@ internal fun AttendanceScreenForTest(
     onClearRemoveStudentAttendanceState: () -> Unit = {},
     onLoadNextClassHistoryPage: () -> Unit = {},
     onRetryClassHistory: () -> Unit = {},
+    onUpdateStudentNote: (Int, String) -> Unit = { _, _ -> },
+    onClearUpdateStudentNoteState: () -> Unit = {},
 ) {
     AttendanceScreen(
         state = state,
@@ -30,5 +32,7 @@ internal fun AttendanceScreenForTest(
         onClearRemoveStudentAttendanceState = onClearRemoveStudentAttendanceState,
         onLoadNextClassHistoryPage = onLoadNextClassHistoryPage,
         onRetryClassHistory = onRetryClassHistory,
+        onUpdateStudentNote = onUpdateStudentNote,
+        onClearUpdateStudentNoteState = onClearUpdateStudentNoteState,
     )
 }

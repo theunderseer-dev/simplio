@@ -20,36 +20,32 @@ class RegisterStudentUseCase(
         registeredOn: LocalDate,
         visitCount: Int = 1,
         recordFirstAttendance: Boolean = true,
+        note: String = "",
     ): RegisteredStudent = transactionRunner.run {
-        val initialAttendance =
-            if (recordFirstAttendance) {
-                require(packageType.allowsVisitCount(visitCount)) {
-                    "Visit count is not allowed for the selected package"
-                }
-
-                InitialAttendance(
-                    date = registeredOn,
-                    visitCount = visitCount,
-                )
-            } else {
-                null
+        if (recordFirstAttendance) {
+            require(packageType.allowsVisitCount(visitCount)) {
+                "Visit count is not allowed for the selected package"
             }
+        }
 
         val student = studentRepository.create(
             fullName = fullName,
             groupId = groupId,
+            note = note.trim(),
         )
 
         val studentPackage = studentPackageRepository.create(
             studentId = student.id,
             packageType = packageType,
             purchasedOn = registeredOn,
-            initialAttendance = initialAttendance,
+            initialAttendance =
+            if (recordFirstAttendance) {
+                InitialAttendance(date = registeredOn, visitCount = visitCount)
+            } else {
+                null
+            },
         )
 
-        RegisteredStudent(
-            student = student,
-            studentPackage = studentPackage,
-        )
+        RegisteredStudent(student = student, studentPackage = studentPackage)
     }
 }

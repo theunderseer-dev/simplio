@@ -32,4 +32,13 @@ interface StudentDao {
 
     @Query("SELECT COUNT(*) FROM students")
     suspend fun count(): Int
+
+    @Query(
+        """
+        UPDATE students
+        SET note = :note
+        WHERE id = :studentId
+        """,
+    )
+    suspend fun updateNote(studentId: Int, note: String): Int
 }

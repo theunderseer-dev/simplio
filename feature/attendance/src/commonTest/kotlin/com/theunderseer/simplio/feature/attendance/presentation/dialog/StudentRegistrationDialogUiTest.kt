@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,6 +17,8 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollTo
 
 @OptIn(ExperimentalTestApi::class)
 class StudentRegistrationDialogUiTest {
@@ -91,7 +92,7 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // When
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         // Then
@@ -140,7 +141,7 @@ class StudentRegistrationDialogUiTest {
         onNodeWithText("OK")
             .performClick()
 
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         onNodeWithText("Register")
@@ -215,7 +216,7 @@ class StudentRegistrationDialogUiTest {
             .assertIsNotEnabled()
 
         // When
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         onNodeWithText("Register")
@@ -260,7 +261,7 @@ class StudentRegistrationDialogUiTest {
             .assertDoesNotExist()
 
         // When
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
         onNodeWithText("Register")
@@ -295,10 +296,10 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        onNodeWithText("1 person")
+        onNodeWithText("1 person").performScrollTo()
             .assertIsDisplayed()
 
-        onNodeWithText("2 people")
+        onNodeWithText("2 people").performScrollTo()
             .assertIsDisplayed()
             .assertIsSelected()
     }
@@ -323,18 +324,18 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // When
-        onNodeWithText("1 person")
+        onNodeWithText("1 person").performScrollTo()
             .performClick()
 
         // Then
-        onNodeWithText("1 person")
+        onNodeWithText("1 person").performScrollTo()
             .assertIsSelected()
 
-        onNodeWithText("2 people")
+        onNodeWithText("2 people").performScrollTo()
             .assertIsNotSelected()
 
         // When
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna & John")
 
         onNodeWithText("Register")
@@ -366,7 +367,7 @@ class StudentRegistrationDialogUiTest {
         onNodeWithText("Duo 8 · Special rate")
             .performClick()
 
-        onNode(hasSetTextAction())
+        onNodeWithTag("registration-full-name")
             .performTextInput("Anna & John")
 
         onNodeWithText("Register")

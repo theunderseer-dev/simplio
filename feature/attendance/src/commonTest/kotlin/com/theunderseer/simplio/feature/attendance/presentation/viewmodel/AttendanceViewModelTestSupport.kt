@@ -32,6 +32,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal fun runViewModelTest(block: suspend TestScope.() -> Unit) {
@@ -77,6 +78,7 @@ internal fun createViewModel(
             studentPackageRepository = studentPackageRepository,
         ),
 ): AttendanceViewModel = AttendanceViewModel(
+    updateStudentNoteUseCase = UpdateStudentNoteUseCase(studentRepository = studentRepository),
     getAttendanceUseCase = GetAttendanceUseCase(
         studentRepository = studentRepository,
         studentPackageRepository = studentPackageRepository,

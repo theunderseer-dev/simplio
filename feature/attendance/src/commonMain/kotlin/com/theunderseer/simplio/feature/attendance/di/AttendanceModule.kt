@@ -24,6 +24,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPre
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -161,6 +162,12 @@ val attendanceModule = module {
         )
     }
 
+    factory {
+        UpdateStudentNoteUseCase(
+            studentRepository = get(),
+        )
+    }
+
     viewModel {
         AttendanceViewModel(
             getAttendanceUseCase = get(),
@@ -171,6 +178,7 @@ val attendanceModule = module {
             removeStudentAttendanceUseCase = get(),
             deleteStudentUseCase = get(),
             getClassHistoryUseCase = get(),
+            updateStudentNoteUseCase = get(),
             currentDates = get(
                 qualifier = named("attendanceCurrentDates"),
             ),

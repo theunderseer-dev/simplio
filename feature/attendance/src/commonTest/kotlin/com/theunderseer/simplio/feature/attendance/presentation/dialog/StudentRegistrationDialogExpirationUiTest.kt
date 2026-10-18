@@ -23,7 +23,7 @@ class StudentRegistrationDialogExpirationUiTest {
         }
 
         // Then
-        onNodeWithText("Record first attendance").assertIsOn()
+        onNodeWithText("Record first attendance").performScrollTo().assertIsOn()
         onNodeWithText("Valid until Oct 30, 2026")
             .performScrollTo()
             .assertIsDisplayed()
