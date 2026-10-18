@@ -1,7 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
-import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntry
-import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
@@ -10,15 +9,15 @@ import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiStat
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
 import com.theunderseer.simplio.feature.attendance.presentation.ClassHistoryUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelClassHistoryPageSizeTest {
@@ -34,123 +33,102 @@ class AttendanceViewModelClassHistoryPageSizeTest {
     )
 
     @Test
-    fun `first page contains five classes including an empty latest class without skipping older dates`() =
-        runViewModelTest {
-            // Given
-            val viewModel = historyViewModel(
-                recordedDates = dates.drop(1),
-                currentDate = dates.first(),
-            )
-            observeUiState(viewModel)
-            advanceUntilIdle()
-
-            // Then
-            val firstPage = historyState(viewModel)
-            assertEquals(dates.take(5), firstPage.entries.map { it.date })
-            assertEquals(dates[4], firstPage.nextBeforeDate)
-
-            // When
-            viewModel.loadNextClassHistoryPage()
-            advanceUntilIdle()
-
-            // Then
-            val allHistory = historyState(viewModel)
-            assertEquals(dates, allHistory.entries.map { it.date })
-            assertNull(allHistory.nextBeforeDate)
-        }
-
-    @Test
-    fun `five recorded classes including the latest class do not offer another page`() = runViewModelTest {
-        // Given
-        val recordedDates = dates.take(5)
-        val viewModel = historyViewModel(
-            recordedDates = recordedDates,
-            currentDate = recordedDates.first(),
-        )
+    fun `fills gaps in pages of five and does not request history after the first attendance`() = runViewModelTest {
+        val viewModel = historyViewModel(recordedDates = listOf(dates.last()))
         observeUiState(viewModel)
         advanceUntilIdle()
 
-        // Then
-        val history = historyState(viewModel)
-        assertEquals(recordedDates, history.entries.map { it.date })
-        assertNull(history.nextBeforeDate)
-    }
+        assertEquals(dates.take(5), historyState(viewModel).entries.map { it.date })
+        assertEquals(dates[4], historyState(viewModel).nextBeforeDate)
 
-    @Test
-    fun `empty latest class keeps load more available when five older classes exist`() = runViewModelTest {
-        // Given
-        val recordedDates = dates.drop(1).take(5)
-        val expectedDates = listOf(dates.first()) + recordedDates
-        val viewModel = historyViewModel(
-            recordedDates = recordedDates,
-            currentDate = dates.first(),
-        )
-        observeUiState(viewModel)
-        advanceUntilIdle()
-
-        // Then
-        assertEquals(expectedDates.take(5), historyState(viewModel).entries.map { it.date })
-        assertEquals(expectedDates[4], historyState(viewModel).nextBeforeDate)
-
-        // When
         viewModel.loadNextClassHistoryPage()
         advanceUntilIdle()
 
-        // Then
-        assertEquals(expectedDates, historyState(viewModel).entries.map { it.date })
+        assertEquals(dates, historyState(viewModel).entries.map { it.date })
+        assertNull(historyState(viewModel).nextBeforeDate)
+
+        viewModel.loadNextClassHistoryPage()
+        advanceUntilIdle()
+
+        assertEquals(dates, historyState(viewModel).entries.map { it.date })
+    }
+
+    @Test
+    fun `exactly five scheduled classes do not offer another page`() = runViewModelTest {
+        val viewModel = historyViewModel(recordedDates = listOf(dates[4]))
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(dates.take(5), historyState(viewModel).entries.map { it.date })
         assertNull(historyState(viewModel).nextBeforeDate)
     }
 
     @Test
-    fun `load more expands history to ten classes and then the remaining classes`() = runViewModelTest {
-        // Given
-        val latestDate = AttendanceTestData.firstClassDate
-        val recordedDates = (1..12).map { weeksAgo ->
-            latestDate.minus(DatePeriod(days = weeksAgo * 7))
-        }
-        val expectedDates = listOf(latestDate) + recordedDates
-        val viewModel = historyViewModel(
-            recordedDates = recordedDates,
-            currentDate = latestDate,
-        )
+    fun `six scheduled classes keep load more available for the oldest date`() = runViewModelTest {
+        val viewModel = historyViewModel(recordedDates = listOf(dates[5]))
         observeUiState(viewModel)
         advanceUntilIdle()
-        assertEquals(expectedDates.take(5), historyState(viewModel).entries.map { it.date })
 
-        // When
+        assertEquals(dates.take(5), historyState(viewModel).entries.map { it.date })
+        assertEquals(dates[4], historyState(viewModel).nextBeforeDate)
+
         viewModel.loadNextClassHistoryPage()
         advanceUntilIdle()
 
-        // Then
-        assertEquals(expectedDates.take(10), historyState(viewModel).entries.map { it.date })
-        assertEquals(expectedDates[9], historyState(viewModel).nextBeforeDate)
-
-        // When
-        viewModel.loadNextClassHistoryPage()
-        advanceUntilIdle()
-
-        // Then
-        assertEquals(expectedDates, historyState(viewModel).entries.map { it.date })
+        assertEquals(dates.take(6), historyState(viewModel).entries.map { it.date })
         assertNull(historyState(viewModel).nextBeforeDate)
     }
 
-    private fun historyViewModel(recordedDates: List<LocalDate>, currentDate: LocalDate): AttendanceViewModel {
-        val entries = recordedDates
-            .sortedDescending()
-            .map { testClassHistoryEntry(date = it) }
-        val repository = object : ClassHistoryRepository {
-            override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> = entries
-                .filter { beforeDate == null || it.date < beforeDate }
-                .take(limit)
-        }
+    @Test
+    fun `does not add a placeholder before any attendance has been recorded`() = runViewModelTest {
+        val viewModel = historyViewModel(recordedDates = emptyList())
+        observeUiState(viewModel)
+        advanceUntilIdle()
 
-        return createViewModel(
+        assertTrue(historyState(viewModel).entries.isEmpty())
+        assertNull(historyState(viewModel).nextBeforeDate)
+    }
+
+    @Test
+    fun `new scheduled class appears when current date changes`() = runViewModelTest {
+        val currentDates = MutableStateFlow(AttendanceTestData.currentDate)
+        val viewModel = createViewModel(
             studentRepository = FakeStudentRepository(),
             studentPackageRepository = FakeStudentPackageRepository(),
-            classHistoryRepository = repository,
-            currentDates = flowOf(currentDate),
+            classHistoryRepository = FakeClassHistoryRepository(
+                listOf(testClassHistoryEntry(date = AttendanceTestData.firstClassDate)),
+            ),
+            currentDates = currentDates,
+        )
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(AttendanceTestData.secondClassDate, AttendanceTestData.firstClassDate),
+            historyState(viewModel).entries.map { it.date },
+        )
+
+        currentDates.value = AttendanceTestData.thirdClassDate
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                AttendanceTestData.thirdClassDate,
+                AttendanceTestData.secondClassDate,
+                AttendanceTestData.firstClassDate,
+            ),
+            historyState(viewModel).entries.map { it.date },
         )
     }
+
+    private fun historyViewModel(recordedDates: List<LocalDate>): AttendanceViewModel = createViewModel(
+        studentRepository = FakeStudentRepository(),
+        studentPackageRepository = FakeStudentPackageRepository(),
+        classHistoryRepository = FakeClassHistoryRepository(
+            recordedDates.map { testClassHistoryEntry(date = it) },
+        ),
+        currentDates = flowOf(dates.first()),
+    )
 
     private fun historyState(viewModel: AttendanceViewModel): ClassHistoryUiState.Content =
         assertIs<ClassHistoryUiState.Content>(

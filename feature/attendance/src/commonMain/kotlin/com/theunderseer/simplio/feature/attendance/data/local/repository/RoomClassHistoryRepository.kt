@@ -8,6 +8,10 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistor
 import kotlinx.datetime.LocalDate
 
 class RoomClassHistoryRepository(private val attendanceDao: AttendanceDao) : ClassHistoryRepository {
+    override suspend fun getFirstAttendanceDate(): LocalDate? = attendanceDao
+        .getFirstAttendanceEpochDay()
+        ?.let { LocalDate.fromEpochDays(it) }
+
     override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> = attendanceDao
         .getClassHistoryPage(
             beforeEpochDay = beforeDate?.toEpochDays(),

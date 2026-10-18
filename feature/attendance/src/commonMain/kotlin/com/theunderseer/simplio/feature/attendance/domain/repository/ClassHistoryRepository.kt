@@ -4,5 +4,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntr
 import kotlinx.datetime.LocalDate
 
 interface ClassHistoryRepository {
+    suspend fun getFirstAttendanceDate(): LocalDate?
+
     suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry>
 }

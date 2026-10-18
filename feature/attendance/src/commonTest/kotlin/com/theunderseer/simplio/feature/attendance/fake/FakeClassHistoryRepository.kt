@@ -11,6 +11,8 @@ class FakeClassHistoryRepository(private val entries: List<ClassHistoryEntry> = 
     var lastLimit: Int = 0
         private set
 
+    override suspend fun getFirstAttendanceDate(): LocalDate? = entries.minOfOrNull { it.date }
+
     override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
         lastBeforeDate = beforeDate
         lastLimit = limit

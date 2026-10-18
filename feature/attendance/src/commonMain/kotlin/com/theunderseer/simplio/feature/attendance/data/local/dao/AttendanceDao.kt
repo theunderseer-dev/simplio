@@ -33,6 +33,14 @@ interface AttendanceDao {
 
     @Query(
         """
+        SELECT MIN(attendedOnEpochDay)
+        FROM attendance
+        """,
+    )
+    suspend fun getFirstAttendanceEpochDay(): Long?
+
+    @Query(
+        """
     SELECT
         attendance.attendedOnEpochDay,
         students.id AS studentId,

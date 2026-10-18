@@ -25,7 +25,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.WhileSubscribed
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -86,11 +88,7 @@ class AttendanceViewModel(
                         studentGroups = data.studentGroups,
                         markStudentPresentState = markState,
                         removeStudentAttendanceState = removeState,
-                        classHistoryState = historyState.withLatestClassDate(
-                            latestClassDate = latestScheduledClassDate(
-                                today = currentDate,
-                            ),
-                        ),
+                        classHistoryState = historyState,
                     )
 
                 is AttendanceDataState.Error ->
@@ -109,7 +107,12 @@ class AttendanceViewModel(
 
     init {
         loadAttendance()
-        loadClassHistory()
+
+        viewModelScope.launch {
+            currentDates
+                .distinctUntilChangedBy { latestScheduledClassDate(today = it) }
+                .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
     }
 
     fun registerStudent(
@@ -259,6 +262,7 @@ class AttendanceViewModel(
                 )
 
                 refreshAttendance()
+                loadClassHistory()
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
@@ -297,41 +301,24 @@ class AttendanceViewModel(
     }
 
     fun loadNextClassHistoryPage() {
-        val initialContent =
+        val content =
             classHistoryData.value as? ClassHistoryUiState.Content
                 ?: return
+        val beforeDate = content.nextBeforeDate ?: return
 
-        if (initialContent.isLoadingNextPage) {
+        if (content.isLoadingNextPage) {
             return
         }
 
-        classHistoryData.value = initialContent.copy(
+        classHistoryData.value = content.copy(
             isLoadingNextPage = true,
             nextPageErrorMessage = null,
         )
 
         classHistoryJob = viewModelScope.launch {
-            var content = initialContent
-
             try {
-                // Use the displayed boundary, including a possible empty latest class.
-                content = content.withLatestClassDate(
-                    latestClassDate = latestScheduledClassDate(
-                        today = currentDates.first(),
-                    ),
-                )
-
-                val beforeDate = content.nextBeforeDate
-
-                if (beforeDate == null) {
-                    classHistoryData.value = content.copy(
-                        isLoadingNextPage = false,
-                        nextPageErrorMessage = null,
-                    )
-                    return@launch
-                }
-
                 val page = getClassHistoryUseCase(
+                    currentDate = currentDates.first(),
                     beforeDate = beforeDate,
                 )
 
@@ -358,14 +345,16 @@ class AttendanceViewModel(
         }
     }
 
-    private fun loadClassHistory() {
+    private fun loadClassHistory(currentDate: LocalDate? = null) {
         classHistoryJob?.cancel()
         classHistoryData.value = ClassHistoryUiState.Loading
 
         classHistoryJob =
             viewModelScope.launch {
                 try {
-                    val page = getClassHistoryUseCase()
+                    val page = getClassHistoryUseCase(
+                        currentDate = currentDate ?: currentDates.first(),
+                    )
 
                     currentCoroutineContext().ensureActive()
 

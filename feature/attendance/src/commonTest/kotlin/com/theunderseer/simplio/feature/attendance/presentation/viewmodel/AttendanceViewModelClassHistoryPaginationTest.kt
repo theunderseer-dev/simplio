@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
@@ -17,7 +18,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -66,7 +70,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
             historyState(viewModel),
         )
         assertEquals(
-            listOf(null, entries[3].date),
+            listOf<LocalDate?>(firstPageUpperBound(), entries[3].date),
             requestedBeforeDates,
         )
 
@@ -82,7 +86,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         assertEquals(expectedHistory, historyState(viewModel))
         assertEquals(
-            listOf(null, entries[3].date, entries[8].date),
+            listOf<LocalDate?>(firstPageUpperBound(), entries[3].date, entries[8].date),
             requestedBeforeDates,
         )
 
@@ -93,7 +97,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
         // Then
         assertEquals(expectedHistory, historyState(viewModel))
         assertEquals(
-            listOf(null, entries[3].date, entries[8].date),
+            listOf<LocalDate?>(firstPageUpperBound(), entries[3].date, entries[8].date),
             requestedBeforeDates,
         )
     }
@@ -113,7 +117,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
                 override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     requestCount++
 
-                    if (beforeDate != null) {
+                    if (beforeDate != firstPageUpperBound()) {
                         allowNextPage.await()
                     }
 
@@ -169,7 +173,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
                 override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
                     requestedBeforeDates += beforeDate
 
-                    if (beforeDate != null && !nextPageFailed) {
+                    if (beforeDate != firstPageUpperBound() && !nextPageFailed) {
                         nextPageFailed = true
                         error("Older history unavailable")
                     }
@@ -220,7 +224,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
         assertEquals(before.attendance, after.attendance)
         assertEquals(
-            listOf(null, entries[3].date, entries[3].date),
+            listOf<LocalDate?>(firstPageUpperBound(), entries[3].date, entries[3].date),
             requestedBeforeDates,
         )
     }
@@ -234,17 +238,24 @@ class AttendanceViewModelClassHistoryPaginationTest {
         )
         val allowOlderPage = CompletableDeferred<Unit>()
         var firstPageRequests = 0
+        var refreshedHistory = false
 
         val repository =
             object : ClassHistoryRepository by storedRepository {
+                override suspend fun getFirstAttendanceDate(): LocalDate? = if (refreshedHistory) {
+                    AttendanceTestData.firstClassDate
+                } else {
+                    storedRepository.getFirstAttendanceDate()
+                }
+
                 override suspend fun getPage(beforeDate: LocalDate?, limit: Int): List<ClassHistoryEntry> {
-                    if (beforeDate == null) {
+                    if (beforeDate == firstPageUpperBound()) {
                         firstPageRequests++
 
                         return if (firstPageRequests == 1) {
                             storedRepository.getPage(beforeDate, limit)
                         } else {
-                            emptyList()
+                            listOf(latestClassEntry())
                         }
                     }
 
@@ -266,6 +277,7 @@ class AttendanceViewModelClassHistoryPaginationTest {
         assertEquals(true, historyState(viewModel).isLoadingNextPage)
 
         // When: registration starts a fresh history request
+        refreshedHistory = true
         viewModel.registerStudent(
             fullName = AttendanceTestData.student.fullName,
             groupId = AttendanceTestData.student.groupId,
@@ -314,11 +326,14 @@ class AttendanceViewModelClassHistoryPaginationTest {
 
     private fun latestClassEntry(): ClassHistoryEntry = testClassHistoryEntry(date = AttendanceTestData.firstClassDate)
 
-    private fun historyEntries(count: Int): List<ClassHistoryEntry> = List(count) { index ->
-        testClassHistoryEntry(
-            date = LocalDate.fromEpochDays(
-                AttendanceTestData.firstClassDate.toEpochDays() - index - 1,
-            ),
-        )
+    private fun firstPageUpperBound(): LocalDate = AttendanceTestData.firstClassDate.plus(DatePeriod(days = 1))
+
+    private fun historyEntries(count: Int): List<ClassHistoryEntry> {
+        var date = AttendanceTestData.firstClassDate
+
+        return List(count) {
+            date = latestScheduledClassDate(today = date.minus(DatePeriod(days = 1)))
+            testClassHistoryEntry(date = date)
+        }
     }
 }
