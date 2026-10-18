@@ -65,16 +65,17 @@ fun testStudentGroupEntity(
     name = name,
 )
 
-fun testStudent(id: Int = 1, fullName: String = "Anna Smith", groupId: Int = 1,
-    note: String = "",
-): Student = Student(
+fun testStudent(id: Int = 1, fullName: String = "Anna Smith", groupId: Int = 1, note: String = ""): Student = Student(
     id = id,
     fullName = fullName,
     groupId = groupId,
     note = note,
 )
 
-fun testStudentEntity(id: Int = 0, fullName: String = "Anna Smith", groupId: Int = 1,
+fun testStudentEntity(
+    id: Int = 0,
+    fullName: String = "Anna Smith",
+    groupId: Int = 1,
     note: String = "",
 ): StudentEntity = StudentEntity(
     id = id,
@@ -203,8 +204,8 @@ internal class StudentRegistrationTestCallback {
         registeredOn: LocalDate,
         visitCount: Int,
         recordFirstAttendance: Boolean,
-    note: String,
-) {
+        note: String,
+    ) {
         submission = StudentRegistrationSubmission(
             fullName = fullName,
             groupId = groupId,

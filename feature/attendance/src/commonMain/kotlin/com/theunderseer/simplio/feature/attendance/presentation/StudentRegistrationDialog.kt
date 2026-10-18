@@ -198,15 +198,16 @@ fun StudentRegistrationDialog(
                             Text("Package")
                         },
                         supportingText =
-                            if (packageExpirationDate != null) {
-                                {
-                                    Text(
-                                        text = "Valid until ${packageExpirationDate.toDisplayDate()}, ${packageExpirationDate.year}",
-                                    )
-                                }
-                            } else {
-                                null
-                            },
+                        if (packageExpirationDate != null) {
+                            {
+                                Text(
+                                    text = "Valid until ${packageExpirationDate.toDisplayDate()}, " +
+                                        "${packageExpirationDate.year}",
+                                )
+                            }
+                        } else {
+                            null
+                        },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(
                                 expanded = isPackageMenuExpanded,

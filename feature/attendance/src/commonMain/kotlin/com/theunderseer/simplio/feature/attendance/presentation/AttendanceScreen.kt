@@ -200,7 +200,15 @@ fun AttendanceScreen(
                     studentGroups = state.studentGroups,
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
-                    onRegister = { fullName, groupId, packageType, registeredOn, visitCount, recordFirstAttendance, note ->
+                    onRegister = {
+                            fullName,
+                            groupId,
+                            packageType,
+                            registeredOn,
+                            visitCount,
+                            recordFirstAttendance,
+                            note,
+                        ->
                         onRegisterStudent(
                             fullName,
                             groupId,

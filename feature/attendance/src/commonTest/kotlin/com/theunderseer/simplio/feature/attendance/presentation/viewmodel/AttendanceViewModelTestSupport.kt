@@ -13,6 +13,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGrou
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
@@ -32,7 +33,6 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal fun runViewModelTest(block: suspend TestScope.() -> Unit) {
