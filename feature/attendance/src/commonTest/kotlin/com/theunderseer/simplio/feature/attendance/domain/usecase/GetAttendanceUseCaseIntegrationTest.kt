@@ -42,14 +42,9 @@ class GetAttendanceUseCaseIntegrationTest {
         getAttendance =
             GetAttendanceUseCase(
                 studentRepository =
-                RoomStudentRepository(
-                    studentDao = database.studentDao(),
-                ),
+                RoomStudentRepository(database),
                 studentPackageRepository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                ),
+                RoomStudentPackageRepository(database),
             )
     }
 

@@ -4,7 +4,6 @@ import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
-import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -138,10 +137,5 @@ class PackageTypeSeederTest {
         .setDriver(BundledSQLiteDriver())
         .build()
 
-    private fun createSeeder(database: AttendanceDatabase): PackageTypeSeeder = PackageTypeSeeder(
-        packageTypeDao = database.packageTypeDao(),
-        transactionRunner = RoomTransactionRunner(
-            database = database,
-        ),
-    )
+    private fun createSeeder(database: AttendanceDatabase): PackageTypeSeeder = PackageTypeSeeder(database)
 }

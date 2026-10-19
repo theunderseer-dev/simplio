@@ -43,10 +43,7 @@ class MarkStudentPresentActivationIntegrationTest {
 
             val packageType = duoSpecialPackage.copy(id = packageTypeId)
 
-            val roomRepository = RoomStudentPackageRepository(
-                studentPackageDao = database.studentPackageDao(),
-                attendanceDao = database.attendanceDao(),
-            )
+            val roomRepository = RoomStudentPackageRepository(database)
 
             val purchasedPackage = roomRepository.create(
                 studentId = studentId,

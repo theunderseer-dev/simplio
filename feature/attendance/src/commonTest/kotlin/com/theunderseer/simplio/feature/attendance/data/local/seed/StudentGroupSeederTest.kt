@@ -3,7 +3,6 @@ package com.theunderseer.simplio.feature.attendance.data.local.seed
 import androidx.room.Room
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
-import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentGroupEntity
 import kotlinx.coroutines.test.runTest
@@ -34,13 +33,7 @@ class StudentGroupSeederTest {
                 .build()
 
         seeder =
-            StudentGroupSeeder(
-                studentGroupDao = database.studentGroupDao(),
-                transactionRunner =
-                RoomTransactionRunner(
-                    database = database,
-                ),
-            )
+            StudentGroupSeeder(database)
     }
 
     @AfterTest

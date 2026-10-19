@@ -7,6 +7,12 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
 
 @Dao
 interface StudentPackageDao {
+    @Query("SELECT * FROM student_packages WHERE id = :id")
+    suspend fun getById(id: Int): StudentPackageEntity?
+
+    @Query("SELECT * FROM student_packages WHERE studentId = :studentId ORDER BY id")
+    suspend fun getForStudent(studentId: Int): List<StudentPackageEntity>
+
     @Insert
     suspend fun insert(studentPackage: StudentPackageEntity): Long
 

@@ -1,26 +1,26 @@
 package com.theunderseer.simplio.feature.attendance.data.local.repository
 
-import com.theunderseer.simplio.feature.attendance.data.local.dao.AttendanceDao
-import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentPackageDao
+import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncJournal
 import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import kotlinx.datetime.LocalDate
 
-class RoomStudentPackageRepository(
-    private val studentPackageDao: StudentPackageDao,
-    private val attendanceDao: AttendanceDao,
-) : StudentPackageRepository {
+class RoomStudentPackageRepository(private val database: AttendanceDatabase) : StudentPackageRepository {
+    private val studentPackageDao = database.studentPackageDao()
+    private val attendanceDao = database.attendanceDao()
+
     override suspend fun create(
         studentId: Int,
         packageType: PackageType,
         purchasedOn: LocalDate,
         initialAttendance: InitialAttendance?,
-    ): StudentPackage {
+    ): StudentPackage = RoomSyncJournal.write(database) { journal ->
         val entity = StudentPackageEntity(
             studentId = studentId,
             packageTypeId = packageType.id,
@@ -47,7 +47,12 @@ class RoomStudentPackageRepository(
             attendanceDao.insert(attendance)
         }
 
-        return entity
+        journal.ensurePackage(id)
+        if (attendance != null) {
+            journal.ensureAttendance(id, attendance.attendedOnEpochDay)
+        }
+
+        entity
             .copy(id = id)
             .toDomain(attendance = listOfNotNull(attendance))
     }
@@ -63,26 +68,32 @@ class RoomStudentPackageRepository(
     }
 
     override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
-        studentPackageDao.activateIfNeeded(
-            packageId = packageId,
-            startedOnEpochDay = attendedOn.toEpochDays(),
-        )
-
-        attendanceDao.insert(
-            AttendanceEntity(
-                packageId = packageId,
-                attendedOnEpochDay = attendedOn.toEpochDays(),
-                visitCount = visitCount,
-            ),
-        )
+        RoomSyncJournal.write(database) { journal ->
+            val epochDay = attendedOn.toEpochDays()
+            if (attendanceDao.getForPackage(packageId).any { it.attendedOnEpochDay == epochDay }) {
+                return@write
+            }
+            attendanceDao.insert(
+                AttendanceEntity(
+                    packageId = packageId,
+                    attendedOnEpochDay = epochDay,
+                    visitCount = visitCount,
+                ),
+            )
+            studentPackageDao.activateIfNeeded(packageId, epochDay)
+            journal.upsertAttendance(packageId, epochDay)
+        }
     }
 
     override suspend fun removeAttendance(packageId: Int, attendedOn: LocalDate) {
-        attendanceDao.deleteForPackageOnDate(
-            packageId = packageId,
-            attendedOnEpochDay = attendedOn.toEpochDays(),
-        )
-
-        studentPackageDao.updateStartedOnFromAttendance(packageId)
+        RoomSyncJournal.write(database) { journal ->
+            val epochDay = attendedOn.toEpochDays()
+            if (attendanceDao.getForPackage(packageId).none { it.attendedOnEpochDay == epochDay }) {
+                return@write
+            }
+            journal.deleteAttendance(packageId, epochDay)
+            attendanceDao.deleteForPackageOnDate(packageId, epochDay)
+            studentPackageDao.updateStartedOnFromAttendance(packageId)
+        }
     }
 }

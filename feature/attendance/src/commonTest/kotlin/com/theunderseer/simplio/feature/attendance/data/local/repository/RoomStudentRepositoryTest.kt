@@ -37,9 +37,7 @@ class RoomStudentRepositoryTest {
         )
 
         repository =
-            RoomStudentRepository(
-                studentDao = database.studentDao(),
-            )
+            RoomStudentRepository(database)
     }
 
     @AfterTest

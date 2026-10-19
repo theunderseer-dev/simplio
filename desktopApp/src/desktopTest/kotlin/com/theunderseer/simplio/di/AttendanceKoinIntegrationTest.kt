@@ -9,6 +9,8 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
+import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
@@ -66,6 +68,18 @@ class AttendanceKoinIntegrationTest {
 
             // Then
             assertTrue(registeredStudent.student.id > 0)
+            val pending = koin.get<RoomSyncOutbox>().getPending()
+            assertTrue(
+                pending.any {
+                    it.entityType == SyncEntityType.STUDENT && it.localId == registeredStudent.student.id.toString()
+                },
+            )
+            assertTrue(
+                pending.any {
+                    it.entityType == SyncEntityType.STUDENT_PACKAGE &&
+                        it.localId == registeredStudent.studentPackage.id.toString()
+                },
+            )
 
             val persistedStudent =
                 assertNotNull(

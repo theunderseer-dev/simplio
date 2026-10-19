@@ -20,7 +20,7 @@ class StudentNotePersistenceTest {
         try {
             val studentId = withDatabase(path) { database ->
                 val groupId = database.studentGroupDao().insert(testStudentGroupEntity()).toInt()
-                RoomStudentRepository(database.studentDao()).create(
+                RoomStudentRepository(database).create(
                     fullName = AttendanceTestData.student.fullName,
                     groupId = groupId,
                     note = AttendanceTestData.studentNote,
@@ -28,7 +28,7 @@ class StudentNotePersistenceTest {
             }
 
             withDatabase(path) { database ->
-                val repository = RoomStudentRepository(database.studentDao())
+                val repository = RoomStudentRepository(database)
                 val student = repository.getAll().single()
                 assertEquals(studentId, student.id)
                 assertEquals(AttendanceTestData.studentNote, student.note)
@@ -36,13 +36,13 @@ class StudentNotePersistenceTest {
             }
 
             withDatabase(path) { database ->
-                val repository = RoomStudentRepository(database.studentDao())
+                val repository = RoomStudentRepository(database)
                 assertEquals("Bring a receipt next time", repository.getAll().single().note)
                 assertTrue(repository.updateNote(studentId, ""))
             }
 
             withDatabase(path) { database ->
-                val repository = RoomStudentRepository(database.studentDao())
+                val repository = RoomStudentRepository(database)
                 assertEquals("", repository.getAll().single().note)
                 assertFalse(repository.updateNote(studentId + 1, "Unknown student"))
                 assertEquals("", repository.getAll().single().note)

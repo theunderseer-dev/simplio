@@ -1,16 +1,15 @@
 package com.theunderseer.simplio.feature.attendance.data.local.seed
 
-import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentGroupDao
+import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncJournal
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
-import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 
-class StudentGroupSeeder(
-    private val studentGroupDao: StudentGroupDao,
-    private val transactionRunner: TransactionRunner,
-) {
+class StudentGroupSeeder(private val database: AttendanceDatabase) {
+    private val studentGroupDao = database.studentGroupDao()
+
     suspend fun seedDefaults() {
-        transactionRunner.run {
+        RoomSyncJournal.write(database) { journal ->
             val existingIds =
                 studentGroupDao.getAll()
                     .map { it.id }
@@ -21,6 +20,8 @@ class StudentGroupSeeder(
                 .forEach { group ->
                     studentGroupDao.insert(group)
                 }
+
+            studentGroupDao.getAll().forEach { journal.ensureGroup(it.id) }
         }
     }
 

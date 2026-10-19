@@ -178,7 +178,7 @@ class RemoveFirstAttendancePersistenceTest {
         val packageTypeId = database.packageTypeDao().insert(
             testPackageTypeEntity(packageType = duoSpecialPackage),
         ).toInt()
-        val student = RoomStudentRepository(database.studentDao()).create(
+        val student = RoomStudentRepository(database).create(
             fullName = AttendanceTestData.student.fullName,
             groupId = groupId,
         )
@@ -192,10 +192,8 @@ class RemoveFirstAttendancePersistenceTest {
         return RegisteredStudent(student = student, studentPackage = studentPackage)
     }
 
-    private fun repository(database: AttendanceDatabase): RoomStudentPackageRepository = RoomStudentPackageRepository(
-        studentPackageDao = database.studentPackageDao(),
-        attendanceDao = database.attendanceDao(),
-    )
+    private fun repository(database: AttendanceDatabase): RoomStudentPackageRepository =
+        RoomStudentPackageRepository(database)
 
     private suspend fun <T> withDatabase(path: String, block: suspend (AttendanceDatabase) -> T): T {
         val database = createAttendanceDatabase(path)

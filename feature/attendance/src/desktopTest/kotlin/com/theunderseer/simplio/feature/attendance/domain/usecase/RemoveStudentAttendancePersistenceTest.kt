@@ -46,17 +46,12 @@ class RemoveStudentAttendancePersistenceTest {
                     testStudentGroupEntity(),
                 ).toInt()
 
-                val student = RoomStudentRepository(
-                    studentDao = database.studentDao(),
-                ).create(
+                val student = RoomStudentRepository(database).create(
                     fullName = AttendanceTestData.student.fullName,
                     groupId = groupId,
                 )
 
-                val repository = RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                )
+                val repository = RoomStudentPackageRepository(database)
 
                 val studentPackage = repository.create(
                     studentId = student.id,
@@ -107,10 +102,7 @@ class RemoveStudentAttendancePersistenceTest {
 
             // And: the database is reopened
             withDatabase(databasePath) { database ->
-                val repository = RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                )
+                val repository = RoomStudentPackageRepository(database)
 
                 val restoredPackage = assertNotNull(
                     repository.getLatestPackageForStudent(studentId),
