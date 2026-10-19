@@ -29,10 +29,13 @@ kotlin {
                 implementation(project(":feature:attendance"))
 
                 implementation(compose.desktop.currentOs)
+                implementation(libs.compose.foundation)
+                implementation(libs.compose.material3)
                 implementation(libs.kotlinx.coroutinesSwing)
                 implementation(libs.compose.uiToolingPreview)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.koin.core)
+                implementation(libs.koin.compose)
                 implementation(libs.androidx.lifecycle.viewmodel.compose)
             }
         }

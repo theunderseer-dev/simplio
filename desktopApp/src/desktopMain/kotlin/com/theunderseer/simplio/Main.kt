@@ -1,119 +1,82 @@
 package com.theunderseer.simplio
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import androidx.lifecycle.ViewModelStore
-import androidx.lifecycle.ViewModelStoreOwner
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
-import com.theunderseer.simplio.database.prepareSimplioDatabasePath
-import com.theunderseer.simplio.di.desktopAttendanceModule
+import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.desktopFirebaseModule
-import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
-import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
-import com.theunderseer.simplio.feature.attendance.di.attendanceModule
-import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
+import com.theunderseer.simplio.presentation.DesktopAttendanceContent
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
+import org.koin.core.KoinApplication
+import org.koin.dsl.koinApplication
 import java.awt.datatransfer.StringSelection
 
-@OptIn(ExperimentalComposeUiApi::class)
 fun main(appArgs: Array<String>) {
     val isLocalMode = "--local" in appArgs
 
-    val koinApplication =
-        startKoin {
-            modules(
-                attendanceModule,
-                desktopAttendanceModule(
-                    databasePath = prepareSimplioDatabasePath(),
-                ),
-            )
+    DesktopDatabaseManager.open().use { databases ->
+        val firebase = if (isLocalMode) null else koinApplication { modules(desktopFirebaseModule()) }
 
-            if (!isLocalMode) {
-                modules(desktopFirebaseModule())
-            }
-        }
-
-    val viewModelStoreOwner =
-        object : ViewModelStoreOwner {
-            override val viewModelStore = ViewModelStore()
-        }
-
-    try {
-        runBlocking {
-            koinApplication.koin
-                .get<PackageTypeSeeder>()
-                .seedDefaults()
-
-            koinApplication.koin
-                .get<StudentGroupSeeder>()
-                .seedDefaults()
-        }
-
-        application(
-            exitProcessOnExit = false,
-        ) {
-            Window(
-                onCloseRequest = ::exitApplication,
-                title = if (isLocalMode) "Simplio (local)" else "Simplio",
-            ) {
-                val clipboard = LocalClipboard.current
-                val coroutineScope = rememberCoroutineScope()
-
-                CompositionLocalProvider(
-                    LocalViewModelStoreOwner provides viewModelStoreOwner,
+        try {
+            application(exitProcessOnExit = false) {
+                Window(
+                    onCloseRequest = ::exitApplication,
+                    title = if (isLocalMode) "Simplio (local)" else "Simplio",
                 ) {
-                    val attendanceContent: @Composable () -> Unit = {
-                        AttendanceRoute(
-                            onCopyAttendance = { text ->
-                                coroutineScope.launch {
-                                    clipboard.setClipEntry(
-                                        ClipEntry(
-                                            StringSelection(text),
-                                        ),
-                                    )
-                                }
-                            },
-                        )
-                    }
+                    DesktopApp(databases, firebase)
+                }
+            }
+        } finally {
+            firebase?.close()
+        }
+    }
+}
 
-                    if (isLocalMode) {
-                        attendanceContent()
-                    } else {
-                        FirebaseSignInGate(
-                            sessionManager = remember {
-                                koinApplication.koin.get<FirebaseSessionManager>()
-                            },
-                            accessChecker = remember {
-                                koinApplication.koin.get<FirestoreAccessChecker>()
-                            },
-                        ) { _ ->
-                            attendanceContent()
-                        }
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplication?) {
+    val clipboard = LocalClipboard.current
+    val coroutineScope = rememberCoroutineScope()
+    val onCopyAttendance: (String) -> Unit = { text ->
+        coroutineScope.launch {
+            clipboard.setClipEntry(ClipEntry(StringSelection(text)))
+        }
+    }
+
+    MaterialTheme {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            if (firebase == null) {
+                DesktopAttendanceContent(
+                    userId = null,
+                    databases = databases,
+                    onCopyAttendance = onCopyAttendance,
+                )
+            } else {
+                FirebaseSignInGate(
+                    sessionManager = firebase.koin.get<FirebaseSessionManager>(),
+                    accessChecker = firebase.koin.get<FirestoreAccessChecker>(),
+                ) { session ->
+                    key(session.userId) {
+                        DesktopAttendanceContent(
+                            userId = session.userId,
+                            databases = databases,
+                            onCopyAttendance = onCopyAttendance,
+                        )
                     }
                 }
             }
-        }
-    } finally {
-        try {
-            runBlocking(Dispatchers.Main.immediate) {
-                viewModelStoreOwner.viewModelStore.clear()
-            }
-        } finally {
-            stopKoin()
         }
     }
 }
