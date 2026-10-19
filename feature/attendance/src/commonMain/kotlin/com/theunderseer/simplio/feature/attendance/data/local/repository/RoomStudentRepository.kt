@@ -1,31 +1,48 @@
 package com.theunderseer.simplio.feature.attendance.data.local.repository
 
-import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentDao
+import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncJournal
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 
-class RoomStudentRepository(private val studentDao: StudentDao) : StudentRepository {
-    override suspend fun create(fullName: String, groupId: Int, note: String): Student {
-        val entity = StudentEntity(
-            fullName = fullName,
-            groupId = groupId,
-            note = note,
-        )
-        val id = studentDao.insert(entity)
+class RoomStudentRepository(private val database: AttendanceDatabase) : StudentRepository {
+    private val studentDao = database.studentDao()
 
-        return entity.copy(id = id.toInt()).toDomain()
-    }
+    override suspend fun create(fullName: String, groupId: Int, note: String): Student =
+        RoomSyncJournal.write(database) { journal ->
+            val entity = StudentEntity(
+                fullName = fullName,
+                groupId = groupId,
+                note = note,
+            )
+            val id = studentDao.insert(entity)
+
+            journal.ensureStudent(id.toInt())
+            entity.copy(id = id.toInt()).toDomain()
+        }
 
     override suspend fun getAll(): List<Student> = studentDao
         .getAll()
         .map { it.toDomain() }
 
     override suspend fun updateNote(studentId: Int, note: String): Boolean =
-        studentDao.updateNote(studentId = studentId, note = note) > 0
+        RoomSyncJournal.write(database) { journal ->
+            val student = studentDao.getById(studentId) ?: return@write false
+            if (student.note != note) {
+                studentDao.updateNote(studentId = studentId, note = note)
+                journal.upsertStudent(studentId)
+            }
+            true
+        }
 
     override suspend fun delete(studentId: Int) {
-        studentDao.deleteById(studentId = studentId)
+        RoomSyncJournal.write(database) { journal ->
+            if (studentDao.getById(studentId) != null) {
+                journal.deleteStudent(studentId)
+                studentDao.deleteById(studentId = studentId)
+            }
+        }
     }
 }

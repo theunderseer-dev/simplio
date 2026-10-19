@@ -7,11 +7,14 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.PackageTypeDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentGroupDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentPackageDao
+import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncDao
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncOutboxEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
 
 @Database(
     entities = [
@@ -20,8 +23,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPack
         PackageTypeEntity::class,
         StudentPackageEntity::class,
         AttendanceEntity::class,
+        SyncRecordEntity::class,
+        SyncOutboxEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {
@@ -32,6 +37,8 @@ abstract class AttendanceDatabase : RoomDatabase() {
     abstract fun packageTypeDao(): PackageTypeDao
 
     abstract fun studentPackageDao(): StudentPackageDao
+
+    abstract fun syncDao(): SyncDao
 
     abstract fun attendanceDao(): AttendanceDao
 }

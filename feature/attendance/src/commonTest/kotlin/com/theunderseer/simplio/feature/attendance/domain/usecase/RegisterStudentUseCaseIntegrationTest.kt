@@ -50,13 +50,8 @@ class RegisterStudentUseCaseIntegrationTest {
             ),
         )
 
-        studentRepository = RoomStudentRepository(
-            studentDao = database.studentDao(),
-        )
-        studentPackageRepository = RoomStudentPackageRepository(
-            studentPackageDao = database.studentPackageDao(),
-            attendanceDao = database.attendanceDao(),
-        )
+        studentRepository = RoomStudentRepository(database)
+        studentPackageRepository = RoomStudentPackageRepository(database)
 
         registerStudent = RegisterStudentUseCase(
             studentRepository = studentRepository,

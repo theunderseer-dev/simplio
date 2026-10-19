@@ -42,10 +42,7 @@ class RoomStudentPackageRepositoryTest {
         database.studentGroupDao().insert(testStudentGroupEntity())
 
         repository =
-            RoomStudentPackageRepository(
-                studentPackageDao = database.studentPackageDao(),
-                attendanceDao = database.attendanceDao(),
-            )
+            RoomStudentPackageRepository(database)
     }
 
     @AfterTest

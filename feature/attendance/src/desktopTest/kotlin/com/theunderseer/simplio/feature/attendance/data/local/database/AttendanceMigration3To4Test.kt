@@ -72,10 +72,7 @@ class AttendanceMigration3To4Test {
                 database.studentDao().getById(studentId)
 
             val repository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                )
+                RoomStudentPackageRepository(database)
 
             val studentPackage =
                 assertNotNull(

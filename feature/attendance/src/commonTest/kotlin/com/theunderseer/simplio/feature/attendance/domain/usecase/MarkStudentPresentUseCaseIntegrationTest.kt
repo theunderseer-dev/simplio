@@ -49,10 +49,7 @@ class MarkStudentPresentUseCaseIntegrationTest {
             ),
         )
 
-        repository = RoomStudentPackageRepository(
-            studentPackageDao = database.studentPackageDao(),
-            attendanceDao = database.attendanceDao(),
-        )
+        repository = RoomStudentPackageRepository(database)
 
         markStudentPresent = MarkStudentPresentUseCase(
             repository = repository,

@@ -75,10 +75,7 @@ class AttendanceMigration2To3Test {
 
         try {
             val repository =
-                RoomStudentPackageRepository(
-                    studentPackageDao = database.studentPackageDao(),
-                    attendanceDao = database.attendanceDao(),
-                )
+                RoomStudentPackageRepository(database)
 
             val studentPackage =
                 assertNotNull(

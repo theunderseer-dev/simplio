@@ -60,7 +60,7 @@ class AttendanceMigration5To6Test {
 
             val database = createAttendanceDatabase(path.toString())
             try {
-                val students = RoomStudentRepository(database.studentDao())
+                val students = RoomStudentRepository(database)
                 val student = students.getAll().single()
                 assertEquals(7, student.id)
                 assertEquals(AttendanceTestData.student.fullName, student.fullName)
@@ -68,7 +68,7 @@ class AttendanceMigration5To6Test {
                 assertEquals("", student.note)
 
                 val studentPackage = assertNotNull(
-                    RoomStudentPackageRepository(database.studentPackageDao(), database.attendanceDao())
+                    RoomStudentPackageRepository(database)
                         .getLatestPackageForStudent(student.id),
                 )
                 assertEquals(11, studentPackage.id)

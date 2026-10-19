@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
@@ -31,6 +32,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 fun attendanceModule() = module {
+    single { RoomSyncOutbox(database = get()) }
+
     single {
         get<AttendanceDatabase>().studentDao()
     }
@@ -52,16 +55,11 @@ fun attendanceModule() = module {
     }
 
     single<StudentRepository> {
-        RoomStudentRepository(
-            studentDao = get(),
-        )
+        RoomStudentRepository(database = get())
     }
 
     single<StudentPackageRepository> {
-        RoomStudentPackageRepository(
-            studentPackageDao = get(),
-            attendanceDao = get(),
-        )
+        RoomStudentPackageRepository(database = get())
     }
 
     single<StudentGroupRepository> {
@@ -83,17 +81,11 @@ fun attendanceModule() = module {
     }
 
     single {
-        PackageTypeSeeder(
-            packageTypeDao = get(),
-            transactionRunner = get(),
-        )
+        PackageTypeSeeder(database = get())
     }
 
     single {
-        StudentGroupSeeder(
-            studentGroupDao = get(),
-            transactionRunner = get(),
-        )
+        StudentGroupSeeder(database = get())
     }
 
     single<ClassHistoryRepository> {
