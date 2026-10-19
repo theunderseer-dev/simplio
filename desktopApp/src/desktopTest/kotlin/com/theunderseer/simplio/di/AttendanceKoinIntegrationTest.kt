@@ -416,7 +416,7 @@ class AttendanceKoinIntegrationTest {
             val application =
                 koinApplication {
                     modules(
-                        attendanceModule,
+                        attendanceModule(),
                         desktopAttendanceModule(
                             databasePath = databasePath,
                             clock = clock,
