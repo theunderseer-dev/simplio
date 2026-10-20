@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
@@ -17,4 +18,6 @@ data class SyncRecordEntity(
     val acknowledgedRevision: Long = 0,
     val isDeleted: Boolean = false,
     val serverUpdateTime: String? = null,
+    @ColumnInfo(defaultValue = "''")
+    val aggregateKey: String = "",
 )

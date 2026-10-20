@@ -1,5 +1,8 @@
 # Stable cloud identities and a transactional Room outbox
 
+The Firestore upload transport is described in [firestore-upload.md](firestore-upload.md).
+It builds on this durable queue; remote pull and conflict reconciliation remain separate work.
+
 ## Scope
 
 This step prepares local data for synchronization. It does not send requests to Firestore,

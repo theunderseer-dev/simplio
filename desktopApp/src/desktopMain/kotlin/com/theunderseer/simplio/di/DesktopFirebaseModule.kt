@@ -2,6 +2,7 @@ package com.theunderseer.simplio.di
 
 import com.theunderseer.simplio.shared.firebase.FirebaseConfig
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
+import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
@@ -33,6 +34,10 @@ internal fun desktopFirebaseModule() = module {
             config = get(),
             sessionManager = get(),
         )
+    }
+
+    factory { parameters ->
+        FirestoreRestClient(get(), get(), get(), userId = parameters.get())
     }
 
     single {

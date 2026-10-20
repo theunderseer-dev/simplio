@@ -26,7 +26,7 @@ interface SyncDao {
         """
         SELECT pending.queueId, pending.entityType, pending.localId, pending.revision,
             pending.operation, pending.mutationId, record.cloudId,
-            record.acknowledgedRevision, record.serverUpdateTime
+            record.acknowledgedRevision, record.serverUpdateTime, record.aggregateKey
         FROM sync_outbox AS pending
         INNER JOIN sync_records AS record
             ON record.entityType = pending.entityType AND record.localId = pending.localId
@@ -35,6 +35,46 @@ interface SyncDao {
         """,
     )
     suspend fun getPending(limit: Int): List<PendingSyncChange>
+
+    @Query(
+        """
+        SELECT pending.queueId, pending.entityType, pending.localId, pending.revision,
+            pending.operation, pending.mutationId, record.cloudId,
+            record.acknowledgedRevision, record.serverUpdateTime, record.aggregateKey
+        FROM sync_outbox AS pending
+        INNER JOIN sync_records AS record
+            ON record.entityType = pending.entityType AND record.localId = pending.localId
+        WHERE pending.entityType IN ('STUDENT_GROUP', 'PACKAGE_TYPE')
+        ORDER BY pending.queueId
+        LIMIT :limit
+        """,
+    )
+    suspend fun getPendingCatalog(limit: Int): List<PendingSyncChange>
+
+    @Query(
+        """
+        SELECT pending.queueId, pending.entityType, pending.localId, pending.revision,
+            pending.operation, pending.mutationId, record.cloudId,
+            record.acknowledgedRevision, record.serverUpdateTime, record.aggregateKey
+        FROM sync_outbox AS pending
+        INNER JOIN sync_records AS record
+            ON record.entityType = pending.entityType AND record.localId = pending.localId
+        WHERE record.aggregateKey = :aggregateKey
+        ORDER BY pending.queueId
+        LIMIT :limit
+        """,
+    )
+    suspend fun getPendingAggregate(aggregateKey: String, limit: Int): List<PendingSyncChange>
+
+    @Query(
+        """
+        SELECT record.aggregateKey FROM sync_outbox AS pending
+        INNER JOIN sync_records AS record
+            ON record.entityType = pending.entityType AND record.localId = pending.localId
+        ORDER BY pending.queueId LIMIT 1
+        """,
+    )
+    suspend fun getNextAggregateKey(): String?
 
     @Query("SELECT COUNT(*) FROM sync_outbox")
     fun observePendingCount(): Flow<Int>

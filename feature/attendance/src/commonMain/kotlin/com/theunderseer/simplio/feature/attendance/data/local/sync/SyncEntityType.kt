@@ -1,5 +1,8 @@
 package com.theunderseer.simplio.feature.attendance.data.local.sync
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class SyncEntityType {
     STUDENT_GROUP,
     PACKAGE_TYPE,
@@ -8,4 +11,5 @@ enum class SyncEntityType {
     ATTENDANCE,
 }
 
+@Serializable
 enum class SyncOperation { UPSERT, DELETE }
