@@ -28,6 +28,7 @@ internal fun attendanceContentUiState(
                 registeredStudent = registeredStudent,
                 checkState = checkState,
                 isCheckEnabled = true,
+                requiresRenewal = !registeredStudent.studentPackage.isActiveOn(currentDate),
             )
         }
 

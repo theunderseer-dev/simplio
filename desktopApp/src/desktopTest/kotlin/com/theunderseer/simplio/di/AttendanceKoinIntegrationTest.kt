@@ -149,6 +149,8 @@ class AttendanceKoinIntegrationTest {
                     studentId = registeredStudent.student.id,
                     packageType = packageType,
                     renewedOn = renewedOn,
+                    previousPackageId = registeredStudent.studentPackage.id,
+                    note = registeredStudent.student.note,
                 )
 
             // Then

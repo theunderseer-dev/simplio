@@ -20,6 +20,7 @@ sealed interface AttendanceUiState {
         val markStudentPresentState: MarkStudentPresentUiState = MarkStudentPresentUiState.Idle,
         val removeStudentAttendanceState: RemoveStudentAttendanceUiState = RemoveStudentAttendanceUiState.Idle,
         val classHistoryState: ClassHistoryUiState = ClassHistoryUiState.Loading,
+        val renewStudentPackageState: RenewStudentPackageUiState = RenewStudentPackageUiState.Idle,
         val updateStudentNoteState: UpdateStudentNoteUiState = UpdateStudentNoteUiState.Idle,
     ) : AttendanceUiState
 
@@ -30,4 +31,5 @@ data class StudentAttendanceUiState(
     val registeredStudent: RegisteredStudent,
     val checkState: AttendanceCheckState,
     val isCheckEnabled: Boolean,
+    val requiresRenewal: Boolean = false,
 )

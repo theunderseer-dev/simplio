@@ -5,6 +5,7 @@ import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -53,6 +54,7 @@ class RenewStudentPackageUseCaseIntegrationTest {
 
         renewStudentPackage = RenewStudentPackageUseCase(
             repository = repository,
+            studentRepository = RoomStudentRepository(database),
             transactionRunner = RoomTransactionRunner(
                 database = database,
             ),
@@ -91,6 +93,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
                 studentId = studentId,
                 packageType = packageType,
                 renewedOn = renewedOn,
+                previousPackageId = oldPackageId,
+                note = "",
             )
 
         // Then
@@ -197,6 +201,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
                 studentId = studentId,
                 packageType = packageType,
                 renewedOn = renewedOn,
+                previousPackageId = packageId,
+                note = "",
             )
 
         // Then
@@ -279,6 +285,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
                 studentId = studentId,
                 packageType = packageType,
                 renewedOn = renewedOn,
+                previousPackageId = oldPackageId,
+                note = "",
             )
 
         // Then
@@ -395,6 +403,7 @@ class RenewStudentPackageUseCaseIntegrationTest {
         val failingRenewStudentPackage =
             RenewStudentPackageUseCase(
                 repository = failingRepository,
+                studentRepository = RoomStudentRepository(database),
                 transactionRunner =
                 RoomTransactionRunner(
                     database = database,
@@ -408,6 +417,8 @@ class RenewStudentPackageUseCaseIntegrationTest {
                     studentId = studentId,
                     packageType = packageType,
                     renewedOn = renewedOn,
+                    previousPackageId = oldPackageId,
+                    note = "",
                 )
             }
 

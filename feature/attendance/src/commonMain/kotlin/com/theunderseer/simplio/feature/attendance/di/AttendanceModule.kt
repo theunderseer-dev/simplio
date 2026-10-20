@@ -125,6 +125,7 @@ fun attendanceModule() = module {
     factory {
         RenewStudentPackageUseCase(
             repository = get(),
+            studentRepository = get(),
             transactionRunner = get(),
         )
     }
@@ -167,6 +168,7 @@ fun attendanceModule() = module {
             getPackageTypesUseCase = get(),
             getStudentGroupsUseCase = get(),
             registerStudentUseCase = get(),
+            renewStudentPackageUseCase = get(),
             markStudentPresentUseCase = get(),
             removeStudentAttendanceUseCase = get(),
             deleteStudentUseCase = get(),

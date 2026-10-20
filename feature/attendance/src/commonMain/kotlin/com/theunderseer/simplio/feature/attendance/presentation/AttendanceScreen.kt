@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
@@ -64,6 +65,8 @@ fun AttendanceScreen(
     onRetryClassHistory: () -> Unit,
     onUpdateStudentNote: (Int, String) -> Unit,
     onClearUpdateStudentNoteState: () -> Unit,
+    onRenewStudentPackage: (Int, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
+    onClearRenewStudentPackageState: () -> Unit,
 ) {
     var showRegistrationDialog by remember {
         mutableStateOf(false)
@@ -81,6 +84,8 @@ fun AttendanceScreen(
         mutableStateOf<AttendanceRemovalRequest?>(null)
     }
 
+    var renewalStudent by remember { mutableStateOf<RegisteredStudent?>(null) }
+
     var noteStudentId by remember { mutableStateOf<Int?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -91,6 +96,16 @@ fun AttendanceScreen(
             val markState = state.markStudentPresentState
             val removeState = state.removeStudentAttendanceState
             val noteState = state.updateStudentNoteState
+            val renewState = state.renewStudentPackageState
+
+            LaunchedEffect(renewState) {
+                if (renewState is RenewStudentPackageUiState.Success &&
+                    renewState.studentId == renewalStudent?.student?.id
+                ) {
+                    renewalStudent = null
+                    onClearRenewStudentPackageState()
+                }
+            }
 
             LaunchedEffect(noteState) {
                 if (noteState is UpdateStudentNoteUiState.Success && noteState.studentId == noteStudentId) {
@@ -152,21 +167,26 @@ fun AttendanceScreen(
                         if (row.isCheckEnabled) {
                             val student = row.registeredStudent.student
 
-                            when (row.checkState) {
-                                AttendanceCheckState.Pending -> {
-                                    onClearMarkStudentPresentState()
-                                    attendanceDatePickerStudentId = student.id
-                                }
+                            if (row.requiresRenewal) {
+                                onClearRenewStudentPackageState()
+                                renewalStudent = row.registeredStudent
+                            } else {
+                                when (row.checkState) {
+                                    AttendanceCheckState.Pending -> {
+                                        onClearMarkStudentPresentState()
+                                        attendanceDatePickerStudentId = student.id
+                                    }
 
-                                AttendanceCheckState.Checked -> {
-                                    onClearRemoveStudentAttendanceState()
+                                    AttendanceCheckState.Checked -> {
+                                        onClearRemoveStudentAttendanceState()
 
-                                    attendanceRemovalRequest =
-                                        AttendanceRemovalRequest(
-                                            studentId = student.id,
-                                            studentName = student.fullName,
-                                            attendanceDate = state.latestClassDate,
-                                        )
+                                        attendanceRemovalRequest =
+                                            AttendanceRemovalRequest(
+                                                studentId = student.id,
+                                                studentName = student.fullName,
+                                                attendanceDate = state.latestClassDate,
+                                            )
+                                    }
                                 }
                             }
                         }
@@ -222,6 +242,34 @@ fun AttendanceScreen(
                     },
                     onDismiss = {
                         showRegistrationDialog = false
+                    },
+                )
+            }
+
+            renewalStudent?.let { registeredStudent ->
+                val studentId = registeredStudent.student.id
+                StudentPackageRenewalDialog(
+                    registeredStudent = registeredStudent,
+                    studentGroups = state.studentGroups,
+                    packageTypes = state.packageTypes,
+                    currentDate = state.currentDate,
+                    isSaving = renewState == RenewStudentPackageUiState.Saving(studentId),
+                    errorMessage = (renewState as? RenewStudentPackageUiState.Error)
+                        ?.takeIf { it.studentId == studentId }?.message,
+                    onRenew = { packageType, date, visits, recordAttendance, note ->
+                        onRenewStudentPackage(
+                            studentId,
+                            registeredStudent.studentPackage.id,
+                            packageType,
+                            date,
+                            visits,
+                            recordAttendance,
+                            note,
+                        )
+                    },
+                    onDismiss = {
+                        renewalStudent = null
+                        onClearRenewStudentPackageState()
                     },
                 )
             }
@@ -682,29 +730,38 @@ private fun StudentAttendanceRow(
         )
 
         Text(
-            text = "✓",
+            text = if (row.requiresRenewal) "♻️" else "✓",
             modifier =
             Modifier
                 .clickable(
                     enabled = row.isCheckEnabled,
+                    role = Role.Button,
                     onClick = onCheckClick,
                 )
                 .semantics {
                     contentDescription =
-                        "Mark ${registeredStudent.student.fullName} present"
-                    stateDescription = row.checkState.name
+                        if (row.requiresRenewal) {
+                            "Renew package for ${registeredStudent.student.fullName}"
+                        } else {
+                            "Mark ${registeredStudent.student.fullName} present"
+                        }
+                    stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name
                 }
                 .padding(
                     horizontal = 6.dp,
                     vertical = 2.dp,
                 ),
             color =
-            when (row.checkState) {
-                AttendanceCheckState.Pending ->
-                    MaterialTheme.colorScheme.onSurfaceVariant
+            if (row.requiresRenewal) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                when (row.checkState) {
+                    AttendanceCheckState.Pending ->
+                        MaterialTheme.colorScheme.onSurfaceVariant
 
-                AttendanceCheckState.Checked ->
-                    Color(0xFF2E7D32)
+                    AttendanceCheckState.Checked ->
+                        Color(0xFF2E7D32)
+                }
             },
             fontSize = 20.sp,
             lineHeight = 20.sp,

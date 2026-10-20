@@ -12,6 +12,8 @@ fun AttendanceRoute(onCopyAttendance: (String) -> Unit, viewModel: AttendanceVie
     AttendanceScreen(
         state = state,
         onRegisterStudent = viewModel::registerStudent,
+        onRenewStudentPackage = viewModel::renewStudentPackage,
+        onClearRenewStudentPackageState = viewModel::clearRenewStudentPackageState,
         onDeleteStudent = viewModel::deleteStudent,
         onCopyAttendance = onCopyAttendance,
         onMarkStudentPresent = viewModel::markStudentPresent,

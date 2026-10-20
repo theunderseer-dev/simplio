@@ -32,6 +32,17 @@ data class StudentPackage(
     val isCompleted: Boolean
         get() = usedClasses >= packageType.totalClasses
 
+    val earliestRenewalDate: LocalDate
+        get() {
+            val lastDate = maxOf(purchasedOn, attendanceDates.maxOrNull() ?: purchasedOn)
+            val expirationDate = expiresOn
+            return if (!isCompleted && expirationDate != null) {
+                maxOf(lastDate, expirationDate.plus(DatePeriod(days = 1)))
+            } else {
+                lastDate
+            }
+        }
+
     fun isExpiredOn(attendanceDate: LocalDate): Boolean = expiresOn?.let { attendanceDate > it } ?: false
 
     fun isActiveOn(attendanceDate: LocalDate): Boolean = !isExpiredOn(attendanceDate) && !isCompleted
