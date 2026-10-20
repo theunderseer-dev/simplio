@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
+import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
@@ -17,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.GetStudentGrou
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -45,6 +47,7 @@ class AttendanceViewModel(
     private val removeStudentAttendanceUseCase: RemoveStudentAttendanceUseCase,
     private val deleteStudentUseCase: DeleteStudentUseCase,
     private val getClassHistoryUseCase: GetClassHistoryUseCase,
+    private val renewStudentPackageUseCase: RenewStudentPackageUseCase,
     private val updateStudentNoteUseCase: UpdateStudentNoteUseCase,
     private val currentDates: Flow<LocalDate>,
     private val transactionRunner: TransactionRunner,
@@ -72,6 +75,8 @@ class AttendanceViewModel(
 
     private val updateStudentNoteState =
         MutableStateFlow<UpdateStudentNoteUiState>(UpdateStudentNoteUiState.Idle)
+
+    private val renewalState = MutableStateFlow<RenewStudentPackageUiState>(RenewStudentPackageUiState.Idle)
 
     private var classHistoryJob: Job? = null
 
@@ -107,6 +112,11 @@ class AttendanceViewModel(
         }.combine(updateStudentNoteState) { state, noteState ->
             when (state) {
                 is AttendanceUiState.Content -> state.copy(updateStudentNoteState = noteState)
+                else -> state
+            }
+        }.combine(renewalState) { state, renewal ->
+            when (state) {
+                is AttendanceUiState.Content -> state.copy(renewStudentPackageState = renewal)
                 else -> state
             }
         }.stateIn(
@@ -172,6 +182,62 @@ class AttendanceViewModel(
                             ?: "Failed to register student",
                     )
             }
+        }
+    }
+
+    fun renewStudentPackage(
+        studentId: Int,
+        previousPackageId: Int,
+        packageType: PackageType,
+        renewedOn: LocalDate,
+        visitCount: Int,
+        recordFirstAttendance: Boolean,
+        note: String,
+    ) {
+        if (renewalState.value is RenewStudentPackageUiState.Saving) return
+        renewalState.value = RenewStudentPackageUiState.Saving(studentId)
+        viewModelScope.launch {
+            try {
+                val result = renewStudentPackageUseCase(
+                    studentId = studentId,
+                    previousPackageId = previousPackageId,
+                    packageType = packageType,
+                    renewedOn = renewedOn,
+                    visitCount = visitCount,
+                    recordFirstAttendance = recordFirstAttendance,
+                    note = note,
+                )
+                val message = when (result) {
+                    is RenewStudentPackageResult.Success -> {
+                        refreshAttendance()
+                        loadClassHistory()
+                        renewalState.value = RenewStudentPackageUiState.Success(studentId)
+                        return@launch
+                    }
+                    is RenewStudentPackageResult.ActivePackageExists -> "Student package is still active"
+                    RenewStudentPackageResult.PackageNotFound -> "Student package not found"
+                    RenewStudentPackageResult.StudentNotFound -> "Student not found"
+                    RenewStudentPackageResult.PackageChanged -> {
+                        refreshAttendance()
+                        "Package changed. Close this dialog and review it again."
+                    }
+                    RenewStudentPackageResult.InvalidVisitCount -> "Visit count is not allowed for this package"
+                    is RenewStudentPackageResult.RenewalDateTooEarly ->
+                        "Purchase cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
+                }
+                renewalState.value = RenewStudentPackageUiState.Error(studentId, message)
+            } catch (error: CancellationException) {
+                renewalState.value = RenewStudentPackageUiState.Idle
+                throw error
+            } catch (error: Exception) {
+                renewalState.value = RenewStudentPackageUiState.Error(studentId, "Failed to renew package. Try again.")
+            }
+        }
+    }
+
+    fun clearRenewStudentPackageState() {
+        if (renewalState.value !is RenewStudentPackageUiState.Saving) {
+            renewalState.value = RenewStudentPackageUiState.Idle
         }
     }
 

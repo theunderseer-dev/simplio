@@ -20,10 +20,22 @@ internal fun AttendanceScreenForTest(
     onRetryClassHistory: () -> Unit = {},
     onUpdateStudentNote: (Int, String) -> Unit = { _, _ -> },
     onClearUpdateStudentNoteState: () -> Unit = {},
+    onRenewStudentPackage: (
+        Int,
+        Int,
+        PackageType,
+        LocalDate,
+        Int,
+        Boolean,
+        String,
+    ) -> Unit = { _, _, _, _, _, _, _ -> },
+    onClearRenewStudentPackageState: () -> Unit = {},
 ) {
     AttendanceScreen(
         state = state,
         onRegisterStudent = onRegisterStudent,
+        onRenewStudentPackage = onRenewStudentPackage,
+        onClearRenewStudentPackageState = onClearRenewStudentPackageState,
         onDeleteStudent = onDeleteStudent,
         onCopyAttendance = onCopyAttendance,
         onMarkStudentPresent = onMarkStudentPresent,

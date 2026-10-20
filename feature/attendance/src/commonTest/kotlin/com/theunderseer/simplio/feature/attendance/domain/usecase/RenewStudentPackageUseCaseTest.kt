@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.fiveClassPackage
@@ -32,6 +33,7 @@ class RenewStudentPackageUseCaseTest {
         transactionRunner = FakeTransactionRunner()
         renewStudentPackage = RenewStudentPackageUseCase(
             repository = repository,
+            studentRepository = FakeStudentRepository().also { it.seed(student) },
             transactionRunner = transactionRunner,
         )
     }
@@ -61,6 +63,8 @@ class RenewStudentPackageUseCaseTest {
             studentId = studentId,
             packageType = fourClassPackage,
             renewedOn = renewedOn,
+            previousPackageId = previousPackage.id,
+            note = student.note,
         )
 
         // Then
@@ -112,6 +116,8 @@ class RenewStudentPackageUseCaseTest {
             studentId = studentId,
             packageType = fourClassPackage,
             renewedOn = renewedOn,
+            previousPackageId = currentPackage.id,
+            note = student.note,
         )
 
         // Then
@@ -151,6 +157,8 @@ class RenewStudentPackageUseCaseTest {
             studentId = studentId,
             packageType = fourClassPackage,
             renewedOn = renewedOn,
+            previousPackageId = expiredPackage.id,
+            note = student.note,
         )
 
         // Then
