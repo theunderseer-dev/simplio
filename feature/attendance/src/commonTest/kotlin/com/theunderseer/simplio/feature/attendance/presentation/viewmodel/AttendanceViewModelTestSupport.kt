@@ -69,6 +69,7 @@ internal fun createViewModel(
     packageTypes: List<PackageType> = listOf(AttendanceTestData.fourClassPackage),
     studentGroups: List<StudentGroup> = testStudentGroups(),
     currentDates: Flow<LocalDate> = flowOf(AttendanceTestData.currentDate),
+    localChanges: Flow<Unit> = flowOf(Unit),
     markStudentPresentUseCase: MarkStudentPresentUseCase =
         createMarkStudentPresentUseCase(
             studentPackageRepository = studentPackageRepository,
@@ -102,6 +103,8 @@ internal fun createViewModel(
         repository = classHistoryRepository,
     ),
     currentDates = currentDates,
+    localChanges = localChanges,
+    transactionRunner = FakeTransactionRunner(),
 )
 
 private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =

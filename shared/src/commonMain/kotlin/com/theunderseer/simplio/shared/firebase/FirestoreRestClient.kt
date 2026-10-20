@@ -15,10 +15,14 @@ import io.ktor.http.appendPathSegments
 import io.ktor.http.contentType
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import kotlin.time.Instant
 
 class FirestoreRestClient(
@@ -54,6 +58,120 @@ class FirestoreRestClient(
                 fields = document["fields"]?.jsonObject ?: JsonObject(emptyMap()),
                 updateTime = timestamp(document.getValue("updateTime").jsonPrimitive.content),
             )
+        }
+    }
+
+    /** Capture a server read time, including when the requested document does not exist. */
+    suspend fun readDocumentSnapshot(collection: String, id: String): FirestoreReadSnapshot {
+        val name = documentName(collection, id)
+        val body = buildJsonObject { put("documents", JsonArray(listOf(JsonPrimitive(name)))) }.toString()
+        val response = authorized { token ->
+            httpClient.post(endpoint("projects/$projectId/databases/(default)/documents:batchGet")) {
+                bearerAuth(token)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        checkStatus(response)
+        return parseResponse {
+            val rows = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            require(rows.size == 1)
+            val row = rows.single().jsonObject
+            val readTime = timestamp(row.getValue("readTime").jsonPrimitive.content)
+            val found = row["found"]?.jsonObject
+            val document = if (found != null) {
+                require(row["missing"] == null)
+                require(found.getValue("name").jsonPrimitive.content == name)
+                FirestoreDocument(
+                    fields = found["fields"]?.jsonObject ?: JsonObject(emptyMap()),
+                    updateTime = timestamp(found.getValue("updateTime").jsonPrimitive.content),
+                )
+            } else {
+                require(row.getValue("missing").jsonPrimitive.content == name)
+                null
+            }
+            require(document == null || Instant.parse(document.updateTime) <= Instant.parse(readTime))
+            FirestoreReadSnapshot(document, readTime)
+        }
+    }
+
+    /** Query one collection at a pinned server time, ordered by the document name. */
+    suspend fun queryDocumentsAt(
+        collection: String,
+        readTime: String,
+        afterId: String? = null,
+        pageSize: Int = 500,
+    ): FirestoreDocumentPage {
+        requireSegment(collection)
+        timestamp(readTime)
+        require(pageSize in 1..500)
+        val prefix = "projects/$projectId/databases/(default)/documents/users/$userId/$collection"
+        val body = buildJsonObject {
+            put("readTime", readTime)
+            put(
+                "structuredQuery",
+                buildJsonObject {
+                    put("from", JsonArray(listOf(buildJsonObject { put("collectionId", collection) })))
+                    put(
+                        "orderBy",
+                        JsonArray(
+                            listOf(
+                                buildJsonObject {
+                                    put("field", buildJsonObject { put("fieldPath", "__name__") })
+                                    put("direction", "ASCENDING")
+                                },
+                            ),
+                        ),
+                    )
+                    put("limit", pageSize)
+                    if (afterId != null) {
+                        put(
+                            "startAt",
+                            buildJsonObject {
+                                put(
+                                    "values",
+                                    JsonArray(
+                                        listOf(
+                                            buildJsonObject {
+                                                put("referenceValue", documentName(collection, afterId))
+                                            },
+                                        ),
+                                    ),
+                                )
+                                put("before", false)
+                            },
+                        )
+                    }
+                },
+            )
+        }.toString()
+        val response = authorized { token ->
+            httpClient.post(endpoint("projects/$projectId/databases/(default)/documents/users/$userId:runQuery")) {
+                bearerAuth(token)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        checkStatus(response)
+        return parseResponse {
+            val rows = Json.parseToJsonElement(response.bodyAsText()).jsonArray
+            require(rows.isNotEmpty())
+            val documents = rows.mapNotNull { element ->
+                val row = element.jsonObject
+                require(row["error"] == null)
+                require(Instant.parse(row.getValue("readTime").jsonPrimitive.content) == Instant.parse(readTime))
+                val document = row["document"]?.jsonObject ?: return@mapNotNull null
+                val name = document.getValue("name").jsonPrimitive.content
+                require(name.startsWith("$prefix/"))
+                val id = name.removePrefix("$prefix/")
+                requireSegment(id)
+                val version = timestamp(document.getValue("updateTime").jsonPrimitive.content)
+                require(Instant.parse(version) <= Instant.parse(readTime))
+                FirestoreNamedDocument(id, document["fields"]?.jsonObject ?: JsonObject(emptyMap()), version)
+            }
+            require(documents.size <= pageSize)
+            require(documents.map { it.id }.distinct().size == documents.size)
+            FirestoreDocumentPage(documents, if (documents.size == pageSize) documents.last().id else null)
         }
     }
 
@@ -153,3 +271,7 @@ enum class FirestoreFailureKind {
 }
 
 class FirestoreFailure(val kind: FirestoreFailureKind) : Exception("Firestore request failed: $kind")
+
+data class FirestoreReadSnapshot(val document: FirestoreDocument?, val readTime: String)
+data class FirestoreNamedDocument(val id: String, val fields: JsonObject, val updateTime: String)
+data class FirestoreDocumentPage(val documents: List<FirestoreNamedDocument>, val nextAfterId: String?)

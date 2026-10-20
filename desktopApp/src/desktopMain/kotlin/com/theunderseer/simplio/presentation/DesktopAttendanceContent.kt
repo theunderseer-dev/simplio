@@ -28,8 +28,8 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.theunderseer.simplio.database.AccountDatabaseSelection
 import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.DesktopAttendanceSession
-import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceUploadCoordinator
-import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceUploadStatus
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
@@ -119,7 +119,7 @@ private fun AttendanceSessionContent(
         try {
             coroutineScope {
                 session.initialize()
-                session.uploader?.let { uploader -> launch { uploader.run() } }
+                session.sync?.let { sync -> launch { sync.run() } }
                 state = AttendanceSessionState.Ready(session)
                 awaitCancellation()
             }
@@ -140,7 +140,7 @@ private fun AttendanceSessionContent(
         is AttendanceSessionState.Ready -> KoinIsolatedContext(context = current.session.application) {
             CompositionLocalProvider(LocalViewModelStoreOwner provides current.session) {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    current.session.uploader?.let { UploadNotice(it) }
+                    current.session.sync?.let { SyncNotice(it) }
                     Box(modifier = Modifier.weight(1f)) {
                         AttendanceRoute(onCopyAttendance = onCopyAttendance)
                     }
@@ -215,25 +215,25 @@ private sealed interface AttendanceSessionState {
 }
 
 @Composable
-private fun UploadNotice(uploader: AttendanceUploadCoordinator) {
-    val status by uploader.status.collectAsState()
-    val problem = (status as? AttendanceUploadStatus.Paused)?.problem
+private fun SyncNotice(sync: AttendanceSyncCoordinator) {
+    val status by sync.status.collectAsState()
+    val problem = (status as? AttendanceSyncStatus.Paused)?.problem
     val message = when {
-        status is AttendanceUploadStatus.WaitingToRetry ->
+        status is AttendanceSyncStatus.WaitingToRetry ->
             "Connection or server issue. Changes saved on this device. Retrying automatically."
 
-        problem == UploadProblem.CONFLICT -> "Cloud data changed. Upload paused until changes are reviewed."
+        problem == UploadProblem.CONFLICT -> "Cloud and local changes need review. Changes saved on this device."
 
-        problem == UploadProblem.AUTHENTICATION -> "Sign in again to upload changes. Local changes are saved."
+        problem == UploadProblem.AUTHENTICATION -> "Sign in again to sync changes. Local changes are saved."
 
         problem == UploadProblem.PERMISSION -> "Cloud access denied. Local changes are saved."
 
-        problem == UploadProblem.TOO_LARGE -> "Some changes are too large to upload. Local changes are saved."
+        problem == UploadProblem.TOO_LARGE -> "Some data is too large to sync. Local changes are saved."
 
         problem == UploadProblem.TARGET_MISMATCH ->
-            "This database belongs to another cloud account or project. Upload paused."
+            "This database belongs to another cloud account or project. Sync paused."
 
-        problem != null -> "Upload paused. Local changes are saved."
+        problem != null -> "Sync paused. Local changes are saved."
 
         else -> null
     }
@@ -254,7 +254,7 @@ private fun UploadNotice(uploader: AttendanceUploadCoordinator) {
                     UploadProblem.TOO_LARGE,
                 )
             ) {
-                TextButton(onClick = uploader::retry) { Text("Retry upload") }
+                TextButton(onClick = sync::retry) { Text("Retry sync") }
             }
         }
     }

@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
+import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
@@ -46,6 +47,8 @@ class AttendanceViewModel(
     private val getClassHistoryUseCase: GetClassHistoryUseCase,
     private val updateStudentNoteUseCase: UpdateStudentNoteUseCase,
     private val currentDates: Flow<LocalDate>,
+    private val transactionRunner: TransactionRunner,
+    private val localChanges: Flow<Unit>,
 ) : ViewModel() {
     private val attendanceData =
         MutableStateFlow<AttendanceDataState>(
@@ -116,7 +119,18 @@ class AttendanceViewModel(
         )
 
     init {
-        loadAttendance()
+        viewModelScope.launch {
+            localChanges.collect {
+                try {
+                    refreshAttendance()
+                    loadClassHistory()
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    attendanceData.value = AttendanceDataState.Error(error.message ?: "Failed to load attendance")
+                }
+            }
+        }
 
         viewModelScope.launch {
             currentDates
@@ -368,10 +382,10 @@ class AttendanceViewModel(
 
         classHistoryJob = viewModelScope.launch {
             try {
-                val page = getClassHistoryUseCase(
-                    currentDate = currentDates.first(),
-                    beforeDate = beforeDate,
-                )
+                val date = currentDates.first()
+                val page = transactionRunner.run {
+                    getClassHistoryUseCase(currentDate = date, beforeDate = beforeDate)
+                }
 
                 currentCoroutineContext().ensureActive()
 
@@ -403,9 +417,8 @@ class AttendanceViewModel(
         classHistoryJob =
             viewModelScope.launch {
                 try {
-                    val page = getClassHistoryUseCase(
-                        currentDate = currentDate ?: currentDates.first(),
-                    )
+                    val date = currentDate ?: currentDates.first()
+                    val page = transactionRunner.run { getClassHistoryUseCase(currentDate = date) }
 
                     currentCoroutineContext().ensureActive()
 
@@ -429,30 +442,15 @@ class AttendanceViewModel(
             }
     }
 
-    private fun loadAttendance() {
-        viewModelScope.launch {
-            try {
-                refreshAttendance()
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (exception: Exception) {
-                attendanceData.value =
-                    AttendanceDataState.Error(
-                        message =
-                        exception.message
-                            ?: "Failed to load attendance",
-                    )
-            }
-        }
-    }
-
     private suspend fun refreshAttendance() {
         attendanceData.value =
-            AttendanceDataState.Content(
-                attendance = getAttendanceUseCase(),
-                packageTypes = getPackageTypesUseCase(),
-                studentGroups = getStudentGroupsUseCase(),
-            )
+            transactionRunner.run {
+                AttendanceDataState.Content(
+                    attendance = getAttendanceUseCase(),
+                    packageTypes = getPackageTypesUseCase(),
+                    studentGroups = getStudentGroupsUseCase(),
+                )
+            }
     }
 
     private sealed interface AttendanceDataState {

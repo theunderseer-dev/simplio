@@ -1,7 +1,8 @@
 # Durable Firestore uploads
 
-This stage adds uploads to the durable Room outbox. It does not yet implement remote downloads,
-conflict resolution, or offline authentication restoration. Local reads and writes remain available
+This document describes uploads from the durable Room outbox. Remote downloads are now implemented
+in [Firestore downloads into Room](firestore-pull.md). Conflict resolution and offline authentication
+restoration remain future work. Local reads and writes remain available
 while an authenticated desktop session is open. Local launch mode never starts Firebase or the uploader.
 
 ## Ownership and lifecycle
@@ -55,9 +56,9 @@ business writes, a head update and an immutable receipt. Every write has either 
 precondition or an exact server `updateTime` precondition.
 
 The account head is a conservative compare-and-set boundary. Another device with a stale or unknown
-head cannot overwrite current cloud data. This first upload stage deliberately pauses such a device;
-it must not adopt a cloud head without downloading and reconciling the corresponding data. The next
-stage must add that pull/reconciliation path before advertising multi-device synchronization.
+head cannot overwrite current cloud data. The sync coordinator downloads the matching snapshot before
+adopting a new head on a clean device. Independent local and remote changes still pause for review;
+a new head is never adopted without the corresponding data.
 
 ## Lost response recovery
 
@@ -100,7 +101,6 @@ They use a demo project and emulator owner credentials. They do not validate pro
 
 ## Remaining work
 
-- remote pull with persisted cursor/checkpoint and merging into observable local data
 - user-visible conflict reconciliation and domain-aware handling of concurrent attendance/renewal
 - restoring an existing account offline without requiring online sign-in
 - explicit connectivity/last-sync UI when both upload and download are implemented
