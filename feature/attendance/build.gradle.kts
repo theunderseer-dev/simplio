@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ktlint)
@@ -18,6 +19,8 @@ kotlin {
                 api(libs.androidx.room.runtime)
                 api(libs.androidx.lifecycle.viewmodel)
 
+                implementation(project(":shared"))
+                implementation(libs.kotlinx.serialization.json)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.androidx.sqlite.bundled)
                 implementation(libs.compose.runtime)
@@ -31,6 +34,7 @@ kotlin {
 
         commonTest {
             dependencies {
+                implementation(libs.ktor.client.mock)
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.compose.ui.test)

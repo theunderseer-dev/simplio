@@ -19,7 +19,7 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
             id == 2 && group.name == "Group B" -> "default-group-b"
             else -> null
         }
-        return ensure(SyncEntityType.STUDENT_GROUP, id.toString(), cloudId)
+        return ensure(SyncEntityType.STUDENT_GROUP, id.toString(), "STUDENT_GROUP:$id", cloudId)
     }
 
     suspend fun ensurePackageType(id: Int): SyncRecordEntity {
@@ -41,14 +41,14 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
                 it.maxVisitsPerAttendance == type.maxVisitsPerAttendance
         }?.id == id
         val cloudId = if (plan != null && isFirst) "default-plan-${plan.name.lowercase()}" else null
-        return ensure(SyncEntityType.PACKAGE_TYPE, id.toString(), cloudId)
+        return ensure(SyncEntityType.PACKAGE_TYPE, id.toString(), "PACKAGE_TYPE:$id", cloudId)
     }
 
     suspend fun ensureStudent(id: Int): SyncRecordEntity {
         dao.getRecord(SyncEntityType.STUDENT, id.toString())?.let { return it }
         val student = checkNotNull(database.studentDao().getById(id))
         ensureGroup(student.groupId)
-        return ensure(SyncEntityType.STUDENT, id.toString())
+        return ensure(SyncEntityType.STUDENT, id.toString(), "STUDENT:$id")
     }
 
     suspend fun ensurePackage(id: Int): SyncRecordEntity {
@@ -56,7 +56,7 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
         val studentPackage = checkNotNull(database.studentPackageDao().getById(id))
         ensureStudent(studentPackage.studentId)
         ensurePackageType(studentPackage.packageTypeId)
-        return ensure(SyncEntityType.STUDENT_PACKAGE, id.toString())
+        return ensure(SyncEntityType.STUDENT_PACKAGE, id.toString(), "STUDENT:${studentPackage.studentId}")
     }
 
     suspend fun ensureAttendance(packageId: Int, epochDay: Long): SyncRecordEntity {
@@ -65,6 +65,7 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
         return ensure(
             SyncEntityType.ATTENDANCE,
             attendanceLocalId(packageId, epochDay),
+            parent.aggregateKey,
             "${parent.cloudId}_$epochDay",
         )
     }
@@ -94,9 +95,14 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
         change(student, deleted = true)
     }
 
-    private suspend fun ensure(type: SyncEntityType, localId: String, cloudId: String? = null): SyncRecordEntity {
+    private suspend fun ensure(
+        type: SyncEntityType,
+        localId: String,
+        aggregateKey: String,
+        cloudId: String? = null,
+    ): SyncRecordEntity {
         dao.getRecord(type, localId)?.let { return it }
-        val record = SyncRecordEntity(type, localId, cloudId ?: newId(), revision = 1)
+        val record = SyncRecordEntity(type, localId, cloudId ?: newId(), revision = 1, aggregateKey = aggregateKey)
         dao.saveRecord(record)
         enqueue(record)
         return record

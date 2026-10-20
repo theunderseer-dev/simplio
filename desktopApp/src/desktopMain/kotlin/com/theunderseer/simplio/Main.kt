@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -16,10 +17,12 @@ import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.desktopFirebaseModule
 import com.theunderseer.simplio.presentation.DesktopAttendanceContent
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
+import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
 import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinApplication
 import java.awt.datatransfer.StringSelection
 
@@ -71,6 +74,9 @@ private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplicat
                     key(session.userId) {
                         DesktopAttendanceContent(
                             userId = session.userId,
+                            uploadClient = remember(firebase, session.userId) {
+                                firebase.koin.get<FirestoreRestClient> { parametersOf(session.userId) }
+                            },
                             databases = databases,
                             onCopyAttendance = onCopyAttendance,
                         )

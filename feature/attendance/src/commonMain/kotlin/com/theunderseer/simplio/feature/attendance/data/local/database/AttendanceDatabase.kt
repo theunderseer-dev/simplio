@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentGroupDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentPackageDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncDao
+import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncUploadDao
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
@@ -15,6 +16,8 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGrou
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncOutboxEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadBatchEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadStateEntity
 
 @Database(
     entities = [
@@ -25,8 +28,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordE
         AttendanceEntity::class,
         SyncRecordEntity::class,
         SyncOutboxEntity::class,
+        SyncUploadStateEntity::class,
+        SyncUploadBatchEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {
@@ -37,6 +42,8 @@ abstract class AttendanceDatabase : RoomDatabase() {
     abstract fun packageTypeDao(): PackageTypeDao
 
     abstract fun studentPackageDao(): StudentPackageDao
+
+    abstract fun syncUploadDao(): SyncUploadDao
 
     abstract fun syncDao(): SyncDao
 
