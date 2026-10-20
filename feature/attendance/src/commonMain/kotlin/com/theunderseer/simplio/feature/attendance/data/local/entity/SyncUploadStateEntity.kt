@@ -9,4 +9,5 @@ data class SyncUploadStateEntity(
     val projectId: String,
     val userId: String,
     val headUpdateTime: String? = null,
+    val lastPullReadTime: String? = null,
 )

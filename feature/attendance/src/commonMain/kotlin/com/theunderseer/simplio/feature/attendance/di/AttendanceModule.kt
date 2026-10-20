@@ -27,6 +27,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentA
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceViewModel
+import kotlinx.coroutines.flow.map
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -171,6 +172,15 @@ fun attendanceModule() = module {
             deleteStudentUseCase = get(),
             getClassHistoryUseCase = get(),
             updateStudentNoteUseCase = get(),
+            transactionRunner = get(),
+            localChanges = get<AttendanceDatabase>().invalidationTracker.createFlow(
+                "students",
+                "student_packages",
+                "attendance",
+                "package_types",
+                "student_groups",
+                emitInitialState = true,
+            ).map { Unit },
             currentDates = get(
                 qualifier = named("attendanceCurrentDates"),
             ),

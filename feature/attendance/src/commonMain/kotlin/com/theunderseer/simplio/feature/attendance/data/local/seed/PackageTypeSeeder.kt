@@ -10,6 +10,7 @@ class PackageTypeSeeder(private val database: AttendanceDatabase) {
 
     suspend fun seedDefaults() {
         RoomSyncJournal.write(database) { journal ->
+            if (database.syncUploadDao().getState()?.lastPullReadTime != null) return@write
             val existingNames =
                 packageTypeDao.getAll()
                     .map { it.name }

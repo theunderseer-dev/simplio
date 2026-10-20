@@ -10,6 +10,7 @@ class StudentGroupSeeder(private val database: AttendanceDatabase) {
 
     suspend fun seedDefaults() {
         RoomSyncJournal.write(database) { journal ->
+            if (database.syncUploadDao().getState()?.lastPullReadTime != null) return@write
             val existingIds =
                 studentGroupDao.getAll()
                     .map { it.id }
