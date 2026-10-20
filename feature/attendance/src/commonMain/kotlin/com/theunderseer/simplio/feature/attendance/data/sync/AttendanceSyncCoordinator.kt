@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.data.sync
 
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomConflictStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
 import com.theunderseer.simplio.shared.firebase.FirestoreFailure
 import com.theunderseer.simplio.shared.firebase.FirestoreFailureKind
@@ -23,6 +24,7 @@ class AttendanceSyncCoordinator(
     private val remote: AttendancePullRemote,
     private val uploader: AttendanceUploadCoordinator,
     private val pollMillis: Long = 60_000,
+    private val conflicts: RoomConflictStore? = null,
 ) {
     private val cycleMutex = Mutex()
     private val runnerMutex = Mutex()
@@ -30,6 +32,68 @@ class AttendanceSyncCoordinator(
     private val mutableStatus = MutableStateFlow<AttendanceSyncStatus>(AttendanceSyncStatus.Idle)
     val status = mutableStatus.asStateFlow()
     private var failures = 0
+    private val mutableReview = MutableStateFlow<ConflictReviewState>(ConflictReviewState.Closed)
+    val review = mutableReview.asStateFlow()
+    private var reviewGeneration = 0
+
+    fun dismissReview() {
+        if ((mutableReview.value as? ConflictReviewState.Ready)?.isApplying == true) return
+        reviewGeneration++
+        mutableReview.value = ConflictReviewState.Closed
+    }
+
+    suspend fun openReview() = cycleMutex.withLock {
+        if (mutableReview.value == ConflictReviewState.Closed || mutableReview.value is ConflictReviewState.Error) {
+            loadReview()
+        }
+    }
+
+    suspend fun applyReview(id: String, choices: Map<String, ConflictChoice>) = cycleMutex.withLock {
+        val ready = mutableReview.value as? ConflictReviewState.Ready ?: return@withLock
+        if (ready.review.id != id || ready.isApplying) return@withLock
+        mutableReview.value = ready.copy(isApplying = true, message = null)
+        try {
+            checkNotNull(conflicts).apply(id, choices, remote.readHead())
+            mutableReview.value = ConflictReviewState.Closed
+            failures = 0
+            mutableStatus.value = AttendanceSyncStatus.Syncing
+            retries.trySend(Unit)
+        } catch (error: CancellationException) {
+            mutableReview.value = ready
+            throw error
+        } catch (error: StaleConflictReview) {
+            loadReview("Data changed. Please review the updated versions.")
+        } catch (error: Exception) {
+            mutableReview.value = ready.copy(message = reviewError(error))
+        }
+    }
+
+    private suspend fun loadReview(message: String? = null) {
+        val generation = reviewGeneration
+        mutableReview.value = ConflictReviewState.Loading
+        try {
+            val head = remote.readHead()
+            val result = checkNotNull(conflicts).create(remote.readSnapshot(head))
+            if (generation == reviewGeneration) mutableReview.value = ConflictReviewState.Ready(result, message)
+        } catch (error: CancellationException) {
+            if (generation == reviewGeneration) mutableReview.value = ConflictReviewState.Closed
+            throw error
+        } catch (error: Exception) {
+            if (generation == reviewGeneration) mutableReview.value = ConflictReviewState.Error(reviewError(error))
+        }
+    }
+
+    private fun reviewError(error: Exception): String = when {
+        error is InvalidConflictChoice -> "These versions cannot be combined safely. Change your choices."
+        error is FirestoreFailure && error.kind == FirestoreFailureKind.AUTHENTICATION ->
+            "Sign in again to review changes."
+        error is FirestoreFailure && error.kind == FirestoreFailureKind.PERMISSION -> "Cloud access denied."
+        error is IOException || error is FirestoreFailure && error.kind == FirestoreFailureKind.RETRYABLE ->
+            "Cannot reach the cloud. Your changes are saved. Try again."
+        error is UploadPreparationFailure && error.problem == UploadProblem.TOO_LARGE ->
+            "Too much data to combine safely. Your changes are saved."
+        else -> "Cannot compare these changes safely. Your changes are saved. Try again."
+    }
 
     init {
         require(pollMillis > 0)

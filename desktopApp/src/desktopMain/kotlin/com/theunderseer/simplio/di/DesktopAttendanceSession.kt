@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomConflictStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomUploadStore
 import com.theunderseer.simplio.feature.attendance.data.remote.FirestoreAttendancePullRemote
@@ -33,6 +34,7 @@ internal class DesktopAttendanceSession(databasePath: String, uploadClient: Fire
         val target = UploadTarget(client.projectId, client.userId)
         AttendanceSyncCoordinator(
             store = RoomPullStore(database, target),
+            conflicts = RoomConflictStore(database, target),
             remote = FirestoreAttendancePullRemote(client),
             uploader = AttendanceUploadCoordinator(
                 store = RoomUploadStore(application.koin.get<AttendanceDatabase>()),

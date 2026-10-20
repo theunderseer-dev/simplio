@@ -85,7 +85,7 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
     suspend fun retry() = uploadDao.retry()
     fun observeWork(): Flow<Boolean> = uploadDao.observeWork()
 
-    private suspend fun fields(change: PendingSyncChange, selected: Set<Pair<SyncEntityType, String>>): JsonObject {
+    internal suspend fun fields(change: PendingSyncChange, selected: Set<Pair<SyncEntityType, String>>): JsonObject {
         suspend fun parent(type: SyncEntityType, id: Int): String {
             val record = checkNotNull(database.syncDao().getRecord(type, id.toString()))
             check(!record.isDeleted && (record.acknowledgedRevision > 0 || type to id.toString() in selected))
