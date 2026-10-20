@@ -3,7 +3,8 @@
 This stage adds remote reads to the existing durable upload protocol. Room remains the source read by
 attendance UI and the destination for local edits. Firestore serializes accepted account changes.
 The same account can move between devices when the receiving device has no pending user changes.
-Independent local and remote changes pause safely; resolving those conflicts is a separate feature.
+Independent local and remote changes pause safely; the next layer provides
+[explicit conflict review](sync-conflicts.md).
 
 ## One account, one runner
 
@@ -49,7 +50,8 @@ If it might already have reached Firestore, existing receipt recovery runs first
 A missing cloud head never clears local data. Losing a previously known head pauses as a conflict.
 An established head plus pending local edits also pauses when the remote head differs, even if the
 edits appear unrelated. There is no silent last-writer-wins policy. The UI reports that local and
-cloud changes need review. This stage preserves each side; it does not yet provide a resolution UI.
+cloud changes need review. Both sides remain available for the explicit conflict review flow; see
+[synchronization conflict review](sync-conflicts.md).
 
 ## Atomic import and IDs
 
@@ -93,8 +95,9 @@ Set `FIRESTORE_EMULATOR_HOST=127.0.0.1:8187` to include emulator tests; without 
 The demo-project fixture uses emulator owner credentials and does not test production Security Rules.
 No Rules are deployed by these tests.
 
-Remaining work includes user-driven conflict resolution, attendance/renewal conflict policies,
-restoring a signed-in account offline after restart, last-sync UX and safe tombstone/receipt cleanup.
+Explicit student-version choices are described in [conflict review](sync-conflicts.md). Remaining work
+includes finer-grained merge policies, offline sign-in restoration, last-sync UX and safe
+archive/tombstone/receipt cleanup.
 A legacy local database containing real pending work cannot be automatically merged with an already
 populated cloud account. Cloud documents must be written through the head/tombstone protocol;
 manual edits that bypass it are unsupported.

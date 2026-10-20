@@ -65,7 +65,14 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         } catch (error: NoSuchElementException) {
             fail(UploadProblem.INVALID_DATA)
         }
-        // Only seed defaults can have pending work here. No user-authored batch is ever discarded.
+        replaceRows(rows)
+        checkpoint(head, state)
+        true
+    }
+
+    /** Only called under a transaction after graph validation and the caller's dirty-state safeguards. */
+    internal suspend fun replaceRows(rows: ImportedAttendanceRows) {
+        // Caller has either verified pristine seeds or archived a user decision and fenced the old request.
         uploads.getBatch()?.let { uploads.deleteBatch(it.batchId) }
         dao.clearOutbox()
         dao.clearRecords()
@@ -81,8 +88,6 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         dao.insertAttendance(rows.attendance)
         dao.insertRecords(rows.records)
         reserveImportedIds(rows.records)
-        checkpoint(head, state)
-        true
     }
 
     private suspend fun canReplace(): Boolean {

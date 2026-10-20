@@ -4,7 +4,9 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
+import kotlinx.serialization.Serializable
 
+@Serializable
 @Entity(
     tableName = "sync_records",
     primaryKeys = ["entityType", "localId"],

@@ -3,6 +3,7 @@ package com.theunderseer.simplio.presentation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,8 +32,10 @@ import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.DesktopAttendanceSession
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
+import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
+import com.theunderseer.simplio.feature.attendance.presentation.sync.SyncConflictReviewDialog
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -217,6 +221,14 @@ private sealed interface AttendanceSessionState {
 @Composable
 private fun SyncNotice(sync: AttendanceSyncCoordinator) {
     val status by sync.status.collectAsState()
+    val review by sync.review.collectAsState()
+    val scope = rememberCoroutineScope()
+    SyncConflictReviewDialog(
+        state = review,
+        onDismiss = sync::dismissReview,
+        onRetry = { scope.launch { sync.openReview() } },
+        onApply = { id, choices -> scope.launch { sync.applyReview(id, choices) } },
+    )
     val problem = (status as? AttendanceSyncStatus.Paused)?.problem
     val message = when {
         status is AttendanceSyncStatus.WaitingToRetry ->
@@ -239,6 +251,17 @@ private fun SyncNotice(sync: AttendanceSyncCoordinator) {
     }
     if (message != null) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            if (problem == UploadProblem.CONFLICT) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    TextButton(
+                        onClick = { scope.launch { sync.openReview() } },
+                        enabled = review == ConflictReviewState.Closed,
+                    ) { Text("Review changes") }
+                    TextButton(onClick = sync::retry, enabled = review == ConflictReviewState.Closed) {
+                        Text("Retry sync")
+                    }
+                }
+            }
             Text(
                 message,
                 modifier = Modifier.fillMaxWidth(),

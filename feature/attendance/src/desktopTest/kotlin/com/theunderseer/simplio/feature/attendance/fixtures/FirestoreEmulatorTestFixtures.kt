@@ -1,5 +1,14 @@
 package com.theunderseer.simplio.feature.attendance.fixtures
 
+import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomConflictStore
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomUploadStore
+import com.theunderseer.simplio.feature.attendance.data.remote.FirestoreAttendancePullRemote
+import com.theunderseer.simplio.feature.attendance.data.remote.FirestoreAttendanceUploadRemote
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendancePullRemote
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceUploadCoordinator
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadTarget
 import com.theunderseer.simplio.shared.firebase.FirebaseConfig
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
@@ -65,3 +74,15 @@ internal suspend fun withFirestoreEmulator(block: suspend (FirestoreRestClient, 
         http.close()
     }
 }
+
+internal fun testFirestoreSyncCoordinator(
+    database: AttendanceDatabase,
+    client: FirestoreRestClient,
+    target: UploadTarget,
+    remote: AttendancePullRemote = FirestoreAttendancePullRemote(client),
+): AttendanceSyncCoordinator = AttendanceSyncCoordinator(
+    store = RoomPullStore(database, target),
+    remote = remote,
+    uploader = AttendanceUploadCoordinator(RoomUploadStore(database), FirestoreAttendanceUploadRemote(client), target),
+    conflicts = RoomConflictStore(database, target),
+)

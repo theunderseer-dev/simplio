@@ -1,8 +1,8 @@
 # Durable Firestore uploads
 
 This document describes uploads from the durable Room outbox. Remote downloads are now implemented
-in [Firestore downloads into Room](firestore-pull.md). Conflict resolution and offline authentication
-restoration remain future work. Local reads and writes remain available
+in [Firestore downloads into Room](firestore-pull.md). Explicit version selection is documented in
+[conflict review](sync-conflicts.md); offline authentication restoration remains future work. Local reads and writes remain available
 while an authenticated desktop session is open. Local launch mode never starts Firebase or the uploader.
 
 ## Ownership and lifecycle
@@ -101,7 +101,7 @@ They use a demo project and emulator owner credentials. They do not validate pro
 
 ## Remaining work
 
-- user-visible conflict reconciliation and domain-aware handling of concurrent attendance/renewal
+- finer-grained merge policies beyond explicit whole-student version selection
 - restoring an existing account offline without requiring online sign-in
 - explicit connectivity/last-sync UI when both upload and download are implemented
 - production Rules tightening and Rules tests before allowing additional accounts

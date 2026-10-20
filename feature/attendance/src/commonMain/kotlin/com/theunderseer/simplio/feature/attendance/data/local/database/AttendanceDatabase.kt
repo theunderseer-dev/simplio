@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.PackageTypeDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentGroupDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentPackageDao
+import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncConflictDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncPullDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncUploadDao
@@ -15,6 +16,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageType
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncConflictReviewEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncOutboxEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadBatchEntity
@@ -31,8 +33,9 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadS
         SyncOutboxEntity::class,
         SyncUploadStateEntity::class,
         SyncUploadBatchEntity::class,
+        SyncConflictReviewEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {
@@ -43,6 +46,8 @@ abstract class AttendanceDatabase : RoomDatabase() {
     abstract fun packageTypeDao(): PackageTypeDao
 
     abstract fun studentPackageDao(): StudentPackageDao
+
+    abstract fun syncConflictDao(): SyncConflictDao
 
     abstract fun syncPullDao(): SyncPullDao
 
