@@ -22,7 +22,10 @@ class StudentGroupSeeder(private val database: AttendanceDatabase) {
                     studentGroupDao.insert(group)
                 }
 
-            studentGroupDao.getAll().forEach { journal.ensureGroup(it.id) }
+            studentGroupDao.getAll().forEach {
+                database.attachDefaultSchedule(it.id)
+                journal.ensureGroup(it.id)
+            }
         }
     }
 

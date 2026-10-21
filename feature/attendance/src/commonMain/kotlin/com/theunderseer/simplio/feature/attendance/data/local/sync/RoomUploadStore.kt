@@ -11,6 +11,7 @@ import com.theunderseer.simplio.feature.attendance.data.sync.UploadPreparationFa
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadSnapshot
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadTarget
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -44,7 +45,13 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             }
             UploadDocument(change, fields)
         }
-        val snapshot = UploadSnapshot(Uuid.random().toHexString(), target, state?.headUpdateTime, documents)
+        val snapshot = UploadSnapshot(
+            Uuid.random().toHexString(),
+            target,
+            state?.headUpdateTime,
+            documents,
+            protocolVersion = FirestoreUploadProtocol.CURRENT_VERSION,
+        )
         val body = FirestoreUploadProtocol.commitBody(snapshot)
         if (body.encodeToByteArray().size > 8 * 1024 * 1024) {
             throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
@@ -97,8 +104,32 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             when (change.entityType) {
                 SyncEntityType.STUDENT_GROUP -> {
                     val row = database.studentGroupDao().getAll().single { it.id.toString() == change.localId }
-                    buildJsonObject { put("name", FirestoreUploadProtocol.string(row.name)) }
+                    val scheduleIds = database.classScheduleDao().groupSchedules()
+                        .filter { it.groupId == row.id }.map { it.scheduleId }.sorted()
+                    // Missing refs in v1 documents mean the unchanged compatibility schedule.
+                    // Explicit custom refs always have a synchronized parent in this or an earlier batch.
+                    val explicit = scheduleIds != listOf(DefaultClassSchedule.ID) && scheduleIds.isNotEmpty()
+                    if (explicit) {
+                        scheduleIds.forEach { id ->
+                            if (id != DefaultClassSchedule.ID) {
+                                val record =
+                                    checkNotNull(database.syncDao().getRecord(SyncEntityType.CLASS_SCHEDULE, id))
+                                check(
+                                    !record.isDeleted &&
+                                        (
+                                            record.acknowledgedRevision > 0 ||
+                                                SyncEntityType.CLASS_SCHEDULE to id in selected
+                                            ),
+                                )
+                            }
+                        }
+                    }
+                    buildJsonObject {
+                        put("name", FirestoreUploadProtocol.string(row.name))
+                        if (explicit) put("scheduleIds", scheduleReferences(scheduleIds))
+                    }
                 }
+                SyncEntityType.CLASS_SCHEDULE -> scheduleFields(database, change.localId)
                 SyncEntityType.PACKAGE_TYPE -> {
                     val row = database.packageTypeDao().getAll().single { it.id.toString() == change.localId }
                     buildJsonObject {
@@ -148,7 +179,12 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
         }
         return buildJsonObject {
             businessFields.forEach { (key, value) -> put(key, value) }
-            put("schemaVersion", FirestoreUploadProtocol.integer(1))
+            put(
+                "schemaVersion",
+                FirestoreUploadProtocol.integer(
+                    if (change.entityType == SyncEntityType.CLASS_SCHEDULE || "scheduleIds" in businessFields) 2 else 1,
+                ),
+            )
             put("isDeleted", FirestoreUploadProtocol.boolean(change.operation == SyncOperation.DELETE))
             put("lastMutationId", FirestoreUploadProtocol.string(change.mutationId))
         }

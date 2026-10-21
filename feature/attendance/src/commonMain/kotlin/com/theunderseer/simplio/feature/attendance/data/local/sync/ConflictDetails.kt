@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.data.local.sync
 
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudDocument
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -36,11 +37,27 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
             "${LocalDate.fromEpochDays(visit.integer("attendedOnEpochDay"))} × ${visit.integer("visitCount")}"
         }.ifBlank { "None" }
     }
-    live.filter { it.type == SyncEntityType.STUDENT_GROUP }.forEach { result += "Group: ${it.string("name")}" }
+    live.filter { it.type == SyncEntityType.STUDENT_GROUP }.forEach { group ->
+        result += "Group: ${group.string("name")}"
+        (group.scheduleIds() ?: listOf(DefaultClassSchedule.ID)).forEach { id ->
+            val schedule = all.firstOrNull { it.type == SyncEntityType.CLASS_SCHEDULE && it.cloudId == id }
+                ?.takeUnless { it.isDeleted }?.toSchedule()
+                ?: DefaultClassSchedule.schedule.takeIf { it.id == id }
+            result +=
+                if (schedule == null) "Schedule: Deleted" else "Schedule: ${schedule.name} · ${schedule.timeZoneId}"
+        }
+    }
     live.filter { it.type == SyncEntityType.PACKAGE_TYPE }.forEach {
         result += "Package: ${it.string("name")} · Classes: ${it.integer("totalClasses")}"
         result += "Price: ${it.integer("price")} · Validity: ${it.integer("validityWeeks")} weeks"
         result += "People per class: ${it.integer("maxVisitsPerAttendance")}"
+    }
+    live.filter { it.type == SyncEntityType.CLASS_SCHEDULE }.forEach { document ->
+        val schedule = document.toSchedule()
+        result += "Schedule: ${schedule.name}"
+        result += "Time zone: ${schedule.timeZoneId}"
+        result += "Dates: ${schedule.startsOn ?: "—"} – ${schedule.endsOn ?: "—"}"
+        result += schedule.slots.joinToString { "${it.dayOfWeek}: ${it.startsAt}–${it.endsAt}" }
     }
     if (result.isEmpty()) result += "Deleted records: ${rows.count { it.isDeleted }}"
     return result

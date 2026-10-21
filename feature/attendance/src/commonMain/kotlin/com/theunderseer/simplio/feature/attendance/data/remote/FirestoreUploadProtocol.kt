@@ -8,6 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 internal object FirestoreUploadProtocol {
+    const val CURRENT_VERSION = 2
     const val HEAD_COLLECTION = "syncState"
     const val HEAD_ID = "attendance"
     const val RECEIPT_COLLECTION = "syncReceipts"
@@ -18,6 +19,7 @@ internal object FirestoreUploadProtocol {
         SyncEntityType.STUDENT -> "students"
         SyncEntityType.STUDENT_PACKAGE -> "studentPackages"
         SyncEntityType.ATTENDANCE -> "attendance"
+        SyncEntityType.CLASS_SCHEDULE -> "classSchedules"
     }
 
     fun string(value: String): JsonObject = buildJsonObject { put("stringValue", value) }
@@ -25,7 +27,7 @@ internal object FirestoreUploadProtocol {
     fun boolean(value: Boolean): JsonObject = buildJsonObject { put("booleanValue", value) }
 
     fun receiptFields(snapshot: UploadSnapshot): JsonObject = buildJsonObject {
-        put("protocolVersion", integer(1))
+        put("protocolVersion", integer(snapshot.protocolVersion))
         put("batchId", string(snapshot.batchId))
         put(
             "mutationIds",
@@ -41,6 +43,7 @@ internal object FirestoreUploadProtocol {
     }
 
     fun commitBody(snapshot: UploadSnapshot): String {
+        require(snapshot.protocolVersion in 1..CURRENT_VERSION)
         val target = snapshot.target
         val prefix = "projects/${target.projectId}/databases/(default)/documents/users/${target.userId}"
         fun write(path: String, fields: JsonObject, version: String?): JsonObject = buildJsonObject {
@@ -67,7 +70,7 @@ internal object FirestoreUploadProtocol {
         } + write(
             "$HEAD_COLLECTION/$HEAD_ID",
             buildJsonObject {
-                put("protocolVersion", integer(1))
+                put("protocolVersion", integer(snapshot.protocolVersion))
                 put("batchId", string(snapshot.batchId))
             },
             snapshot.headUpdateTime,

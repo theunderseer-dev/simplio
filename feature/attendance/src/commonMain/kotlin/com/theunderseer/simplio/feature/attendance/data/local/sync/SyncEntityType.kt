@@ -9,6 +9,7 @@ enum class SyncEntityType {
     STUDENT,
     STUDENT_PACKAGE,
     ATTENDANCE,
+    CLASS_SCHEDULE,
 }
 
 @Serializable

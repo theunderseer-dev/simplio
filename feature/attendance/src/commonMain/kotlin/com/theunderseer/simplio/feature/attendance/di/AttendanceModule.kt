@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.di
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
@@ -11,6 +12,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupS
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
@@ -33,6 +35,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 fun attendanceModule() = module {
+    single<ClassScheduleRepository> { RoomClassScheduleRepository(database = get()) }
+
     single { RoomSyncOutbox(database = get()) }
 
     single {
