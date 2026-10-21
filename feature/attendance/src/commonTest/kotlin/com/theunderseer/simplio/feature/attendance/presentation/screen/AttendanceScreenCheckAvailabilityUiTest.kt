@@ -90,7 +90,7 @@ class AttendanceScreenCheckAvailabilityUiTest {
         }
 
         // Then
-        onNodeWithText("✓")
+        onNodeWithContentDescription("Mark ${student.fullName} present")
             .assertIsDisplayed()
             .assert(
                 SemanticsMatcher.expectValue(

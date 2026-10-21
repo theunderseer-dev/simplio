@@ -13,13 +13,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -29,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,8 +40,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -70,6 +73,8 @@ internal fun StudentPackageDialog(
     onDismiss: () -> Unit,
 ) {
     var note by remember { mutableStateOf(initialNote) }
+    val formScrollState = rememberScrollState()
+    val hasMoreFields by remember { derivedStateOf { formScrollState.canScrollForward } }
 
     var selectedPackage by remember(packageTypes, initialPackageTypeId) {
         mutableStateOf(
@@ -98,8 +103,8 @@ internal fun StudentPackageDialog(
         mutableStateOf(false)
     }
 
-    var selectedDate by remember(initialDate) {
-        mutableStateOf(initialDate)
+    var selectedDate by remember(initialDate, earliestDate) {
+        mutableStateOf(initialPackagePurchaseDate(initialDate, earliestDate))
     }
 
     var showDatePicker by remember {
@@ -109,7 +114,7 @@ internal fun StudentPackageDialog(
     val packageExpirationDate =
         if (recordFirstAttendance) {
             selectedPackage?.let { packageType ->
-                selectedDate.plus(
+                selectedDate?.plus(
                     DatePeriod(days = packageType.validityWeeks * 7),
                 )
             }
@@ -120,18 +125,34 @@ internal fun StudentPackageDialog(
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         title = {
-            Text(title)
+            Column {
+                Text(title)
+                if (hasMoreFields) {
+                    Text(
+                        text = "Scroll for more",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+            }
         },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(formScrollState),
             ) {
                 studentFields()
 
                 Box {
                     OutlinedTextField(
                         enabled = !isSaving,
-                        value = selectedDate.toDisplayDate(),
+                        value = selectedDate?.toDisplayDate().orEmpty(),
+                        supportingText = if (selectedDate == null) {
+                            { Text("No scheduled dates available yet") }
+                        } else {
+                            null
+                        },
                         onValueChange = {},
                         readOnly = true,
                         label = {
@@ -302,12 +323,12 @@ internal fun StudentPackageDialog(
                 !isSaving &&
                     canSubmit &&
                     selectedPackage != null &&
-                    isPackagePurchaseDateSelectable(selectedDate, initialDate, earliestDate) &&
+                    selectedDate?.let { isPackagePurchaseDateSelectable(it, initialDate, earliestDate) } == true &&
                     (!recordFirstAttendance || checkNotNull(selectedPackage).allowsVisitCount(selectedVisitCount)),
                 onClick = {
                     onConfirm(
                         checkNotNull(selectedPackage),
-                        selectedDate,
+                        checkNotNull(selectedDate),
                         selectedVisitCount,
                         recordFirstAttendance,
                         note.trim(),
@@ -347,52 +368,30 @@ internal fun StudentPackageDialog(
             rememberDatePickerState(
                 initialSelectedDateMillis =
                 selectedDate
-                    .atStartOfDayIn(TimeZone.UTC)
-                    .toEpochMilliseconds(),
+                    ?.atStartOfDayIn(TimeZone.UTC)
+                    ?.toEpochMilliseconds(),
+                initialDisplayedMonthMillis = initialDate.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
                 selectableDates = selectableDates,
             )
 
-        DatePickerDialog(
-            onDismissRequest = {
+        ClassDatePickerDialog(
+            title = datePickerTitle,
+            state = datePickerState,
+            canConfirm = datePickerState.selectedDateMillis?.let { selectableDates.isSelectableDate(it) } == true,
+            availabilityKey = listOf(initialDate, earliestDate),
+            onConfirm = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    selectedDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
+                }
                 showDatePicker = false
             },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            selectedDate =
-                                Instant
-                                    .fromEpochMilliseconds(millis)
-                                    .toLocalDateTime(TimeZone.UTC)
-                                    .date
-                        }
-
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("Cancel")
-                }
-            },
-        ) {
-            Column {
-                Text(datePickerTitle)
-
-                DatePicker(
-                    state = datePickerState,
-                )
-            }
-        }
+            onDismiss = { showDatePicker = false },
+        )
     }
 }
 
 internal fun isPackagePurchaseDateSelectable(date: LocalDate, today: LocalDate, earliestDate: LocalDate?): Boolean =
-    date <= today && (earliestDate == null || date >= earliestDate)
+    isAttendanceDateSelectable(date, today) && (earliestDate == null || date >= earliestDate)
+
+internal fun initialPackagePurchaseDate(today: LocalDate, earliestDate: LocalDate?): LocalDate? =
+    latestScheduledClassDate(today).takeIf { isPackagePurchaseDateSelectable(it, today, earliestDate) }

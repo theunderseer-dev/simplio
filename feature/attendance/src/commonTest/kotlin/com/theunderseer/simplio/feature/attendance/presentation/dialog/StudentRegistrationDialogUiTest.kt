@@ -15,7 +15,6 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.StudentRegistrationTestCallback
-import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -122,6 +121,7 @@ class StudentRegistrationDialogUiTest {
         // Given
         setContent {
             StudentRegistrationDialogForTest(
+                initialDate = AttendanceTestData.secondClassDate,
                 onRegister = registrationCallback::onRegister,
             )
         }
@@ -134,7 +134,7 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         onNodeWithText(
-            text = "Thursday, October 1, 2026",
+            text = "Friday, October 2, 2026",
             substring = true,
         ).performClick()
 
@@ -151,7 +151,7 @@ class StudentRegistrationDialogUiTest {
         val submission = assertNotNull(registrationCallback.submission)
 
         assertEquals(
-            LocalDate(2026, 10, 1),
+            AttendanceTestData.firstClassDate,
             submission.registeredOn,
         )
     }
@@ -176,7 +176,7 @@ class StudentRegistrationDialogUiTest {
     fun `updates registration date after selecting past date`() = runComposeUiTest {
         // Given
         setContent {
-            StudentRegistrationDialogForTest()
+            StudentRegistrationDialogForTest(initialDate = AttendanceTestData.secondClassDate)
         }
 
         // When
@@ -184,7 +184,7 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         onNodeWithText(
-            text = "Thursday, October 1, 2026",
+            text = "Friday, October 2, 2026",
             substring = true,
         ).performClick()
 
@@ -192,7 +192,7 @@ class StudentRegistrationDialogUiTest {
             .performClick()
 
         // Then
-        onNodeWithText("Oct 1")
+        onNodeWithText("Oct 2")
             .assertIsDisplayed()
     }
 

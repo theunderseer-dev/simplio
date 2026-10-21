@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +19,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -48,8 +50,13 @@ import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.ic_check
+import com.theunderseer.simplio.feature.attendance.resources.ic_close
+import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun AttendanceScreen(
@@ -582,20 +589,18 @@ private fun StudentAttendanceRow(
         attendanceInteractionSource.collectIsHoveredAsState()
 
     Row(
-        modifier = Modifier.padding(
-            vertical = 6.dp,
-        ),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = registeredStudent.student.fullName,
-            modifier = Modifier.width(AttendanceDimensions.NameColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.NAME_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
 
         Box(
-            modifier = Modifier.width(AttendanceDimensions.ClassesColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.CLASSES_COLUMN_WEIGHT),
         ) {
             Text(
                 text =
@@ -612,6 +617,8 @@ private fun StudentAttendanceRow(
                         contentDescription =
                             "View package history for ${registeredStudent.student.fullName}"
                     },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration =
                 if (isAttendanceHovered) {
@@ -714,44 +721,45 @@ private fun StudentAttendanceRow(
 
         Text(
             text = studentPackage.startedOn?.toDisplayDate().orEmpty(),
-            modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
-        )
-
-        Text(
-            text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
-            modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
-        )
-
-        Text(
-            text = studentPackage.packageType.name,
-            modifier = Modifier.width(AttendanceDimensions.PackageColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
 
         Text(
-            text = if (row.requiresRenewal) "♻️" else "✓",
+            text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
+            modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Text(
+            text = studentPackage.packageType.name,
+            modifier = Modifier.weight(AttendanceDimensions.PACKAGE_COLUMN_WEIGHT),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        Icon(
+            painter = painterResource(if (row.requiresRenewal) Res.drawable.ic_refresh else Res.drawable.ic_check),
+            contentDescription = if (row.requiresRenewal) {
+                "Renew package for ${registeredStudent.student.fullName}"
+            } else {
+                "Mark ${registeredStudent.student.fullName} present"
+            },
             modifier =
             Modifier
+                .size(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
                     enabled = row.isCheckEnabled,
                     role = Role.Button,
                     onClick = onCheckClick,
                 )
                 .semantics {
-                    contentDescription =
-                        if (row.requiresRenewal) {
-                            "Renew package for ${registeredStudent.student.fullName}"
-                        } else {
-                            "Mark ${registeredStudent.student.fullName} present"
-                        }
                     stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name
                 }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
-            color =
+                .padding(6.dp),
+            tint =
             if (row.requiresRenewal) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -763,28 +771,20 @@ private fun StudentAttendanceRow(
                         Color(0xFF2E7D32)
                 }
             },
-            fontSize = 20.sp,
-            lineHeight = 20.sp,
         )
 
-        Text(
-            text = "×",
+        Icon(
+            painter = painterResource(Res.drawable.ic_close),
+            contentDescription = "Delete ${registeredStudent.student.fullName}",
             modifier =
             Modifier
+                .size(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
+                    role = Role.Button,
                     onClick = onDeleteClick,
                 )
-                .semantics {
-                    contentDescription =
-                        "Delete ${registeredStudent.student.fullName}"
-                }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
-            color = MaterialTheme.colorScheme.error,
-            fontSize = 20.sp,
-            lineHeight = 20.sp,
+                .padding(6.dp),
+            tint = MaterialTheme.colorScheme.error,
         )
     }
 }

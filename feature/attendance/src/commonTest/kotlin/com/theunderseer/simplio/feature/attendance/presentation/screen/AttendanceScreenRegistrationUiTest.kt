@@ -83,7 +83,7 @@ class AttendanceScreenRegistrationUiTest {
         // Given
         setContent {
             AttendanceScreenForTest(
-                state = emptyAttendanceState(),
+                state = emptyAttendanceState(currentDate = AttendanceTestData.secondClassDate),
                 onRegisterStudent = registrationCallback::onRegister,
             )
         }
@@ -99,7 +99,7 @@ class AttendanceScreenRegistrationUiTest {
             .performClick()
 
         onNodeWithText(
-            text = "Thursday, October 1, 2026",
+            text = "Friday, October 2, 2026",
             substring = true,
         ).performClick()
 
@@ -116,7 +116,7 @@ class AttendanceScreenRegistrationUiTest {
         val submission = assertNotNull(registrationCallback.submission)
 
         assertEquals(
-            LocalDate(2026, 10, 1),
+            AttendanceTestData.firstClassDate,
             submission.registeredOn,
         )
     }
