@@ -7,12 +7,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.desktopFirebaseModule
 import com.theunderseer.simplio.presentation.DesktopAttendanceContent
@@ -24,6 +29,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinApplication
+import java.awt.GraphicsEnvironment
 import java.awt.datatransfer.StringSelection
 
 fun main(appArgs: Array<String>) {
@@ -34,7 +40,20 @@ fun main(appArgs: Array<String>) {
 
         try {
             application(exitProcessOnExit = false) {
+                val initialSize = remember {
+                    val availableBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+                    DpSize(
+                        width = minOf(800, availableBounds.width).dp,
+                        height = minOf(840, availableBounds.height).dp,
+                    )
+                }
+                val windowState = rememberWindowState(
+                    position = WindowPosition(Alignment.Center),
+                    size = initialSize,
+                )
+
                 Window(
+                    state = windowState,
                     onCloseRequest = ::exitApplication,
                     title = if (isLocalMode) "Simplio (local)" else "Simplio",
                 ) {

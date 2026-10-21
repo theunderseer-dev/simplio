@@ -20,6 +20,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -29,6 +30,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +42,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
@@ -72,6 +75,8 @@ internal fun StudentPackageDialog(
     onDismiss: () -> Unit,
 ) {
     var note by remember { mutableStateOf(initialNote) }
+    val formScrollState = rememberScrollState()
+    val hasMoreFields by remember { derivedStateOf { formScrollState.canScrollForward } }
 
     var selectedPackage by remember(packageTypes, initialPackageTypeId) {
         mutableStateOf(
@@ -122,11 +127,22 @@ internal fun StudentPackageDialog(
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         title = {
-            Text(title)
+            Column {
+                Text(title)
+                if (hasMoreFields) {
+                    Text(
+                        text = "Scroll for more",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+            }
         },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(formScrollState),
             ) {
                 studentFields()
 
