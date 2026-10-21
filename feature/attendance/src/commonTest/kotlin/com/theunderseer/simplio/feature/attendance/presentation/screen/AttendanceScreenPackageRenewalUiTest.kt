@@ -128,14 +128,69 @@ class AttendanceScreenPackageRenewalUiTest {
         }
 
     @Test
-    fun `purchase calendar blocks future dates and dates before last old attendance`() = runComposeUiTest {
-        setContent { AttendanceScreenForTest(testPackageRenewalState(student)) }
+    fun `purchase calendar respects schedule and bounds with or without first attendance`() {
+        for (recordAttendance in listOf(true, false)) {
+            runComposeUiTest {
+                setContent { AttendanceScreenForTest(testPackageRenewalState(student)) }
+                onNodeWithContentDescription("Renew package for Anna Smith").performClick()
+                if (!recordAttendance) onNodeWithText("Record first attendance").performScrollTo().performClick()
+                onNodeWithContentDescription("Purchase date").performScrollTo().performClick()
+                onNodeWithText("Friday, October 9, 2026", substring = true).assertIsNotEnabled()
+                onNodeWithText("Monday, October 12, 2026", substring = true).assertIsEnabled()
+                onNodeWithText("Friday, October 16, 2026", substring = true).assertIsEnabled()
+                onNodeWithText("Monday, October 19, 2026", substring = true).assertIsEnabled()
+                for (date in listOf(
+                    "Tuesday, October 13, 2026",
+                    "Wednesday, October 14, 2026",
+                    "Thursday, October 15, 2026",
+                    "Saturday, October 17, 2026",
+                    "Sunday, October 18, 2026",
+                    "Friday, October 23, 2026",
+                )) {
+                    onNodeWithText(date, substring = true).assertIsNotEnabled()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `non scheduled today defaults renewal to the latest scheduled class`() = runComposeUiTest {
+        val callback = StudentPackageRenewalTestCallback()
+        setContent {
+            AttendanceScreenForTest(
+                testPackageRenewalState(student, currentDate = LocalDate(2026, 10, 22)),
+                onRenewStudentPackage = callback::onRenew,
+            )
+        }
         onNodeWithContentDescription("Renew package for Anna Smith").performClick()
-        onNodeWithContentDescription("Purchase date").performClick()
-        onNodeWithText("Friday, October 9, 2026", substring = true).assertIsNotEnabled()
-        onNodeWithText("Monday, October 12, 2026", substring = true).assertIsEnabled()
-        onNodeWithText("Monday, October 19, 2026", substring = true).assertIsEnabled()
-        onNodeWithText("Friday, October 23, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("Oct 19").assertIsDisplayed()
+        onNodeWithText("Renew").assertIsEnabled().performClick()
+        assertEquals(AttendanceTestData.sixthClassDate, assertNotNull(callback.submission).purchasedOn)
+    }
+
+    @Test
+    fun `renewal waits for the next scheduled date after incomplete package expiration`() = runComposeUiTest {
+        val callback = StudentPackageRenewalTestCallback()
+        val previous = testStudentPackage(startedOn = LocalDate(2026, 9, 18))
+        setContent {
+            AttendanceScreenForTest(
+                testPackageRenewalState(student, previous, currentDate = LocalDate(2026, 10, 18)),
+                onRenewStudentPackage = callback::onRenew,
+            )
+        }
+        onNodeWithContentDescription("Renew package for Anna Smith").performClick()
+        onNodeWithText("No scheduled dates available yet").assertIsDisplayed()
+        onNodeWithText("Valid until", substring = true).assertDoesNotExist()
+        onNodeWithText("Renew").assertIsNotEnabled()
+        onNodeWithText("Record first attendance").performScrollTo().performClick()
+        onNodeWithText("Renew").assertIsNotEnabled()
+        onNodeWithContentDescription("Purchase date").performScrollTo().performClick()
+        onNodeWithText("Friday, October 16, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("Saturday, October 17, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("Sunday, October 18, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("Monday, October 19, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("OK").assertIsNotEnabled()
+        assertNull(callback.submission)
     }
 
     @Test

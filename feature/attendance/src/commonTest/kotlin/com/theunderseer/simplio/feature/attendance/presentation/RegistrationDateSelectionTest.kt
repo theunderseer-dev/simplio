@@ -1,35 +1,34 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.currentDate
-import kotlinx.datetime.DatePeriod
-import kotlinx.datetime.minus
-import kotlinx.datetime.plus
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.firstClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
+import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.thirdClassDate
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class RegistrationDateSelectionTest {
     @Test
-    fun `does not allow registration date after today`() {
-        assertTrue(
-            isRegistrationDateSelectable(
-                date = currentDate,
-                today = currentDate,
-            ),
-        )
+    fun `allows past Mondays and Fridays but blocks future scheduled dates`() {
+        assertTrue(isRegistrationDateSelectable(firstClassDate, currentDate))
+        assertTrue(isRegistrationDateSelectable(secondClassDate, currentDate))
+        assertFalse(isRegistrationDateSelectable(thirdClassDate, currentDate))
+        assertFalse(isRegistrationDateSelectable(secondClassDate, firstClassDate))
+    }
 
-        assertTrue(
-            isRegistrationDateSelectable(
-                date = currentDate - DatePeriod(days = 1),
-                today = currentDate,
-            ),
-        )
+    @Test
+    fun `allows today only when it is scheduled`() {
+        assertTrue(isRegistrationDateSelectable(firstClassDate, firstClassDate))
+        assertTrue(isRegistrationDateSelectable(secondClassDate, secondClassDate))
+        assertFalse(isRegistrationDateSelectable(currentDate, currentDate))
+    }
 
-        assertFalse(
-            isRegistrationDateSelectable(
-                date = currentDate + DatePeriod(days = 1),
-                today = currentDate,
-            ),
-        )
+    @Test
+    fun `blocks every other weekday even in the past`() {
+        for (day in listOf(3, 4, 6, 7, 8)) {
+            assertFalse(isRegistrationDateSelectable(LocalDate(2026, 10, day), thirdClassDate))
+        }
     }
 }

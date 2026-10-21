@@ -65,23 +65,23 @@ class StudentRegistrationDialogExpirationUiTest {
         // Given
         setContent {
             StudentRegistrationDialogForTest(
-                initialDate = AttendanceTestData.registrationDate,
+                initialDate = AttendanceTestData.secondClassDate,
             )
         }
 
-        onNodeWithText("Valid until Oct 30, 2026").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Valid until Nov 2, 2026").performScrollTo().assertIsDisplayed()
 
         // When
         onNodeWithContentDescription("Registration date").performScrollTo().performClick()
         onNodeWithText(
-            text = "Thursday, October 1, 2026",
+            text = "Friday, October 2, 2026",
             substring = true,
         ).performClick()
         onNodeWithText("OK").performClick()
 
         // Then
-        onNodeWithText("Valid until Oct 29, 2026").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Valid until Oct 30, 2026").assertDoesNotExist()
+        onNodeWithText("Valid until Oct 30, 2026").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Valid until Nov 2, 2026").assertDoesNotExist()
     }
 
     @Test
