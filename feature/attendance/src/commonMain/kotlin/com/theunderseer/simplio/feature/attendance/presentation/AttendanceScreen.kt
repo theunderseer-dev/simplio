@@ -582,20 +582,18 @@ private fun StudentAttendanceRow(
         attendanceInteractionSource.collectIsHoveredAsState()
 
     Row(
-        modifier = Modifier.padding(
-            vertical = 6.dp,
-        ),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = registeredStudent.student.fullName,
-            modifier = Modifier.width(AttendanceDimensions.NameColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.NAME_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
 
         Box(
-            modifier = Modifier.width(AttendanceDimensions.ClassesColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.CLASSES_COLUMN_WEIGHT),
         ) {
             Text(
                 text =
@@ -612,6 +610,8 @@ private fun StudentAttendanceRow(
                         contentDescription =
                             "View package history for ${registeredStudent.student.fullName}"
                     },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.primary,
                 textDecoration =
                 if (isAttendanceHovered) {
@@ -714,17 +714,21 @@ private fun StudentAttendanceRow(
 
         Text(
             text = studentPackage.startedOn?.toDisplayDate().orEmpty(),
-            modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
 
         Text(
             text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
-            modifier = Modifier.width(AttendanceDimensions.DateColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
 
         Text(
             text = studentPackage.packageType.name,
-            modifier = Modifier.width(AttendanceDimensions.PackageColumnWidth),
+            modifier = Modifier.weight(AttendanceDimensions.PACKAGE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -733,6 +737,7 @@ private fun StudentAttendanceRow(
             text = if (row.requiresRenewal) "♻️" else "✓",
             modifier =
             Modifier
+                .width(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
                     enabled = row.isCheckEnabled,
                     role = Role.Button,
@@ -765,12 +770,14 @@ private fun StudentAttendanceRow(
             },
             fontSize = 20.sp,
             lineHeight = 20.sp,
+            textAlign = TextAlign.Center,
         )
 
         Text(
             text = "×",
             modifier =
             Modifier
+                .width(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
                     onClick = onDeleteClick,
                 )
@@ -785,6 +792,7 @@ private fun StudentAttendanceRow(
             color = MaterialTheme.colorScheme.error,
             fontSize = 20.sp,
             lineHeight = 20.sp,
+            textAlign = TextAlign.Center,
         )
     }
 }
