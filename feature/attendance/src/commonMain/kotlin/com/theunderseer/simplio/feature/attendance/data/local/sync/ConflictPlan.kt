@@ -33,13 +33,19 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
 
     // A new local student/package may depend on a catalog entry removed by another device.
     private val removedParents = device.values.filter { !it.isDeleted && deviceGroups[it.key] in originalGroups }
-        .mapNotNull { document ->
-            val parent = when (document.type) {
-                SyncEntityType.STUDENT -> SyncEntityType.STUDENT_GROUP to document.string("groupId")
-                SyncEntityType.STUDENT_PACKAGE -> SyncEntityType.PACKAGE_TYPE to document.string("packageTypeId")
-                else -> null
+        .flatMap { document ->
+            val parents = when (document.type) {
+                SyncEntityType.STUDENT -> listOf(SyncEntityType.STUDENT_GROUP to document.string("groupId"))
+                SyncEntityType.STUDENT_PACKAGE -> listOf(
+                    SyncEntityType.PACKAGE_TYPE to document.string("packageTypeId"),
+                )
+                SyncEntityType.STUDENT_GROUP -> document.scheduleIds().orEmpty().map {
+                    SyncEntityType.CLASS_SCHEDULE to
+                        it
+                }
+                else -> emptyList()
             }
-            parent?.takeIf { server[it]?.isDeleted == true }?.let { document.key to it }
+            parents.filter { server[it]?.isDeleted == true }.map { document.key to it }
         }
     private val forcedGroups = removedParents.flatMap { (child, parent) ->
         listOf(checkNotNull(deviceGroups[child]), checkNotNull(deviceGroups[parent]))
@@ -55,6 +61,9 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
                         SyncEntityType.PACKAGE_TYPE ->
                             remote.type == SyncEntityType.STUDENT_PACKAGE &&
                                 remote.string("packageTypeId") == document.cloudId
+                        SyncEntityType.CLASS_SCHEDULE ->
+                            remote.type == SyncEntityType.STUDENT_GROUP &&
+                                document.cloudId in remote.scheduleIds().orEmpty()
                         else -> false
                     }
             }
@@ -120,6 +129,7 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
         }
         return documents.values.associate { document ->
             val group = when (document.type) {
+                SyncEntityType.CLASS_SCHEDULE -> "schedule:${document.cloudId}"
                 SyncEntityType.STUDENT_GROUP -> "group:${document.cloudId}"
                 SyncEntityType.PACKAGE_TYPE -> "plan:${document.cloudId}"
                 SyncEntityType.STUDENT -> "student:${document.cloudId}"
@@ -147,7 +157,9 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
         val rows = deviceRows + cloudRows
         rows.firstOrNull { it.type == SyncEntityType.STUDENT && !it.isDeleted }?.let { return it.string("fullName") }
         rows.firstOrNull {
-            !it.isDeleted && it.type in listOf(SyncEntityType.STUDENT_GROUP, SyncEntityType.PACKAGE_TYPE)
+            !it.isDeleted &&
+                it.type in
+                listOf(SyncEntityType.STUDENT_GROUP, SyncEntityType.PACKAGE_TYPE, SyncEntityType.CLASS_SCHEDULE)
         }
             ?.let { return it.string("name") }
         return "Deleted records"

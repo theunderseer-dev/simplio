@@ -44,8 +44,8 @@ interface SyncDao {
         FROM sync_outbox AS pending
         INNER JOIN sync_records AS record
             ON record.entityType = pending.entityType AND record.localId = pending.localId
-        WHERE pending.entityType IN ('STUDENT_GROUP', 'PACKAGE_TYPE')
-        ORDER BY pending.queueId
+        WHERE pending.entityType IN ('STUDENT_GROUP', 'PACKAGE_TYPE', 'CLASS_SCHEDULE')
+        ORDER BY CASE WHEN pending.entityType = 'CLASS_SCHEDULE' THEN 0 ELSE 1 END, pending.queueId
         LIMIT :limit
         """,
     )

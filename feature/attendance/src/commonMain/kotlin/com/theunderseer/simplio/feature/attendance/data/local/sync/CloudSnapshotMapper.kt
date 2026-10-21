@@ -4,10 +4,14 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceE
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupScheduleEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
+import com.theunderseer.simplio.feature.attendance.data.local.mapper.slotEntities
+import com.theunderseer.simplio.feature.attendance.data.local.mapper.toEntity
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudDocument
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudSnapshot
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -32,7 +36,10 @@ internal fun mapCloudSnapshot(
     documents.forEach { document ->
         requireCloudId(document.cloudId)
         require(Instant.parse(document.updateTime) <= readTime)
-        require(document.number("schemaVersion") == 1L)
+        val version = document.number("schemaVersion")
+        require(version in 1L..2L)
+        require(document.type != SyncEntityType.CLASS_SCHEDULE || version == 2L)
+        require("scheduleIds" !in document.fields || document.type == SyncEntityType.STUDENT_GROUP && version == 2L)
         requireCloudId(document.text("lastMutationId"))
         document.deleted()
     }
@@ -42,7 +49,9 @@ internal fun mapCloudSnapshot(
     }
     val old = existing.associateBy { it.entityType to it.cloudId }
     val ids = mutableMapOf<Pair<SyncEntityType, String>, Int>()
-    SyncEntityType.entries.filter { it != SyncEntityType.ATTENDANCE }.forEach { type ->
+    SyncEntityType.entries.filter {
+        it != SyncEntityType.ATTENDANCE && it != SyncEntityType.CLASS_SCHEDULE
+    }.forEach { type ->
         var next = (
             existing.filter { it.entityType == type }.maxOfOrNull {
                 checkNotNull(it.localId.toIntOrNull()).also { id -> require(id > 0) }
@@ -61,6 +70,19 @@ internal fun mapCloudSnapshot(
     }
     val groups = documents.live(SyncEntityType.STUDENT_GROUP).map {
         StudentGroupEntity(id(SyncEntityType.STUDENT_GROUP, it.cloudId), it.nonBlank("name"))
+    }
+    val schedulesById = documents.live(SyncEntityType.CLASS_SCHEDULE).map { it.toSchedule() }.associateBy { it.id }
+        .toMutableMap()
+    val groupSchedules = documents.live(SyncEntityType.STUDENT_GROUP).flatMap { group ->
+        val references = group.scheduleIds() ?: listOf(DefaultClassSchedule.ID)
+        references.map { scheduleId ->
+            if (scheduleId == DefaultClassSchedule.ID && scheduleId !in schedulesById) {
+                require(byKey[SyncEntityType.CLASS_SCHEDULE to scheduleId]?.deleted() != true)
+                schedulesById[scheduleId] = DefaultClassSchedule.schedule
+            }
+            require(scheduleId in schedulesById) { "Missing schedule parent" }
+            StudentGroupScheduleEntity(id(SyncEntityType.STUDENT_GROUP, group.cloudId), scheduleId)
+        }
     }
     val types = documents.live(SyncEntityType.PACKAGE_TYPE).map {
         it.requireTerms()
@@ -117,7 +139,9 @@ internal fun mapCloudSnapshot(
     val packageOwner = restoredPackages.associate { it.id to it.studentId }
     val records = documents.map { document ->
         val key = document.type to document.cloudId
-        val localId = if (document.type == SyncEntityType.ATTENDANCE) {
+        val localId = if (document.type == SyncEntityType.CLASS_SCHEDULE) {
+            document.cloudId
+        } else if (document.type == SyncEntityType.ATTENDANCE) {
             val separator = document.cloudId.lastIndexOf('_')
             require(separator > 0)
             val packageCloudId = document.cloudId.substring(0, separator)
@@ -128,6 +152,7 @@ internal fun mapCloudSnapshot(
             id(document.type, document.cloudId).toString()
         }
         val aggregate = when (document.type) {
+            SyncEntityType.CLASS_SCHEDULE -> "CLASS_SCHEDULE:$localId"
             SyncEntityType.STUDENT_GROUP -> "STUDENT_GROUP:$localId"
             SyncEntityType.PACKAGE_TYPE -> "PACKAGE_TYPE:$localId"
             SyncEntityType.STUDENT -> if (document.deleted()) "legacy-deletions" else "STUDENT:$localId"
@@ -147,7 +172,10 @@ internal fun mapCloudSnapshot(
             aggregateKey = aggregate,
         )
     }
-    return ImportedAttendanceRows(groups, types, students, restoredPackages, attendance, records)
+    return ImportedAttendanceRows(
+        groups, types, students, restoredPackages, attendance, records,
+        schedulesById.values.map { it.toEntity() }, schedulesById.values.flatMap { it.slotEntities() }, groupSchedules,
+    )
 }
 
 private fun List<AttendanceCloudDocument>.live(type: SyncEntityType) = filter { it.type == type && !it.deleted() }

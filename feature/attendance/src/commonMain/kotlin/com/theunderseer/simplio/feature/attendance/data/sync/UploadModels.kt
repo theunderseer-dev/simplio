@@ -21,6 +21,8 @@ data class UploadSnapshot(
     val target: UploadTarget,
     val headUpdateTime: String?,
     val documents: List<UploadDocument>,
+    // Default 1 preserves recovery of batches frozen by older application versions.
+    val protocolVersion: Int = 1,
 )
 
 data class UploadAcknowledgement(val documentUpdateTimes: List<String>, val headUpdateTime: String)

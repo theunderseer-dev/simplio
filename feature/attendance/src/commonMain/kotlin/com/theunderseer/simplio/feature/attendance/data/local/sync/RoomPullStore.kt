@@ -4,6 +4,7 @@ import androidx.room.useWriterConnection
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadStateEntity
+import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudHead
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudSnapshot
@@ -13,6 +14,7 @@ import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadTarget
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
@@ -80,8 +82,13 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         dao.clearPackages()
         dao.clearStudents()
         dao.clearTypes()
+        database.classScheduleDao().clearLinks()
+        database.classScheduleDao().clearSchedules()
         dao.clearGroups()
         dao.insertGroups(rows.groups)
+        rows.schedules.forEach { database.classScheduleDao().save(it) }
+        database.classScheduleDao().insertSlots(rows.slots)
+        rows.groupSchedules.forEach { database.classScheduleDao().attach(it) }
         dao.insertTypes(rows.types)
         dao.insertStudents(rows.students)
         dao.insertPackages(rows.packages)
@@ -114,6 +121,18 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         val groups = database.studentGroupDao().getAll()
         val types = database.packageTypeDao().getAll()
         if (groups.size != DefaultStudentGroups.ALL.size || types.size != PackagePlan.entries.size) return false
+        val scheduleDao = database.classScheduleDao()
+        val schedules = scheduleDao.schedules().map { it.toDomain(scheduleDao.slots()) }
+        if (schedules != listOf(
+                DefaultClassSchedule.schedule.copy(
+                    slots = DefaultClassSchedule.schedule.slots.sortedBy { it.dayOfWeek.ordinal },
+                ),
+            )
+        ) {
+            return false
+        }
+        val links = scheduleDao.groupSchedules()
+        if (links.size != groups.size || links.any { it.scheduleId != DefaultClassSchedule.ID }) return false
         val valid = records.all { record ->
             when (record.entityType) {
                 SyncEntityType.STUDENT_GROUP -> DefaultStudentGroups.ALL.any { group ->

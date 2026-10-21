@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.sync
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncOutboxEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
+import com.theunderseer.simplio.feature.attendance.data.local.seed.attachDefaultSchedule
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.PackagePlan
 import kotlin.uuid.Uuid
@@ -11,7 +12,23 @@ import kotlin.uuid.Uuid
 internal class RoomSyncJournal private constructor(private val database: AttendanceDatabase) {
     private val dao = database.syncDao()
 
+    suspend fun ensureSchedule(id: String): SyncRecordEntity {
+        check(database.classScheduleDao().schedules().any { it.id == id })
+        return ensure(SyncEntityType.CLASS_SCHEDULE, id, "CLASS_SCHEDULE:$id", id)
+    }
+
+    suspend fun upsertSchedule(id: String) {
+        val existing = dao.getRecord(SyncEntityType.CLASS_SCHEDULE, id)
+        if (existing == null) ensureSchedule(id) else change(existing, deleted = false)
+    }
+
+    suspend fun upsertGroup(id: Int) {
+        val existing = dao.getRecord(SyncEntityType.STUDENT_GROUP, id.toString())
+        if (existing == null) ensureGroup(id) else change(existing, deleted = false)
+    }
+
     suspend fun ensureGroup(id: Int): SyncRecordEntity {
+        database.attachDefaultSchedule(id)
         dao.getRecord(SyncEntityType.STUDENT_GROUP, id.toString())?.let { return it }
         val group = checkNotNull(database.studentGroupDao().getAll().find { it.id == id })
         val cloudId = when {

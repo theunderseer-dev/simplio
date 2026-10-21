@@ -43,7 +43,16 @@ class RoomSyncOutboxTest {
         val pending = outbox.getPending()
 
         assertEquals(8, pending.size)
-        assertEquals(SyncEntityType.entries.toSet(), pending.map { it.entityType }.toSet())
+        assertEquals(
+            setOf(
+                SyncEntityType.STUDENT_GROUP,
+                SyncEntityType.PACKAGE_TYPE,
+                SyncEntityType.STUDENT,
+                SyncEntityType.STUDENT_PACKAGE,
+                SyncEntityType.ATTENDANCE,
+            ),
+            pending.map { it.entityType }.toSet(),
+        )
         assertEquals(8, pending.map { it.mutationId }.toSet().size)
         assertTrue(pending.all { it.operation == SyncOperation.UPSERT })
         val parent = pending.single { it.entityType == SyncEntityType.STUDENT_PACKAGE }
