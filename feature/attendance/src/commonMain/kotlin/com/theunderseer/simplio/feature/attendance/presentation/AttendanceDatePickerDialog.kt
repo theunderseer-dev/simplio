@@ -2,10 +2,6 @@ package com.theunderseer.simplio.feature.attendance.presentation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -13,11 +9,9 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -25,9 +19,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
+import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
@@ -97,6 +94,19 @@ internal fun AttendanceDatePickerDialog(
             }
         }
 
+    val hasAvailableDates = remember(currentDate, purchasedOn, startedOn, expiresOn, recordedAttendanceDates) {
+        val earliestDate = startedOn ?: purchasedOn
+        val latestDate = latestScheduledClassDate(minOf(currentDate, expiresOn ?: currentDate))
+
+        generateSequence(latestDate) { date ->
+            latestScheduledClassDate(date - DatePeriod(days = 1))
+        }
+            .takeWhile { it >= earliestDate }
+            .any { date ->
+                selectableDates.isSelectableDate(date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+            }
+    }
+
     val initialDateMillis =
         initialDate
             .atStartOfDayIn(TimeZone.UTC)
@@ -128,129 +138,90 @@ internal fun AttendanceDatePickerDialog(
     val canConfirm =
         canConfirmDate && canConfirmVisitCount && !isSaving
 
-    DatePickerDialog(
-        onDismissRequest = {
-            if (!isSaving) {
-                onDismiss()
-            }
+    ClassDatePickerDialog(
+        title = "Select attendance date",
+        state = datePickerState,
+        canConfirm = canConfirm,
+        isSaving = isSaving,
+        availabilityKey = listOf(currentDate, recordedAttendanceDates, purchasedOn, startedOn, expiresOn),
+        onConfirm = {
+            selectedDate?.let { date -> onConfirm(date, selectedVisitCount) }
         },
-        confirmButton = {
-            TextButton(
-                enabled = canConfirm,
-                onClick = {
-                    if (canConfirm) {
-                        selectedDate?.let { date ->
-                            onConfirm(date, selectedVisitCount)
-                        }
-                    }
-                },
-            ) {
-                Text(
-                    text = if (isSaving) "Saving..." else "OK",
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(
-                enabled = !isSaving,
-                onClick = onDismiss,
-            ) {
-                Text("Cancel")
-            }
-        },
+        onDismiss = onDismiss,
     ) {
-        Column {
-            key(
-                currentDate,
-                recordedAttendanceDates,
-                purchasedOn,
-                startedOn,
-                expiresOn,
+        if (isDuoPackage) {
+            Column(
+                modifier =
+                Modifier.padding(
+                    horizontal = 24.dp,
+                    vertical = 8.dp,
+                ),
             ) {
-                DatePicker(
-                    state = datePickerState,
-                    modifier =
-                    Modifier
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
-                    title = {
-                        Text(
-                            text = "Select attendance date",
-                            modifier =
-                            Modifier.padding(
-                                horizontal = 24.dp,
-                                vertical = 16.dp,
-                            ),
-                        )
-                    },
-                )
-            }
+                Text("People attending")
 
-            if (isDuoPackage) {
-                Column(
-                    modifier =
-                    Modifier.padding(
-                        horizontal = 24.dp,
-                        vertical = 8.dp,
-                    ),
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    Text("People attending")
-
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.padding(top = 8.dp),
+                    SegmentedButton(
+                        selected = selectedVisitCount == 1,
+                        onClick = {
+                            selectedVisitCount = 1
+                        },
+                        enabled = !isSaving,
+                        shape =
+                        SegmentedButtonDefaults.itemShape(
+                            index = 0,
+                            count = 2,
+                        ),
                     ) {
-                        SegmentedButton(
-                            selected = selectedVisitCount == 1,
-                            onClick = {
-                                selectedVisitCount = 1
-                            },
-                            enabled = !isSaving,
-                            shape =
-                            SegmentedButtonDefaults.itemShape(
-                                index = 0,
-                                count = 2,
-                            ),
-                        ) {
-                            Text("1 person")
-                        }
-
-                        SegmentedButton(
-                            selected = selectedVisitCount == 2,
-                            onClick = {
-                                selectedVisitCount = 2
-                            },
-                            enabled = remainingClasses >= 2 && !isSaving,
-                            shape =
-                            SegmentedButtonDefaults.itemShape(
-                                index = 1,
-                                count = 2,
-                            ),
-                        ) {
-                            Text("2 people")
-                        }
+                        Text("1 person")
                     }
 
-                    if (remainingClasses == 1) {
-                        Text(
-                            text = "Only 1 visit remaining.",
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
+                    SegmentedButton(
+                        selected = selectedVisitCount == 2,
+                        onClick = {
+                            selectedVisitCount = 2
+                        },
+                        enabled = remainingClasses >= 2 && !isSaving,
+                        shape =
+                        SegmentedButtonDefaults.itemShape(
+                            index = 1,
+                            count = 2,
+                        ),
+                    ) {
+                        Text("2 people")
                     }
                 }
-            }
 
-            errorMessage?.let { message ->
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier =
-                    Modifier.padding(
-                        horizontal = 24.dp,
-                        vertical = 8.dp,
-                    ),
-                )
+                if (remainingClasses == 1) {
+                    Text(
+                        text = "Only 1 visit remaining.",
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
             }
+        }
+
+        if (!hasAvailableDates) {
+            Text(
+                text = "No classes to check yet",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+        }
+
+        errorMessage?.let { message ->
+            Text(
+                text = message,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier =
+                Modifier.padding(
+                    horizontal = 24.dp,
+                    vertical = 8.dp,
+                ),
+            )
         }
     }
 }

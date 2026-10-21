@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -18,6 +19,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -48,8 +50,13 @@ import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.ic_check
+import com.theunderseer.simplio.feature.attendance.resources.ic_close
+import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun AttendanceScreen(
@@ -733,30 +740,26 @@ private fun StudentAttendanceRow(
             overflow = TextOverflow.Ellipsis,
         )
 
-        Text(
-            text = if (row.requiresRenewal) "♻️" else "✓",
+        Icon(
+            painter = painterResource(if (row.requiresRenewal) Res.drawable.ic_refresh else Res.drawable.ic_check),
+            contentDescription = if (row.requiresRenewal) {
+                "Renew package for ${registeredStudent.student.fullName}"
+            } else {
+                "Mark ${registeredStudent.student.fullName} present"
+            },
             modifier =
             Modifier
-                .width(AttendanceDimensions.ActionColumnWidth)
+                .size(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
                     enabled = row.isCheckEnabled,
                     role = Role.Button,
                     onClick = onCheckClick,
                 )
                 .semantics {
-                    contentDescription =
-                        if (row.requiresRenewal) {
-                            "Renew package for ${registeredStudent.student.fullName}"
-                        } else {
-                            "Mark ${registeredStudent.student.fullName} present"
-                        }
                     stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name
                 }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
-            color =
+                .padding(6.dp),
+            tint =
             if (row.requiresRenewal) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -768,31 +771,20 @@ private fun StudentAttendanceRow(
                         Color(0xFF2E7D32)
                 }
             },
-            fontSize = 20.sp,
-            lineHeight = 20.sp,
-            textAlign = TextAlign.Center,
         )
 
-        Text(
-            text = "×",
+        Icon(
+            painter = painterResource(Res.drawable.ic_close),
+            contentDescription = "Delete ${registeredStudent.student.fullName}",
             modifier =
             Modifier
-                .width(AttendanceDimensions.ActionColumnWidth)
+                .size(AttendanceDimensions.ActionColumnWidth)
                 .clickable(
+                    role = Role.Button,
                     onClick = onDeleteClick,
                 )
-                .semantics {
-                    contentDescription =
-                        "Delete ${registeredStudent.student.fullName}"
-                }
-                .padding(
-                    horizontal = 6.dp,
-                    vertical = 2.dp,
-                ),
-            color = MaterialTheme.colorScheme.error,
-            fontSize = 20.sp,
-            lineHeight = 20.sp,
-            textAlign = TextAlign.Center,
+                .padding(6.dp),
+            tint = MaterialTheme.colorScheme.error,
         )
     }
 }

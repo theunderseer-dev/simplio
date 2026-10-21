@@ -50,7 +50,6 @@ class AttendanceScreenPackageRenewalUiTest {
                     )
                 }
                 onNodeWithContentDescription("Renew package for Anna Smith").assertIsDisplayed().assertIsEnabled()
-                onNodeWithText("♻️").assertIsDisplayed()
                 onNodeWithContentDescription("Mark Anna Smith present").assertDoesNotExist()
             }
         }

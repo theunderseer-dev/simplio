@@ -26,6 +26,7 @@ kotlin {
                 implementation(libs.compose.runtime)
                 implementation(libs.compose.foundation)
                 implementation(libs.compose.material3)
+                implementation(libs.compose.components.resources)
                 implementation(libs.koin.core)
                 implementation(libs.koin.core.viewmodel)
                 implementation(libs.koin.compose.viewmodel)
@@ -72,4 +73,8 @@ ktlint {
             element.file.path.contains("${separator}build${separator}generated$separator")
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.theunderseer.simplio.feature.attendance.resources"
 }

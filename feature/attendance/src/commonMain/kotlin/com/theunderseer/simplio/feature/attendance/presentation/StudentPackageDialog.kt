@@ -13,8 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -376,46 +374,19 @@ internal fun StudentPackageDialog(
                 selectableDates = selectableDates,
             )
 
-        DatePickerDialog(
-            onDismissRequest = {
+        ClassDatePickerDialog(
+            title = datePickerTitle,
+            state = datePickerState,
+            canConfirm = datePickerState.selectedDateMillis?.let { selectableDates.isSelectableDate(it) } == true,
+            availabilityKey = listOf(initialDate, earliestDate),
+            onConfirm = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    selectedDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
+                }
                 showDatePicker = false
             },
-            confirmButton = {
-                TextButton(
-                    enabled = datePickerState.selectedDateMillis?.let { selectableDates.isSelectableDate(it) } == true,
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            selectedDate =
-                                Instant
-                                    .fromEpochMilliseconds(millis)
-                                    .toLocalDateTime(TimeZone.UTC)
-                                    .date
-                        }
-
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showDatePicker = false
-                    },
-                ) {
-                    Text("Cancel")
-                }
-            },
-        ) {
-            Column {
-                Text(datePickerTitle)
-
-                DatePicker(
-                    state = datePickerState,
-                )
-            }
-        }
+            onDismiss = { showDatePicker = false },
+        )
     }
 }
 
