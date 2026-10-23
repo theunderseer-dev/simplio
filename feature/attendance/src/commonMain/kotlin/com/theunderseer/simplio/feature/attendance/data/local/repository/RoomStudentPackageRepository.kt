@@ -23,6 +23,9 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
         purchasedOn: LocalDate,
         initialAttendance: InitialAttendance?,
     ): StudentPackage = RoomSyncJournal.write(database) { journal ->
+        require(initialAttendance == null || initialAttendance.date !in getAttendanceDatesForStudent(studentId)) {
+            "Attendance already recorded for this date"
+        }
         val student = checkNotNull(database.studentDao().getById(studentId))
         val scheduleRepository = RoomClassScheduleRepository(database)
         val schedules = scheduleRepository.getForGroup(student.groupId)
@@ -87,6 +90,10 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
             if (attendanceDao.getForPackage(packageId).any { it.attendedOnEpochDay == epochDay }) {
                 return@write
             }
+            val studentId = checkNotNull(studentPackageDao.getById(packageId)).studentId
+            require(attendedOn !in getAttendanceDatesForStudent(studentId)) {
+                "Attendance already recorded for this date"
+            }
             attendanceDao.insert(
                 AttendanceEntity(
                     packageId = packageId,
@@ -114,4 +121,7 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
             studentPackageDao.updateStartedOnFromAttendance(packageId)
         }
     }
+
+    override suspend fun getAttendanceDatesForStudent(studentId: Int): Set<LocalDate> =
+        attendanceDao.getAttendanceDatesForStudent(studentId).map(LocalDate::fromEpochDays).toSet()
 }

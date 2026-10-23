@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
@@ -67,6 +68,7 @@ internal fun StudentPackageDialog(
     initialDate: LocalDate,
     initialPackageTypeId: Int? = null,
     earliestDate: LocalDate? = null,
+    recordedAttendanceDates: Set<LocalDate> = emptySet(),
     initialNote: String = "",
     isSaving: Boolean = false,
     errorMessage: String? = null,
@@ -90,7 +92,7 @@ internal fun StudentPackageDialog(
         )
     }
 
-    var recordFirstAttendance by remember {
+    var wantsFirstAttendance by remember {
         mutableStateOf(true)
     }
 
@@ -110,6 +112,9 @@ internal fun StudentPackageDialog(
     var selectedDate by remember(initialDate, earliestDate, schedules) {
         mutableStateOf(initialPackagePurchaseDate(initialDate, earliestDate, schedules))
     }
+
+    val attendanceAlreadyRecorded = selectedDate?.let { it in recordedAttendanceDates } == true
+    val recordFirstAttendance = wantsFirstAttendance && !attendanceAlreadyRecorded
 
     var showDatePicker by remember {
         mutableStateOf(false)
@@ -242,22 +247,35 @@ internal fun StudentPackageDialog(
                         .heightIn(min = 48.dp)
                         .toggleable(
                             value = recordFirstAttendance,
-                            enabled = !isSaving,
+                            enabled = !isSaving && !attendanceAlreadyRecorded,
                             role = Role.Checkbox,
                             onValueChange = {
-                                recordFirstAttendance = it
+                                wantsFirstAttendance = it
                             },
                         ),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Checkbox(
                         checked = recordFirstAttendance,
+                        enabled = !isSaving && !attendanceAlreadyRecorded,
                         onCheckedChange = null,
                     )
 
                     Text(
                         text = "Record first attendance",
                         modifier = Modifier.padding(start = 12.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(
+                            alpha = if (isSaving || attendanceAlreadyRecorded) 0.38f else 1f,
+                        ),
+                    )
+                }
+
+                if (attendanceAlreadyRecorded) {
+                    Text(
+                        "Attendance already recorded for this date. Renew without adding a visit",
+                        modifier = Modifier.offset(y = (-2).dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.warning,
                     )
                 }
 
@@ -314,11 +332,11 @@ internal fun StudentPackageDialog(
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(top = if (attendanceAlreadyRecorded) 12.dp else 8.dp)
                         .testTag("registration-note"),
                 )
 
-                errorMessage?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {

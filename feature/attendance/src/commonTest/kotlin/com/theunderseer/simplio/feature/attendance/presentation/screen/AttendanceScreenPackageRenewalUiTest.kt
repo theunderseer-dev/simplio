@@ -7,6 +7,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -32,6 +33,83 @@ import kotlin.test.assertNull
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenPackageRenewalUiTest {
     private val student = AttendanceTestData.student.copy(note = "Return change")
+
+    @Test
+    fun `ordinary check calendar excludes attendance from a previous package`() = runComposeUiTest {
+        val old = testCompletedPackage(student, AttendanceTestData.duoSpecialPackage)
+        val last = old.attendanceDates.maxOrNull()!!
+        setContent {
+            AttendanceScreenForTest(
+                testStudentAttendanceUiState(
+                    student = student,
+                    packageType = AttendanceTestData.duoSpecialPackage,
+                    startedOn = null,
+                    purchasedOn = last,
+                    currentDate = last,
+                    previousAttendanceDates = old.attendanceDates,
+                ),
+            )
+        }
+        onNodeWithContentDescription("Mark Anna Smith present").performClick()
+        onNodeWithText("Monday, October 12, 2026", substring = true).assertIsNotEnabled()
+        onNodeWithText("No classes to check yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `purchase on final attendance date disables first attendance for four five and duo`() {
+        for (type in listOf(
+            AttendanceTestData.fourClassPackage,
+            AttendanceTestData.fiveClassPackage,
+            AttendanceTestData.duoSpecialPackage,
+        )) {
+            runComposeUiTest {
+                val old = testCompletedPackage(student, type)
+                val date = old.attendanceDates.maxOrNull()!!
+                val callback = StudentPackageRenewalTestCallback()
+                setContent {
+                    AttendanceScreenForTest(
+                        testPackageRenewalState(student, old, currentDate = date),
+                        onRenewStudentPackage = callback::onRenew,
+                    )
+                }
+                onNodeWithContentDescription("Renew package for Anna Smith").performClick()
+                onNodeWithText("Record first attendance").performScrollTo().assertIsOff().assertIsNotEnabled()
+                onNodeWithText(
+                    "Attendance already recorded for this date. Renew without adding a visit",
+                ).assertIsDisplayed()
+                onNodeWithText("People attending").assertDoesNotExist()
+                onNodeWithText("Valid until", substring = true).assertDoesNotExist()
+                onNodeWithText("Renew").assertIsEnabled().performClick()
+                val submitted = assertNotNull(callback.submission)
+                assertEquals(date, submitted.purchasedOn)
+                assertEquals(false, submitted.recordFirstAttendance)
+            }
+        }
+    }
+
+    @Test
+    fun `changing renewal dates restores availability and preserves manual checkbox choice`() = runComposeUiTest {
+        val old = testCompletedPackage(student, AttendanceTestData.duoSpecialPackage)
+        setContent {
+            AttendanceScreenForTest(
+                testPackageRenewalState(student, old, currentDate = AttendanceTestData.fifthClassDate),
+            )
+        }
+        onNodeWithContentDescription("Renew package for Anna Smith").performClick()
+        fun selectDate(text: String) {
+            onNodeWithContentDescription("Purchase date").performScrollTo().performClick()
+            onNodeWithText(text, substring = true).performClick()
+            onNodeWithText("OK").performClick()
+        }
+        onNodeWithText("Record first attendance").performScrollTo().assertIsOn().assertIsEnabled()
+        selectDate("Monday, October 12, 2026")
+        onNodeWithText("Record first attendance").performScrollTo().assertIsOff().assertIsNotEnabled()
+        selectDate("Friday, October 16, 2026")
+        onNodeWithText("Record first attendance").performScrollTo().assertIsOn().assertIsEnabled().performClick()
+        selectDate("Monday, October 12, 2026")
+        selectDate("Friday, October 16, 2026")
+        onNodeWithText("Record first attendance").performScrollTo().assertIsOff().assertIsEnabled()
+    }
 
     @Test
     fun `completed four five and duo packages show renewal instead of check`() {

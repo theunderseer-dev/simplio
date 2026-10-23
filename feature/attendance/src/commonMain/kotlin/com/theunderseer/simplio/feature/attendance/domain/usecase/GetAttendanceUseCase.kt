@@ -27,6 +27,8 @@ class GetAttendanceUseCase(
                     RegisteredStudent(
                         student = student,
                         studentPackage = studentPackage,
+                        previousAttendanceDates = studentPackageRepository.getAttendanceDatesForStudent(student.id) -
+                            studentPackage.attendanceDates,
                     )
                 }
 

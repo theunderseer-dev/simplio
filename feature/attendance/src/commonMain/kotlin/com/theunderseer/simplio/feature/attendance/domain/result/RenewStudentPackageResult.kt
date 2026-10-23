@@ -15,5 +15,7 @@ sealed interface RenewStudentPackageResult {
 
     data object InvalidVisitCount : RenewStudentPackageResult
 
+    data object AttendanceAlreadyRecorded : RenewStudentPackageResult
+
     data class RenewalDateTooEarly(val earliestAllowedDate: LocalDate) : RenewStudentPackageResult
 }

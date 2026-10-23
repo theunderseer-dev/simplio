@@ -59,6 +59,9 @@ class FakeStudentPackageRepository(initialPackages: List<StudentPackage> = empty
                 .thenBy { it.id },
         )
 
+    override suspend fun getAttendanceDatesForStudent(studentId: Int): Set<LocalDate> = storedPackages
+        .filter { it.studentId == studentId }.flatMap { it.attendanceDates }.toSet()
+
     override suspend fun recordAttendance(packageId: Int, attendedOn: LocalDate, visitCount: Int) {
         val index = storedPackages.indexOfFirst {
             it.id == packageId

@@ -336,10 +336,8 @@ fun AttendanceScreen(
             }
 
             attendanceDatePickerStudentId?.let { studentId ->
-                val studentPackage =
-                    state.attendance.entries
-                        .first { it.student.id == studentId }
-                        .studentPackage
+                val registeredStudent = state.attendance.entries.first { it.student.id == studentId }
+                val studentPackage = registeredStudent.studentPackage
 
                 AttendanceDatePickerDialog(
                     initialDate = state.rows.first { it.registeredStudent.student.id == studentId }.effectiveClassDate
@@ -360,7 +358,7 @@ fun AttendanceScreen(
                     purchasedOn = studentPackage.purchasedOn,
                     startedOn = studentPackage.startedOn,
                     expiresOn = studentPackage.expiresOn,
-                    recordedAttendanceDates = studentPackage.attendanceDates,
+                    recordedAttendanceDates = registeredStudent.recordedAttendanceDates,
                     isSaving = markState == MarkStudentPresentUiState.Saving,
                     errorMessage =
                     (markState as? MarkStudentPresentUiState.Error)?.message,
