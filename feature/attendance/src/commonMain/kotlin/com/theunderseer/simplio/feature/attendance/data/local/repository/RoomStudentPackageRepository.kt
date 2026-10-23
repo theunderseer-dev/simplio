@@ -9,6 +9,8 @@ import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.schedule.isRegistrationClassDate
 import kotlinx.datetime.LocalDate
 
 class RoomStudentPackageRepository(private val database: AttendanceDatabase) : StudentPackageRepository {
@@ -21,6 +23,17 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
         purchasedOn: LocalDate,
         initialAttendance: InitialAttendance?,
     ): StudentPackage = RoomSyncJournal.write(database) { journal ->
+        val student = checkNotNull(database.studentDao().getById(studentId))
+        val scheduleRepository = RoomClassScheduleRepository(database)
+        val schedules = scheduleRepository.getForGroup(student.groupId)
+        if (schedules.any { it.id != DefaultClassSchedule.ID }) {
+            require(schedules.isRegistrationClassDate(purchasedOn)) { "Choose a scheduled class date for this group" }
+            schedules.filter { listOf(it).isRegistrationClassDate(purchasedOn) }.forEach { schedule ->
+                if (schedule.startsOn != null && purchasedOn < schedule.startsOn) {
+                    scheduleRepository.save(schedule.copy(startsOn = purchasedOn))
+                }
+            }
+        }
         val entity = StudentPackageEntity(
             studentId = studentId,
             packageTypeId = packageType.id,
@@ -40,6 +53,7 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
                 packageId = id,
                 attendedOnEpochDay = it.date.toEpochDays(),
                 visitCount = it.visitCount,
+                sessionId = database.attendanceSessionId(studentId, it.date),
             )
         }
 
@@ -78,6 +92,10 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
                     packageId = packageId,
                     attendedOnEpochDay = epochDay,
                     visitCount = visitCount,
+                    sessionId = database.attendanceSessionId(
+                        checkNotNull(studentPackageDao.getById(packageId)).studentId,
+                        attendedOn,
+                    ),
                 ),
             )
             studentPackageDao.activateIfNeeded(packageId, epochDay)

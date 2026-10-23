@@ -22,6 +22,7 @@ import com.theunderseer.simplio.feature.attendance.data.sync.UploadSnapshot
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadTarget
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -60,120 +61,132 @@ class RoomConflictStore(private val database: AttendanceDatabase, private val ta
     }
 
     /** The coordinator has re-read this head online; upload CAS still protects a later remote write. */
-    suspend fun apply(id: String, choices: Map<String, ConflictChoice>, currentHead: AttendanceCloudHead) =
-        transactions.run {
-            validateHead(currentHead)
-            val row = checkNotNull(reviews.get(id))
-            if (row.status != "OPEN" || row.projectId != target.projectId || row.userId != target.userId) {
-                throw StaleConflictReview()
+    suspend fun apply(
+        id: String,
+        choices: Map<String, ConflictChoice>,
+        currentHead: AttendanceCloudHead,
+        groupRenames: Map<String, String> = emptyMap(),
+    ) = transactions.run {
+        validateHead(currentHead)
+        val row = checkNotNull(reviews.get(id))
+        if (row.status != "OPEN" || row.projectId != target.projectId || row.userId != target.userId) {
+            throw StaleConflictReview()
+        }
+        val local = Json.decodeFromString<ConflictLocalSnapshot>(row.localJson)
+        val cloud = Json.decodeFromString<AttendanceCloudSnapshot>(row.cloudJson)
+        if (Json.encodeToString(capture()) != row.localJson || cloud.head.updateTime != currentHead.updateTime) {
+            throw StaleConflictReview()
+        }
+        val plan = ConflictPlan(local, cloud)
+        if (choices.keys != plan.conflictingKeys) throw InvalidConflictChoice()
+        val merged = try {
+            plan.merge(choices, groupRenames).copy(head = currentHead)
+        } catch (error: IllegalArgumentException) {
+            throw InvalidConflictChoice()
+        }
+        if (merged.documents.size > 50_000 ||
+            merged.documents.sumOf {
+                it.fields.toString().encodeToByteArray().size.toLong()
+            } > 32L * 1024 * 1024
+        ) {
+            throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+        }
+        val rows = try {
+            mapCloudSnapshot(merged, local.records)
+        } catch (error: IllegalArgumentException) {
+            throw InvalidConflictChoice()
+        } catch (error: IllegalStateException) {
+            throw InvalidConflictChoice()
+        } catch (error: NoSuchElementException) {
+            throw InvalidConflictChoice()
+        }
+        val server = cloud.documents.associateBy { it.key }
+        val desired = merged.documents.associateBy { it.key }
+        val changed = merged.documents.filter { it.content() != server[it.key]?.content() }.associateBy { it.key }
+        val recordKeys = rows.records.associateBy { it.entityType to it.cloudId }
+        val finalRecords = rows.records.map { record ->
+            val key = record.entityType to record.cloudId
+            val group = plan.groupFor(key)
+            val aggregate = if (group.startsWith("student:")) {
+                val student = checkNotNull(recordKeys[SyncEntityType.STUDENT to group.substringAfter(':')])
+                "STUDENT:${student.localId}"
+            } else {
+                record.aggregateKey
             }
-            val local = Json.decodeFromString<ConflictLocalSnapshot>(row.localJson)
-            val cloud = Json.decodeFromString<AttendanceCloudSnapshot>(row.cloudJson)
-            if (Json.encodeToString(capture()) != row.localJson || cloud.head.updateTime != currentHead.updateTime) {
-                throw StaleConflictReview()
-            }
-            val plan = ConflictPlan(local, cloud)
-            if (choices.keys != plan.conflictingKeys) throw InvalidConflictChoice()
-            val merged = plan.merge(choices).copy(head = currentHead)
-            if (merged.documents.size > 50_000 ||
-                merged.documents.sumOf {
-                    it.fields.toString().encodeToByteArray().size.toLong()
-                } > 32L * 1024 * 1024
-            ) {
-                throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
-            }
-            val rows = try {
-                mapCloudSnapshot(merged, local.records)
-            } catch (error: IllegalArgumentException) {
-                throw InvalidConflictChoice()
-            } catch (error: IllegalStateException) {
-                throw InvalidConflictChoice()
-            } catch (error: NoSuchElementException) {
-                throw InvalidConflictChoice()
-            }
-            val server = cloud.documents.associateBy { it.key }
-            val desired = merged.documents.associateBy { it.key }
-            val changed = merged.documents.filter { it.content() != server[it.key]?.content() }.associateBy { it.key }
-            val recordKeys = rows.records.associateBy { it.entityType to it.cloudId }
-            val finalRecords = rows.records.map { record ->
-                val key = record.entityType to record.cloudId
-                val group = plan.groupFor(key)
-                val aggregate = if (group.startsWith("student:")) {
-                    val student = checkNotNull(recordKeys[SyncEntityType.STUDENT to group.substringAfter(':')])
-                    "STUDENT:${student.localId}"
-                } else {
-                    record.aggregateKey
-                }
-                if (key in changed) {
-                    val revision = record.revision + 1
-                    check(revision > 0)
-                    record.copy(
-                        revision = revision,
-                        acknowledgedRevision = if (key in server) revision - 1 else 0,
-                        serverUpdateTime = server[key]?.updateTime,
-                        aggregateKey = aggregate,
-                    )
-                } else {
-                    record.copy(serverUpdateTime = server[key]?.updateTime, aggregateKey = aggregate)
-                }
-            }
-            val pending = finalRecords.filter { it.entityType to it.cloudId in changed }.map { record ->
-                PendingSyncChange(
-                    0, record.entityType, record.localId, record.cloudId, record.revision,
-                    record.acknowledgedRevision, if (record.isDeleted) SyncOperation.DELETE else SyncOperation.UPSERT,
-                    Uuid.random().toHexString(), record.serverUpdateTime, record.aggregateKey,
+            if (key in changed) {
+                val revision = record.revision + 1
+                check(revision > 0)
+                record.copy(
+                    revision = revision,
+                    acknowledgedRevision = if (key in server) revision - 1 else 0,
+                    serverUpdateTime = server[key]?.updateTime,
+                    aggregateKey = aggregate,
                 )
+            } else {
+                record.copy(serverUpdateTime = server[key]?.updateTime, aggregateKey = aggregate)
             }
-            // Validate complete upload units before replacing any data or abandoning the old frozen request.
-            pending.groupBy { it.aggregateKey }.values.forEach { group ->
-                if (group.size > 400) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
-                val docs = group.map { change ->
-                    val document = checkNotNull(desired[change.entityType to change.cloudId])
-                    val fields = buildJsonObject {
-                        document.fields.forEach { (key, value) -> put(key, value) }
-                        put("lastMutationId", FirestoreUploadProtocol.string(change.mutationId))
-                    }
-                    if (fields.toString().encodeToByteArray().size > 900_000) {
-                        throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
-                    }
-                    UploadDocument(change, fields)
+        }
+        val pending = finalRecords.filter { it.entityType to it.cloudId in changed }.map { record ->
+            PendingSyncChange(
+                0, record.entityType, record.localId, record.cloudId, record.revision,
+                record.acknowledgedRevision, if (record.isDeleted) SyncOperation.DELETE else SyncOperation.UPSERT,
+                Uuid.random().toHexString(), record.serverUpdateTime, record.aggregateKey,
+            )
+        }
+        // Validate complete upload units before replacing any data or abandoning the old frozen request.
+        pending.groupBy { it.aggregateKey }.values.forEach { group ->
+            if (group.size > 400) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+            val docs = group.map { change ->
+                val document = checkNotNull(desired[change.entityType to change.cloudId])
+                val fields = buildJsonObject {
+                    document.fields.forEach { (key, value) -> put(key, value) }
+                    put("lastMutationId", FirestoreUploadProtocol.string(change.mutationId))
                 }
-                val body = FirestoreUploadProtocol.commitBody(
-                    UploadSnapshot(
-                        "review-size-check",
-                        target,
-                        currentHead.updateTime,
-                        docs,
-                    ),
-                )
-                if (body.encodeToByteArray().size > 8 * 1024 * 1024) {
+                if (fields.toString().encodeToByteArray().size > 900_000) {
                     throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
                 }
+                UploadDocument(change, fields)
             }
-            RoomPullStore(database, target).replaceRows(rows.copy(records = finalRecords))
-            pending.forEach {
-                database.syncDao().enqueue(
-                    SyncOutboxEntity(
-                        entityType = it.entityType,
-                        localId = it.localId,
-                        revision = it.revision,
-                        operation = it.operation,
-                        mutationId = it.mutationId,
-                    ),
-                )
-            }
-            val state = database.syncUploadDao().getState() ?: SyncUploadStateEntity(
-                projectId = target.projectId,
-                userId = target.userId,
-            )
-            database.syncUploadDao().saveState(
-                state.copy(
-                    headUpdateTime = currentHead.updateTime,
-                    lastPullReadTime = currentHead.readTime,
+            val body = FirestoreUploadProtocol.commitBody(
+                UploadSnapshot(
+                    "review-size-check",
+                    target,
+                    currentHead.updateTime,
+                    docs,
                 ),
             )
-            reviews.applied(id, Json.encodeToString(choices.toList().sortedBy { it.first }.toMap()))
+            if (body.encodeToByteArray().size > 8 * 1024 * 1024) {
+                throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+            }
         }
+        RoomPullStore(database, target).replaceRows(rows.copy(records = finalRecords))
+        pending.forEach {
+            database.syncDao().enqueue(
+                SyncOutboxEntity(
+                    entityType = it.entityType,
+                    localId = it.localId,
+                    revision = it.revision,
+                    operation = it.operation,
+                    mutationId = it.mutationId,
+                ),
+            )
+        }
+        val state = database.syncUploadDao().getState() ?: SyncUploadStateEntity(
+            projectId = target.projectId,
+            userId = target.userId,
+        )
+        database.syncUploadDao().saveState(
+            state.copy(
+                headUpdateTime = currentHead.updateTime,
+                lastPullReadTime = currentHead.readTime,
+            ),
+        )
+        val resolution = buildJsonObject {
+            put("choices", Json.encodeToJsonElement(choices.toList().sortedBy { it.first }.toMap()))
+            put("groupRenames", Json.encodeToJsonElement(groupRenames.toList().sortedBy { it.first }.toMap()))
+        }
+        reviews.applied(id, resolution.toString())
+    }
 
     private suspend fun capture(): ConflictLocalSnapshot {
         val state = database.syncUploadDao().getState()

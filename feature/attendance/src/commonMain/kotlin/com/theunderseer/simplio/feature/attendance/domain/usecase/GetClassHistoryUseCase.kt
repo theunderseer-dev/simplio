@@ -8,9 +8,17 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlin.time.Instant
 
 class GetClassHistoryUseCase(private val repository: ClassHistoryRepository) {
-    suspend operator fun invoke(currentDate: LocalDate, beforeDate: LocalDate? = null): ClassHistoryPage {
+    suspend operator fun invoke(
+        currentDate: LocalDate,
+        beforeDate: LocalDate? = null,
+        currentInstant: Instant? = null,
+    ): ClassHistoryPage {
+        repository.getScheduledPage(currentDate, beforeDate, PAGE_SIZE, currentInstant)?.let {
+            return it
+        }
         val firstAttendanceDate = repository.getFirstAttendanceDate()
             ?: return ClassHistoryPage(entries = emptyList(), nextBeforeDate = null)
 
@@ -60,6 +68,7 @@ class GetClassHistoryUseCase(private val repository: ClassHistoryRepository) {
     }
 
     companion object {
+        // Every page contains complete dates, including all their scheduled classes.
         const val PAGE_SIZE = 5
     }
 }

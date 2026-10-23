@@ -8,7 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 internal object FirestoreUploadProtocol {
-    const val CURRENT_VERSION = 2
+    const val CURRENT_VERSION = 3
     const val HEAD_COLLECTION = "syncState"
     const val HEAD_ID = "attendance"
     const val RECEIPT_COLLECTION = "syncReceipts"

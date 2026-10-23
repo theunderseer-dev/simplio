@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictChoice
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
@@ -115,5 +116,32 @@ class SyncConflictReviewDialogUiTest {
         onNodeWithText("No overlapping changes. Your changes can be combined.").assertIsDisplayed()
         onNodeWithText("Apply and sync").assertIsEnabled().performClick()
         assertEquals(review.id, appliedId)
+    }
+
+    @Test
+    fun `duplicate group conflict requires valid new name and submits it with device choice`() = runComposeUiTest {
+        val item = SyncConflictItem(
+            "group:new",
+            "Private",
+            listOf("Group: Private"),
+            listOf("Group: PRIVATE"),
+            requiresGroupRename = true,
+            unavailableGroupNames = listOf("Private"),
+        )
+        val ready = ConflictReviewState.Ready(SyncConflictReview("rename", listOf(item), 1))
+        var result: Map<String, String>? = null
+        setContent {
+            MaterialTheme {
+                SyncConflictReviewDialog(ready, {}, {}, { _, _ -> }, onApplyRenamed = { _, choices, names ->
+                    assertEquals(mapOf(item.key to ConflictChoice.DEVICE), choices)
+                    result = names
+                })
+            }
+        }
+        onNodeWithText("Apply and sync").assertIsNotEnabled()
+        onNodeWithTag("sync-conflict-list").performScrollToNode(hasTestTag("rename-${item.key}"))
+        onNodeWithTag("rename-${item.key}").performTextInput("Private 2")
+        onNodeWithText("Apply and sync").assertIsEnabled().performClick()
+        assertEquals(mapOf(item.key to "Private 2"), result)
     }
 }

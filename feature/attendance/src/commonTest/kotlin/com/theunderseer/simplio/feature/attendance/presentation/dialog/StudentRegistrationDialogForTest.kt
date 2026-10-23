@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation.dialog
 
 import androidx.compose.runtime.Composable
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
@@ -16,11 +17,13 @@ internal fun StudentRegistrationDialogForTest(
     studentGroups: List<StudentGroup> = testStudentGroups(),
     onRegister: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit = { _, _, _, _, _, _, _ -> },
     onDismiss: () -> Unit = {},
+    groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
 ) {
     StudentRegistrationDialog(
         studentGroups = studentGroups,
         packageTypes = packageTypes,
         initialDate = initialDate,
+        groupSchedules = groupSchedules,
         onRegister = onRegister,
         onDismiss = onDismiss,
     )

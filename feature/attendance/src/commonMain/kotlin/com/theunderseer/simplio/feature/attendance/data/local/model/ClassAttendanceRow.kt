@@ -6,4 +6,5 @@ data class ClassAttendanceRow(
     val fullName: String,
     val groupId: Int,
     val visitCount: Int,
+    val sessionId: String? = null,
 )

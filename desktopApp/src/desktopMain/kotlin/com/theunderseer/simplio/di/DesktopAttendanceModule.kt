@@ -12,6 +12,8 @@ import org.koin.dsl.onClose
 import kotlin.time.Clock
 
 internal fun desktopAttendanceModule(databasePath: String, clock: Clock = Clock.System): Module = module {
+    single<Clock>(named("attendanceClock")) { clock }
+
     single<AttendanceDatabase> {
         createAttendanceDatabase(
             path = databasePath,

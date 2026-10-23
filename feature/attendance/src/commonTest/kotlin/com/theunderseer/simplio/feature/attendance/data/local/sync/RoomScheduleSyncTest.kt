@@ -37,7 +37,7 @@ class RoomScheduleSyncTest {
             val store = RoomUploadStore(source)
             val batch = assertNotNull(store.prepare(testUploadTarget))
             val upload = store.snapshot(batch)
-            assertEquals(2, upload.protocolVersion)
+            assertEquals(3, upload.protocolVersion)
             assertEquals(SyncEntityType.CLASS_SCHEDULE, upload.documents.first().change.entityType)
             cloud.uploadPending(source)
             target.seedSyncDefaults()

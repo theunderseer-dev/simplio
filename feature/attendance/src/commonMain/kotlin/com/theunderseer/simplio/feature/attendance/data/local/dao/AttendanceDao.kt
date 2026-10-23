@@ -43,6 +43,7 @@ interface AttendanceDao {
         """
     SELECT
         attendance.attendedOnEpochDay,
+        attendance.sessionId,
         students.id AS studentId,
         students.fullName,
         students.groupId,
@@ -62,6 +63,7 @@ interface AttendanceDao {
     )
     GROUP BY
         attendance.attendedOnEpochDay,
+        attendance.sessionId,
         students.id,
         students.fullName,
         students.groupId

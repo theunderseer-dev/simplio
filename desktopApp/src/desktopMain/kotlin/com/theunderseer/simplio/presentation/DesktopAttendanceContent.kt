@@ -228,6 +228,7 @@ private fun SyncNotice(sync: AttendanceSyncCoordinator) {
         onDismiss = sync::dismissReview,
         onRetry = { scope.launch { sync.openReview() } },
         onApply = { id, choices -> scope.launch { sync.applyReview(id, choices) } },
+        onApplyRenamed = { id, choices, names -> scope.launch { sync.applyReview(id, choices, names) } },
     )
     val problem = (status as? AttendanceSyncStatus.Paused)?.problem
     val message = when {

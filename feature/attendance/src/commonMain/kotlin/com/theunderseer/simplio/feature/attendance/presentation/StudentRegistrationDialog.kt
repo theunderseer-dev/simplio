@@ -1,13 +1,13 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import kotlinx.datetime.LocalDate
@@ -29,6 +30,8 @@ fun StudentRegistrationDialog(
     initialDate: LocalDate,
     onRegister: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
+    groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
+    groupCurrentDates: Map<Int, LocalDate> = emptyMap(),
 ) {
     var fullName by remember { mutableStateOf("") }
     var selectedGroupId by remember(studentGroups) { mutableStateOf<Int?>(null) }
@@ -38,8 +41,9 @@ fun StudentRegistrationDialog(
         dateLabel = "Registration date",
         datePickerTitle = "Select registration date",
         packageTypes = packageTypes,
-        initialDate = initialDate,
+        initialDate = groupCurrentDates[selectedGroupId] ?: initialDate,
         canSubmit = fullName.isNotBlank() && selectedGroupId != null,
+        schedules = groupSchedules[selectedGroupId],
         studentFields = {
             OutlinedTextField(
                 value = fullName,
@@ -56,23 +60,18 @@ fun StudentRegistrationDialog(
             ) {
                 Text("Group")
 
-                SingleChoiceSegmentedButtonRow(
+                FlowRow(
                     modifier = Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    studentGroups.forEachIndexed { index, group ->
-                        SegmentedButton(
+                    studentGroups.forEach { group ->
+                        FilterChip(
                             selected = selectedGroupId == group.id,
                             onClick = {
                                 selectedGroupId = group.id
                             },
-                            shape =
-                            SegmentedButtonDefaults.itemShape(
-                                index = index,
-                                count = studentGroups.size,
-                            ),
-                        ) {
-                            Text(group.name)
-                        }
+                            label = { Text(group.name) },
+                        )
                     }
                 }
             }

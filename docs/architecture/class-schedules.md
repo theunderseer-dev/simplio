@@ -2,6 +2,9 @@
 
 ## Scope
 
+This document records the foundation PR. The subsequent creation UI and date/history integration are described in
+[Custom student groups](custom-student-groups.md).
+
 This change introduces schedule persistence and synchronization before adding the creation UI.
 The existing attendance screen, date picker restrictions, date-based attendance records and history remain unchanged.
 Custom schedules are not yet selectable in the product. Do not enable multiple sessions per day in the UI until

@@ -16,8 +16,10 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.s
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudent
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class AttendanceScreenSharingUiTest {
@@ -160,5 +162,17 @@ class AttendanceScreenSharingUiTest {
         // Then
         onNodeWithText("Copied to clipboard")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `copy renewal status uses venue date when device date is still previous day`() = runComposeUiTest {
+        var copied = ""
+        val localState = state.copy(
+            currentDate = LocalDate(2026, 10, 30),
+            groupCurrentDates = mapOf(DefaultStudentGroups.GROUP_A.id to LocalDate(2026, 10, 31)),
+        )
+        setContent { AttendanceScreenForTest(state = localState, onCopyAttendance = { copied = it }) }
+        onNodeWithContentDescription("Copy attendance for ${DefaultStudentGroups.GROUP_A.name}").performClick()
+        assertTrue(copied.startsWith("♻️"))
     }
 }

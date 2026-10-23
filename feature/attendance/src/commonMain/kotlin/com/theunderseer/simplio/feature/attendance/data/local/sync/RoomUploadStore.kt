@@ -173,6 +173,7 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                         put("packageId", FirestoreUploadProtocol.string(packageCloudId))
                         put("attendedOnEpochDay", FirestoreUploadProtocol.integer(row.attendedOnEpochDay))
                         put("visitCount", FirestoreUploadProtocol.integer(row.visitCount))
+                        row.sessionId?.let { put("sessionId", FirestoreUploadProtocol.string(it)) }
                     }
                 }
             }
@@ -182,7 +183,14 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             put(
                 "schemaVersion",
                 FirestoreUploadProtocol.integer(
-                    if (change.entityType == SyncEntityType.CLASS_SCHEDULE || "scheduleIds" in businessFields) 2 else 1,
+                    if (change.entityType == SyncEntityType.CLASS_SCHEDULE ||
+                        "scheduleIds" in businessFields ||
+                        "sessionId" in businessFields
+                    ) {
+                        2
+                    } else {
+                        1
+                    },
                 ),
             )
             put("isDeleted", FirestoreUploadProtocol.boolean(change.operation == SyncOperation.DELETE))

@@ -25,6 +25,8 @@ data class SyncConflictItem(
     val label: String,
     val deviceDetails: List<String>,
     val cloudDetails: List<String>,
+    val requiresGroupRename: Boolean = false,
+    val unavailableGroupNames: List<String> = emptyList(),
 )
 
 data class SyncConflictReview(val id: String, val items: List<SyncConflictItem>, val localGroupCount: Int)

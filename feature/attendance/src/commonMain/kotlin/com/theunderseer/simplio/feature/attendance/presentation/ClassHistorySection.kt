@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntry
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import kotlinx.datetime.LocalDate
 
@@ -121,13 +121,13 @@ internal fun LazyListScope.classHistoryItems(
             }
 
             items(
-                items = state.entries,
-                key = { entry -> "history-entry-${entry.date.toEpochDays()}" },
+                items = state.entries.toClassHistoryDays(),
+                key = { day -> "history-entry-${day.date.toEpochDays()}" },
                 contentType = { "history-entry" },
-            ) { entry ->
+            ) { day ->
                 Box(modifier = Modifier.padding(bottom = 8.dp)) {
-                    ClassHistoryEntryCard(
-                        entry = entry,
+                    ClassHistoryDayCard(
+                        day = day,
                         groupNames = groupNames,
                     )
                 }
@@ -147,11 +147,11 @@ internal fun LazyListScope.classHistoryItems(
 }
 
 @Composable
-private fun ClassHistoryEntryCard(entry: ClassHistoryEntry, groupNames: Map<Int, String>) {
+private fun ClassHistoryDayCard(day: ClassHistoryDayUiState, groupNames: Map<Int, String>) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("class-history-entry-${entry.date.toEpochDays()}"),
+            .testTag("class-history-entry-${day.date.toEpochDays()}"),
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -162,62 +162,65 @@ private fun ClassHistoryEntryCard(entry: ClassHistoryEntry, groupNames: Map<Int,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = entry.date.toClassHistoryDisplayDate(),
+                    text = day.date.toClassHistoryDisplayDate(),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleSmall,
                 )
-
                 Text(
-                    text = visitCountLabel(
-                        count = entry.students.sumOf { it.visitCount },
-                    ),
+                    text = visitCountLabel(day.visitCount),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
 
-            if (entry.students.isEmpty()) {
-                Text(
-                    text = "No attendance recorded",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                HorizontalDivider()
-
-                entry.students.forEach { attendance ->
-                    key(attendance.student.id) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(1f),
-                            ) {
-                                Text(
-                                    text = attendance.student.fullName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-
-                                groupNames[attendance.student.groupId]?.let { groupName ->
-                                    Text(
-                                        text = groupName,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
+            day.blocks.forEach { block ->
+                key(block.key) {
+                    HorizontalDivider()
+                    val timeLabel = block.timeLabel ?: if (day.blocks.size > 1) "Time not recorded" else null
+                    timeLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    if (block.students.isEmpty()) {
+                        Text(
+                            text = "No attendance recorded",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        block.students.forEach { attendance ->
+                            key(attendance.student.id) {
+                                ClassHistoryStudentRow(attendance, groupNames)
                             }
-
-                            Text(
-                                text = visitCountLabel(attendance.visitCount),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ClassHistoryStudentRow(attendance: ClassHistoryStudent, groupNames: Map<Int, String>) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = attendance.student.fullName,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            groupNames[attendance.student.groupId]?.let { groupName ->
+                Text(
+                    text = groupName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Text(
+            text = visitCountLabel(attendance.visitCount),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
