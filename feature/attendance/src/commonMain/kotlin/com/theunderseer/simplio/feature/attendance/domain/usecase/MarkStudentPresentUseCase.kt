@@ -46,6 +46,9 @@ class MarkStudentPresentUseCase(
             )
         }
 
+        if (attendanceDate in repository.getAttendanceDatesForStudent(studentId)) {
+            return@run MarkStudentPresentResult.AttendanceAlreadyRecorded
+        }
         if (!studentPackage.packageType.allowsVisitCount(visitCount)) {
             return@run MarkStudentPresentResult.InvalidVisitCount
         }

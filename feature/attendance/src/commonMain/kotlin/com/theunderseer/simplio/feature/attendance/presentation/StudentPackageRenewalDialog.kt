@@ -34,6 +34,7 @@ internal fun StudentPackageRenewalDialog(
             schedules = groupSchedules[student.groupId],
             initialPackageTypeId = previousPackage.packageType.id,
             earliestDate = previousPackage.earliestRenewalDate,
+            recordedAttendanceDates = registeredStudent.recordedAttendanceDates,
             initialNote = student.note,
             isSaving = isSaving,
             errorMessage = errorMessage,

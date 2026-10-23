@@ -38,6 +38,9 @@ class RenewStudentPackageUseCase(
         ) {
             return@run RenewStudentPackageResult.InvalidVisitCount
         }
+        if (recordFirstAttendance && renewedOn in repository.getAttendanceDatesForStudent(studentId)) {
+            return@run RenewStudentPackageResult.AttendanceAlreadyRecorded
+        }
         if (!studentRepository.updateNote(studentId, note.trim())) {
             return@run RenewStudentPackageResult.StudentNotFound
         }

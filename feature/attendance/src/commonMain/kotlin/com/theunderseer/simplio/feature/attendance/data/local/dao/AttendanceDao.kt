@@ -9,6 +9,16 @@ import com.theunderseer.simplio.feature.attendance.data.local.model.ClassAttenda
 
 @Dao
 interface AttendanceDao {
+    @Query(
+        """
+        SELECT DISTINCT attendance.attendedOnEpochDay
+        FROM attendance
+        INNER JOIN student_packages ON student_packages.id = attendance.packageId
+        WHERE student_packages.studentId = :studentId
+        """,
+    )
+    suspend fun getAttendanceDatesForStudent(studentId: Int): List<Long>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(attendance: AttendanceEntity): Long
 

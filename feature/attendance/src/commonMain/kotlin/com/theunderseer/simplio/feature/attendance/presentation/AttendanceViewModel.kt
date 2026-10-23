@@ -311,6 +311,7 @@ class AttendanceViewModel(
                         "Package changed. Close this dialog and review it again."
                     }
                     RenewStudentPackageResult.InvalidVisitCount -> "Visit count is not allowed for this package"
+                    RenewStudentPackageResult.AttendanceAlreadyRecorded -> "Attendance already recorded for this date"
                     is RenewStudentPackageResult.RenewalDateTooEarly ->
                         "Purchase cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
                 }
@@ -369,6 +370,8 @@ class AttendanceViewModel(
 
                         MarkStudentPresentResult.InsufficientRemainingVisits ->
                             "Not enough visits remaining"
+                        MarkStudentPresentResult.AttendanceAlreadyRecorded ->
+                            "Attendance already recorded for this date"
 
                         is MarkStudentPresentResult.AttendanceDateTooEarly ->
                             "Attendance cannot be before ${result.earliestAllowedDate.toDisplayDate()}"

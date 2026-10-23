@@ -16,5 +16,7 @@ sealed interface MarkStudentPresentResult {
 
     data object InsufficientRemainingVisits : MarkStudentPresentResult
 
+    data object AttendanceAlreadyRecorded : MarkStudentPresentResult
+
     data class AttendanceDateTooEarly(val earliestAllowedDate: LocalDate) : MarkStudentPresentResult
 }

@@ -173,6 +173,7 @@ internal fun testStudentAttendanceUiState(
         startedOn?.let { mapOf(it to 1) } ?: emptyMap(),
     currentDate: LocalDate = AttendanceTestData.currentDate,
     purchasedOn: LocalDate = startedOn ?: AttendanceTestData.registrationDate,
+    previousAttendanceDates: Set<LocalDate> = emptySet(),
 ): AttendanceUiState.Content = testAttendanceContentUiState(
     attendance = Attendance(
         entries = listOf(
@@ -185,6 +186,7 @@ internal fun testStudentAttendanceUiState(
                     startedOn = startedOn,
                     visitsByDate = visitsByDate,
                 ),
+                previousAttendanceDates = previousAttendanceDates,
             ),
         ),
     ),

@@ -54,7 +54,7 @@ class GetAttendanceUseCaseIntegrationTest {
     }
 
     @Test
-    fun `attendance returns student with latest package and its attendance history`() = runTest {
+    fun `attendance returns latest package and dates from earlier packages`() = runTest {
         // Given
         val studentId =
             database
@@ -146,6 +146,7 @@ class GetAttendanceUseCaseIntegrationTest {
                                 secondClassDate to 1,
                             ),
                         ),
+                        previousAttendanceDates = setOf(oldStartedOn),
                     ),
                 ),
             ),
