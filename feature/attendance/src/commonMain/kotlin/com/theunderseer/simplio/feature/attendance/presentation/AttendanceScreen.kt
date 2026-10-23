@@ -4,8 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +23,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -47,9 +50,11 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.ic_check
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
@@ -74,7 +79,11 @@ fun AttendanceScreen(
     onClearUpdateStudentNoteState: () -> Unit,
     onRenewStudentPackage: (Int, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onClearRenewStudentPackageState: () -> Unit,
+    onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
+    onClearCreateStudentGroupState: () -> Unit = {},
 ) {
+    var showGroupDialog by remember { mutableStateOf(false) }
+
     var showRegistrationDialog by remember {
         mutableStateOf(false)
     }
@@ -104,6 +113,14 @@ fun AttendanceScreen(
             val removeState = state.removeStudentAttendanceState
             val noteState = state.updateStudentNoteState
             val renewState = state.renewStudentPackageState
+            val groupState = state.createStudentGroupState
+            LaunchedEffect(groupState) {
+                if (groupState is CreateStudentGroupUiState.Success) {
+                    showGroupDialog = false
+                    snackbarHostState.showSnackbar("Group added: ${groupState.name}")
+                    onClearCreateStudentGroupState()
+                }
+            }
 
             LaunchedEffect(renewState) {
                 if (renewState is RenewStudentPackageUiState.Success &&
@@ -144,6 +161,10 @@ fun AttendanceScreen(
             ) { contentPadding ->
                 AttendanceContent(
                     state = state,
+                    onAddGroupClick = {
+                        onClearCreateStudentGroupState()
+                        showGroupDialog = true
+                    },
                     onAddStudentClick = {
                         showRegistrationDialog = true
                     },
@@ -160,7 +181,7 @@ fun AttendanceScreen(
                         onCopyAttendance(
                             formatAttendanceForSharing(
                                 attendance = groupAttendance,
-                                currentDate = state.currentDate,
+                                currentDate = state.groupCurrentDates[groupId] ?: state.currentDate,
                             ),
                         )
 
@@ -191,7 +212,7 @@ fun AttendanceScreen(
                                             AttendanceRemovalRequest(
                                                 studentId = student.id,
                                                 studentName = student.fullName,
-                                                attendanceDate = state.latestClassDate,
+                                                attendanceDate = row.effectiveClassDate ?: state.latestClassDate,
                                             )
                                     }
                                 }
@@ -222,9 +243,24 @@ fun AttendanceScreen(
                 )
             }
 
+            if (showGroupDialog) {
+                StudentGroupCreationDialog(
+                    groups = state.studentGroups,
+                    schedules = state.classSchedules,
+                    today = state.currentDate,
+                    state = groupState,
+                    onCreate = onCreateStudentGroup,
+                    onDismiss = {
+                        showGroupDialog = false
+                        onClearCreateStudentGroupState()
+                    },
+                )
+            }
             if (showRegistrationDialog) {
                 StudentRegistrationDialog(
                     studentGroups = state.studentGroups,
+                    groupSchedules = state.groupSchedules,
+                    groupCurrentDates = state.groupCurrentDates,
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
                     onRegister = {
@@ -258,8 +294,9 @@ fun AttendanceScreen(
                 StudentPackageRenewalDialog(
                     registeredStudent = registeredStudent,
                     studentGroups = state.studentGroups,
+                    groupSchedules = state.groupSchedules,
                     packageTypes = state.packageTypes,
-                    currentDate = state.currentDate,
+                    currentDate = state.groupCurrentDates[registeredStudent.student.groupId] ?: state.currentDate,
                     isSaving = renewState == RenewStudentPackageUiState.Saving(studentId),
                     errorMessage = (renewState as? RenewStudentPackageUiState.Error)
                         ?.takeIf { it.studentId == studentId }?.message,
@@ -305,8 +342,18 @@ fun AttendanceScreen(
                         .studentPackage
 
                 AttendanceDatePickerDialog(
-                    initialDate = state.latestClassDate,
-                    currentDate = state.currentDate,
+                    initialDate = state.rows.first { it.registeredStudent.student.id == studentId }.effectiveClassDate
+                        ?: state.latestClassDate,
+                    currentDate =
+                    state.groupCurrentDates[
+                        state.attendance.entries.first {
+                            it.student.id == studentId
+                        }.student.groupId,
+                    ]
+                        ?: state.currentDate,
+                    schedules = state.groupSchedules[
+                        state.attendance.entries.first { it.student.id == studentId }.student.groupId,
+                    ],
                     maxVisitsPerAttendance =
                     studentPackage.packageType.maxVisitsPerAttendance,
                     remainingClasses = studentPackage.remainingClasses,
@@ -422,6 +469,7 @@ fun AttendanceScreen(
 private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
+    onAddGroupClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
@@ -552,8 +600,14 @@ private fun AttendanceContent(
         }
 
         item(key = "add-student", contentType = "add-student") {
-            Button(onClick = onAddStudentClick) {
-                Text("Add Student")
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Button(onClick = onAddStudentClick) {
+                    Text("Add Student")
+                }
+                OutlinedButton(onClick = onAddGroupClick) { Text("Add Group") }
             }
         }
 

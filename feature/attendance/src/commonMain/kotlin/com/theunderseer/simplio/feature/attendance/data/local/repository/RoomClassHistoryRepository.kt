@@ -6,8 +6,21 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStud
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
-class RoomClassHistoryRepository(private val attendanceDao: AttendanceDao) : ClassHistoryRepository {
+class RoomClassHistoryRepository(
+    private val attendanceDao: AttendanceDao,
+    private val database: com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase? = null,
+) : ClassHistoryRepository {
+    override suspend fun getScheduledPage(
+        currentDate: LocalDate,
+        beforeDate: LocalDate?,
+        limit: Int,
+        currentInstant: Instant?,
+    ): com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryPage? = database?.let {
+        ScheduledClassHistory(it).getPage(currentDate, beforeDate, limit, currentInstant)
+    }
+
     override suspend fun getFirstAttendanceDate(): LocalDate? = attendanceDao
         .getFirstAttendanceEpochDay()
         ?.let { LocalDate.fromEpochDays(it) }

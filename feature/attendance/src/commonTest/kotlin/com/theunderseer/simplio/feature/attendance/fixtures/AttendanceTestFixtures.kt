@@ -18,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentPackage
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.attendanceContentUiState
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 internal object AttendanceTestData {
     val studentNote = "Return 100 THB next time"
@@ -151,9 +152,17 @@ internal fun testAttendanceContentUiState(
 internal fun testClassHistoryEntry(
     date: LocalDate,
     students: List<ClassHistoryStudent> = emptyList(),
+    sessionId: String? = null,
+    timeLabel: String? = null,
+    startsAt: Instant? = null,
+    endsAt: Instant? = null,
 ): ClassHistoryEntry = ClassHistoryEntry(
     date = date,
     students = students,
+    sessionId = sessionId,
+    timeLabel = timeLabel,
+    startsAt = startsAt,
+    endsAt = endsAt,
 )
 
 internal fun testStudentAttendanceUiState(

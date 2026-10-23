@@ -18,8 +18,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
+import com.theunderseer.simplio.feature.attendance.domain.schedule.isScheduledClassDate
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -40,6 +41,7 @@ internal fun AttendanceDatePickerDialog(
     expiresOn: LocalDate?,
     recordedAttendanceDates: Set<LocalDate>,
     isSaving: Boolean = false,
+    schedules: List<ClassSchedule>? = null,
     errorMessage: String? = null,
     onConfirm: (LocalDate, Int) -> Unit,
     onDismiss: () -> Unit,
@@ -64,6 +66,7 @@ internal fun AttendanceDatePickerDialog(
     val expiresOnState = rememberUpdatedState(expiresOn)
 
     val currentDateState = rememberUpdatedState(currentDate)
+    val schedulesState = rememberUpdatedState(schedules)
 
     val recordedAttendanceDatesState =
         rememberUpdatedState(recordedAttendanceDates)
@@ -86,26 +89,32 @@ internal fun AttendanceDatePickerDialog(
                     return date >= earliestDate &&
                         (expirationDate == null || date <= expirationDate) &&
                         date !in recordedAttendanceDatesState.value &&
-                        isAttendanceDateSelectable(
-                            date = date,
-                            today = currentDateState.value,
-                        )
+                        (
+                            schedulesState.value?.let {
+                                date <= currentDateState.value &&
+                                    it.isScheduledClassDate(
+                                        date,
+                                    )
+                            }
+                                ?: isAttendanceDateSelectable(date, currentDateState.value)
+                            )
                 }
             }
         }
 
-    val hasAvailableDates = remember(currentDate, purchasedOn, startedOn, expiresOn, recordedAttendanceDates) {
-        val earliestDate = startedOn ?: purchasedOn
-        val latestDate = latestScheduledClassDate(minOf(currentDate, expiresOn ?: currentDate))
+    val hasAvailableDates =
+        remember(currentDate, purchasedOn, startedOn, expiresOn, recordedAttendanceDates, schedules) {
+            val earliestDate = startedOn ?: purchasedOn
+            val latestDate = minOf(currentDate, expiresOn ?: currentDate)
 
-        generateSequence(latestDate) { date ->
-            latestScheduledClassDate(date - DatePeriod(days = 1))
-        }
-            .takeWhile { it >= earliestDate }
-            .any { date ->
-                selectableDates.isSelectableDate(date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+            generateSequence(latestDate) { date ->
+                date - DatePeriod(days = 1)
             }
-    }
+                .takeWhile { it >= earliestDate }
+                .any { date ->
+                    selectableDates.isSelectableDate(date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+                }
+        }
 
     val initialDateMillis =
         initialDate
@@ -143,7 +152,7 @@ internal fun AttendanceDatePickerDialog(
         state = datePickerState,
         canConfirm = canConfirm,
         isSaving = isSaving,
-        availabilityKey = listOf(currentDate, recordedAttendanceDates, purchasedOn, startedOn, expiresOn),
+        availabilityKey = listOf(currentDate, recordedAttendanceDates, purchasedOn, startedOn, expiresOn, schedules),
         onConfirm = {
             selectedDate?.let { date -> onConfirm(date, selectedVisitCount) }
         },

@@ -25,4 +25,5 @@ data class AttendanceEntity(
     val attendedOnEpochDay: Long,
     @ColumnInfo(defaultValue = "1")
     val visitCount: Int = 1,
+    val sessionId: String? = null,
 )

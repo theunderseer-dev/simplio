@@ -42,8 +42,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
+import com.theunderseer.simplio.feature.attendance.domain.schedule.isRegistrationClassDate
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestRegistrationClassDate
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -68,6 +71,7 @@ internal fun StudentPackageDialog(
     isSaving: Boolean = false,
     errorMessage: String? = null,
     canSubmit: Boolean = true,
+    schedules: List<ClassSchedule>? = null,
     studentFields: @Composable () -> Unit,
     onConfirm: (PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
@@ -103,8 +107,8 @@ internal fun StudentPackageDialog(
         mutableStateOf(false)
     }
 
-    var selectedDate by remember(initialDate, earliestDate) {
-        mutableStateOf(initialPackagePurchaseDate(initialDate, earliestDate))
+    var selectedDate by remember(initialDate, earliestDate, schedules) {
+        mutableStateOf(initialPackagePurchaseDate(initialDate, earliestDate, schedules))
     }
 
     var showDatePicker by remember {
@@ -323,7 +327,8 @@ internal fun StudentPackageDialog(
                 !isSaving &&
                     canSubmit &&
                     selectedPackage != null &&
-                    selectedDate?.let { isPackagePurchaseDateSelectable(it, initialDate, earliestDate) } == true &&
+                    selectedDate?.let { isPackagePurchaseDateSelectable(it, initialDate, earliestDate, schedules) } ==
+                    true &&
                     (!recordFirstAttendance || checkNotNull(selectedPackage).allowsVisitCount(selectedVisitCount)),
                 onClick = {
                     onConfirm(
@@ -350,7 +355,7 @@ internal fun StudentPackageDialog(
 
     if (showDatePicker) {
         val selectableDates =
-            remember(initialDate, earliestDate) {
+            remember(initialDate, earliestDate, schedules) {
                 object : SelectableDates {
                     override fun isSelectableDate(utcTimeMillis: Long): Boolean {
                         val date =
@@ -359,7 +364,7 @@ internal fun StudentPackageDialog(
                                 .toLocalDateTime(TimeZone.UTC)
                                 .date
 
-                        return isPackagePurchaseDateSelectable(date, initialDate, earliestDate)
+                        return isPackagePurchaseDateSelectable(date, initialDate, earliestDate, schedules)
                     }
                 }
             }
@@ -378,7 +383,7 @@ internal fun StudentPackageDialog(
             title = datePickerTitle,
             state = datePickerState,
             canConfirm = datePickerState.selectedDateMillis?.let { selectableDates.isSelectableDate(it) } == true,
-            availabilityKey = listOf(initialDate, earliestDate),
+            availabilityKey = listOf(initialDate, earliestDate, schedules),
             onConfirm = {
                 datePickerState.selectedDateMillis?.let { millis ->
                     selectedDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date
@@ -390,8 +395,29 @@ internal fun StudentPackageDialog(
     }
 }
 
-internal fun isPackagePurchaseDateSelectable(date: LocalDate, today: LocalDate, earliestDate: LocalDate?): Boolean =
-    isAttendanceDateSelectable(date, today) && (earliestDate == null || date >= earliestDate)
+internal fun isPackagePurchaseDateSelectable(
+    date: LocalDate,
+    today: LocalDate,
+    earliestDate: LocalDate?,
+    schedules: List<ClassSchedule>? = null,
+): Boolean = (
+    if (schedules == null) {
+        isAttendanceDateSelectable(date, today)
+    } else {
+        date <= today && schedules.isRegistrationClassDate(date)
+    }
+    ) &&
+    (earliestDate == null || date >= earliestDate)
 
-internal fun initialPackagePurchaseDate(today: LocalDate, earliestDate: LocalDate?): LocalDate? =
-    latestScheduledClassDate(today).takeIf { isPackagePurchaseDateSelectable(it, today, earliestDate) }
+internal fun initialPackagePurchaseDate(
+    today: LocalDate,
+    earliestDate: LocalDate?,
+    schedules: List<ClassSchedule>? = null,
+): LocalDate? {
+    val latestDate = if (schedules == null) {
+        latestScheduledClassDate(today)
+    } else {
+        schedules.latestRegistrationClassDate(today)
+    }
+    return latestDate?.takeIf { isPackagePurchaseDateSelectable(it, today, earliestDate, schedules) }
+}

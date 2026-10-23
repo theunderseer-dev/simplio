@@ -4,6 +4,12 @@
 
 #### Domain behavior
 
+- custom student groups with normalized unique names;
+- new weekly schedules or explicitly shared existing schedules;
+- group-specific registration, renewal and attendance calendars;
+- history shows one card per day, merges matching time intervals visually and loads five complete dates at a time;
+- offline group-name collisions are resolved by renaming the local group without merging students;
+
 - student registration;
 - assignment of an initial package;
 - automatic first attendance during registration;

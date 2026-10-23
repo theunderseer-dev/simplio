@@ -3,13 +3,18 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
+import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
@@ -33,10 +38,14 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class AttendanceViewModel(
     private val getAttendanceUseCase: GetAttendanceUseCase,
@@ -52,6 +61,9 @@ class AttendanceViewModel(
     private val currentDates: Flow<LocalDate>,
     private val transactionRunner: TransactionRunner,
     private val localChanges: Flow<Unit>,
+    private val createStudentGroupUseCase: CreateStudentGroupUseCase? = null,
+    private val classScheduleRepository: ClassScheduleRepository? = null,
+    currentInstants: Flow<Instant?> = flowOf(null),
 ) : ViewModel() {
     private val attendanceData =
         MutableStateFlow<AttendanceDataState>(
@@ -78,6 +90,10 @@ class AttendanceViewModel(
 
     private val renewalState = MutableStateFlow<RenewStudentPackageUiState>(RenewStudentPackageUiState.Idle)
 
+    private val currentInstant = currentInstants.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val groupCreationState = MutableStateFlow<CreateStudentGroupUiState>(CreateStudentGroupUiState.Idle)
+
     private var classHistoryJob: Job? = null
 
     val uiState: StateFlow<AttendanceUiState> =
@@ -97,8 +113,11 @@ class AttendanceViewModel(
                         attendance = data.attendance,
                         packageTypes = data.packageTypes,
                         currentDate = currentDate,
+                        groupSchedules = data.groupSchedules,
                     ).copy(
                         studentGroups = data.studentGroups,
+                        classSchedules = data.classSchedules,
+                        groupSchedules = data.groupSchedules,
                         markStudentPresentState = markState,
                         removeStudentAttendanceState = removeState,
                         classHistoryState = historyState,
@@ -119,6 +138,28 @@ class AttendanceViewModel(
                 is AttendanceUiState.Content -> state.copy(renewStudentPackageState = renewal)
                 else -> state
             }
+        }.combine(groupCreationState) { state, creation ->
+            if (state is AttendanceUiState.Content) state.copy(createStudentGroupState = creation) else state
+        }.combine(currentInstant) { state, now ->
+            if (state is AttendanceUiState.Content && now != null) {
+                val dates = state.studentGroups.associate { group ->
+                    val zone = state.groupSchedules[group.id]?.firstOrNull()?.timeZoneId
+                        ?: DefaultClassSchedule.schedule.timeZoneId
+                    group.id to now.toLocalDateTime(TimeZone.of(zone)).date
+                }
+                state.copy(
+                    groupCurrentDates = dates,
+                    rows = attendanceContentUiState(
+                        state.attendance,
+                        state.packageTypes,
+                        state.currentDate,
+                        state.groupSchedules,
+                        dates,
+                    ).rows,
+                )
+            } else {
+                state
+            }
         }.stateIn(
             scope = viewModelScope,
             started =
@@ -129,6 +170,18 @@ class AttendanceViewModel(
         )
 
     init {
+        viewModelScope.launch {
+            combine(attendanceData, currentInstant) { data, now ->
+                if (data !is AttendanceDataState.Content || now == null) {
+                    null
+                } else {
+                    data.classSchedules.map {
+                        it.id to now.toLocalDateTime(TimeZone.of(it.timeZoneId)).date
+                    }
+                }
+            }.distinctUntilChangedBy { it }.collect { if (it != null) loadClassHistory() }
+        }
+
         viewModelScope.launch {
             localChanges.collect {
                 try {
@@ -144,8 +197,44 @@ class AttendanceViewModel(
 
         viewModelScope.launch {
             currentDates
-                .distinctUntilChangedBy { latestScheduledClassDate(today = it) }
+                .distinctUntilChangedBy { it }
                 .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
+    }
+
+    fun createStudentGroup(request: CreateStudentGroupRequest) {
+        if (groupCreationState.value == CreateStudentGroupUiState.Saving) return
+        groupCreationState.value = CreateStudentGroupUiState.Saving
+        viewModelScope.launch {
+            try {
+                when (val result = checkNotNull(createStudentGroupUseCase)(request)) {
+                    is CreateStudentGroupResult.Success -> {
+                        refreshAttendance()
+                        loadClassHistory()
+                        groupCreationState.value = CreateStudentGroupUiState.Success(result.group.name)
+                    }
+                    CreateStudentGroupResult.DuplicateName -> {
+                        refreshAttendance()
+                        groupCreationState.value =
+                            CreateStudentGroupUiState.Error("A group with this name already exists")
+                    }
+                    CreateStudentGroupResult.InvalidName ->
+                        groupCreationState.value = CreateStudentGroupUiState.Error("Enter a valid group name")
+                    CreateStudentGroupResult.InvalidSchedule ->
+                        groupCreationState.value = CreateStudentGroupUiState.Error("Choose a valid weekly schedule")
+                }
+            } catch (error: CancellationException) {
+                groupCreationState.value = CreateStudentGroupUiState.Idle
+                throw error
+            } catch (error: Exception) {
+                groupCreationState.value = CreateStudentGroupUiState.Error("Couldn't save the group. Try again.")
+            }
+        }
+    }
+
+    fun clearCreateStudentGroupState() {
+        if (groupCreationState.value != CreateStudentGroupUiState.Saving) {
+            groupCreationState.value = CreateStudentGroupUiState.Idle
         }
     }
 
@@ -450,7 +539,11 @@ class AttendanceViewModel(
             try {
                 val date = currentDates.first()
                 val page = transactionRunner.run {
-                    getClassHistoryUseCase(currentDate = date, beforeDate = beforeDate)
+                    getClassHistoryUseCase(
+                        currentDate = date,
+                        beforeDate = beforeDate,
+                        currentInstant = currentInstant.value,
+                    )
                 }
 
                 currentCoroutineContext().ensureActive()
@@ -484,7 +577,9 @@ class AttendanceViewModel(
             viewModelScope.launch {
                 try {
                     val date = currentDate ?: currentDates.first()
-                    val page = transactionRunner.run { getClassHistoryUseCase(currentDate = date) }
+                    val page = transactionRunner.run {
+                        getClassHistoryUseCase(currentDate = date, currentInstant = currentInstant.value)
+                    }
 
                     currentCoroutineContext().ensureActive()
 
@@ -511,10 +606,18 @@ class AttendanceViewModel(
     private suspend fun refreshAttendance() {
         attendanceData.value =
             transactionRunner.run {
+                val schedules = classScheduleRepository?.getAll() ?: listOf(DefaultClassSchedule.schedule)
+                val groups = getStudentGroupsUseCase()
+                val byGroup = groups.mapNotNull { group ->
+                    val linked = classScheduleRepository?.getForGroup(group.id)
+                    if (linked != null && linked.any { it.id != DefaultClassSchedule.ID }) group.id to linked else null
+                }.toMap()
                 AttendanceDataState.Content(
                     attendance = getAttendanceUseCase(),
                     packageTypes = getPackageTypesUseCase(),
-                    studentGroups = getStudentGroupsUseCase(),
+                    studentGroups = groups,
+                    classSchedules = schedules,
+                    groupSchedules = byGroup,
                 )
             }
     }
@@ -526,6 +629,8 @@ class AttendanceViewModel(
             val attendance: Attendance,
             val packageTypes: List<PackageType>,
             val studentGroups: List<StudentGroup>,
+            val classSchedules: List<ClassSchedule>,
+            val groupSchedules: Map<Int, List<ClassSchedule>>,
         ) : AttendanceDataState
 
         data class Error(val message: String) : AttendanceDataState

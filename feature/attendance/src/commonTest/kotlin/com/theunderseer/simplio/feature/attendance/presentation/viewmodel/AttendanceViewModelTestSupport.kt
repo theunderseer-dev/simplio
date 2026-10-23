@@ -5,6 +5,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
+import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
@@ -34,6 +35,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal fun runViewModelTest(block: suspend TestScope.() -> Unit) {
@@ -71,6 +73,8 @@ internal fun createViewModel(
     studentGroups: List<StudentGroup> = testStudentGroups(),
     currentDates: Flow<LocalDate> = flowOf(AttendanceTestData.currentDate),
     localChanges: Flow<Unit> = flowOf(Unit),
+    createStudentGroupUseCase: CreateStudentGroupUseCase? = null,
+    currentInstants: Flow<Instant?> = flowOf(null),
     markStudentPresentUseCase: MarkStudentPresentUseCase =
         createMarkStudentPresentUseCase(
             studentPackageRepository = studentPackageRepository,
@@ -86,6 +90,8 @@ internal fun createViewModel(
     ),
 ): AttendanceViewModel = AttendanceViewModel(
     renewStudentPackageUseCase = renewStudentPackageUseCase,
+    createStudentGroupUseCase = createStudentGroupUseCase,
+    currentInstants = currentInstants,
     updateStudentNoteUseCase = UpdateStudentNoteUseCase(studentRepository = studentRepository),
     getAttendanceUseCase = GetAttendanceUseCase(
         studentRepository = studentRepository,
@@ -128,7 +134,7 @@ private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPa
 private fun createGetStudentGroupsUseCase(studentGroups: List<StudentGroup>): GetStudentGroupsUseCase =
     GetStudentGroupsUseCase(
         repository = object : StudentGroupRepository {
-            override suspend fun getAll(): List<StudentGroup> = studentGroups
+            override suspend fun getAll(): List<StudentGroup> = studentGroups.toList()
         },
     )
 

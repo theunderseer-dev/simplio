@@ -11,7 +11,9 @@ import com.theunderseer.simplio.feature.attendance.data.local.mapper.slotEntitie
 import com.theunderseer.simplio.feature.attendance.data.local.mapper.toEntity
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudDocument
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudSnapshot
+import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -68,8 +70,13 @@ internal fun mapCloudSnapshot(
         require(!checkNotNull(byKey[type to cloudId]).deleted())
         return id(type, cloudId)
     }
+    val groupKeys = mutableSetOf<String>()
     val groups = documents.live(SyncEntityType.STUDENT_GROUP).map {
-        StudentGroupEntity(id(SyncEntityType.STUDENT_GROUP, it.cloudId), it.nonBlank("name"))
+        val groupId = id(SyncEntityType.STUDENT_GROUP, it.cloudId)
+        val name = it.nonBlank("name")
+        val normalized = normalizedGroupName(name)
+        val key = if (groupKeys.add(normalized)) normalized else "$normalized\u0000legacy-$groupId"
+        StudentGroupEntity(groupId, name, key)
     }
     val schedulesById = documents.live(SyncEntityType.CLASS_SCHEDULE).map { it.toSchedule() }.associateBy { it.id }
         .toMutableMap()
@@ -119,7 +126,24 @@ internal fun mapCloudSnapshot(
         val packageCloudId = it.text("packageId")
         val day = it.number("attendedOnEpochDay").also { value -> LocalDate.fromEpochDays(value) }
         require(it.cloudId == "${packageCloudId}_$day")
-        AttendanceEntity(parent(SyncEntityType.STUDENT_PACKAGE, packageCloudId), day, it.int("visitCount"))
+        val packageId = parent(SyncEntityType.STUDENT_PACKAGE, packageCloudId)
+        val groupId = students.single { student ->
+            student.id ==
+                packages.single { pack -> pack.id == packageId }.studentId
+        }
+            .groupId
+        val groupScheduleIds = groupSchedules.filter { link -> link.groupId == groupId }.map { link -> link.scheduleId }
+        val sessionId = if ("sessionId" in it.fields) it.text("sessionId") else null
+        if (sessionId != null) {
+            require(it.number("schemaVersion") == 2L)
+            val sessions = groupScheduleIds.flatMap { scheduleId ->
+                schedulesById.getValue(
+                    scheduleId,
+                ).sessionsBetween(LocalDate.fromEpochDays(day), LocalDate.fromEpochDays(day))
+            }
+            require(sessions.any { session -> session.id == sessionId })
+        }
+        AttendanceEntity(packageId, day, it.int("visitCount"), sessionId)
     }
     val attendanceKeys = attendance.map { it.packageId to it.attendedOnEpochDay }
     require(attendanceKeys.distinct().size == attendance.size)

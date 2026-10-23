@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
@@ -18,6 +19,7 @@ internal fun StudentPackageRenewalDialog(
     errorMessage: String?,
     onRenew: (PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
+    groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
 ) {
     val student = registeredStudent.student
     val previousPackage = registeredStudent.studentPackage
@@ -29,6 +31,7 @@ internal fun StudentPackageRenewalDialog(
             datePickerTitle = "Select purchase date",
             packageTypes = packageTypes,
             initialDate = currentDate,
+            schedules = groupSchedules[student.groupId],
             initialPackageTypeId = previousPackage.packageType.id,
             earliestDate = previousPackage.earliestRenewalDate,
             initialNote = student.note,
