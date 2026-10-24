@@ -489,6 +489,26 @@ private fun AttendanceContent(
             bottom = 12.dp,
         ),
     ) {
+        if (state.scheduleOverlaps.isNotEmpty()) {
+            item(key = "schedule-overlaps", contentType = "schedule-overlaps") {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).testTag("schedule-overlap-notice"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        "Overlapping schedules need review. Both schedules are saved.",
+                        color = MaterialTheme.colorScheme.warning,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    state.scheduleOverlaps.forEach { overlap ->
+                        Text(
+                            "${overlap.first.name} / ${overlap.second.name}",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+            }
+        }
         if (state.rows.isEmpty()) {
             item(key = "students-empty", contentType = "students-empty") {
                 Text("No students yet")

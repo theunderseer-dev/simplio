@@ -12,4 +12,5 @@ sealed interface CreateStudentGroupResult {
     data object DuplicateName : CreateStudentGroupResult
     data object InvalidName : CreateStudentGroupResult
     data object InvalidSchedule : CreateStudentGroupResult
+    data class ScheduleOverlap(val existingScheduleName: String) : CreateStudentGroupResult
 }

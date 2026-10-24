@@ -13,6 +13,8 @@ import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPres
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
+import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlaps
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
@@ -118,6 +120,7 @@ class AttendanceViewModel(
                         studentGroups = data.studentGroups,
                         classSchedules = data.classSchedules,
                         groupSchedules = data.groupSchedules,
+                        scheduleOverlaps = data.scheduleOverlaps,
                         markStudentPresentState = markState,
                         removeStudentAttendanceState = removeState,
                         classHistoryState = historyState,
@@ -222,6 +225,13 @@ class AttendanceViewModel(
                         groupCreationState.value = CreateStudentGroupUiState.Error("Enter a valid group name")
                     CreateStudentGroupResult.InvalidSchedule ->
                         groupCreationState.value = CreateStudentGroupUiState.Error("Choose a valid weekly schedule")
+                    is CreateStudentGroupResult.ScheduleOverlap -> {
+                        refreshAttendance()
+                        groupCreationState.value = CreateStudentGroupUiState.Error(
+                            "Schedule overlaps with \"${result.existingScheduleName}\". " +
+                                "Use the existing schedule or change the time or days",
+                        )
+                    }
                 }
             } catch (error: CancellationException) {
                 groupCreationState.value = CreateStudentGroupUiState.Idle
@@ -621,6 +631,7 @@ class AttendanceViewModel(
                     studentGroups = groups,
                     classSchedules = schedules,
                     groupSchedules = byGroup,
+                    scheduleOverlaps = findScheduleOverlaps(schedules),
                 )
             }
     }
@@ -634,6 +645,7 @@ class AttendanceViewModel(
             val studentGroups: List<StudentGroup>,
             val classSchedules: List<ClassSchedule>,
             val groupSchedules: Map<Int, List<ClassSchedule>>,
+            val scheduleOverlaps: List<ScheduleOverlap>,
         ) : AttendanceDataState
 
         data class Error(val message: String) : AttendanceDataState

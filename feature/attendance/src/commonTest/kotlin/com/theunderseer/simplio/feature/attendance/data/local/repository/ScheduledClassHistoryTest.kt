@@ -34,7 +34,7 @@ class ScheduledClassHistoryTest {
                     id = "series-$index",
                     name = "Class $index",
                     slots = listOf(
-                        WeeklyClassSlot("friday", DayOfWeek.FRIDAY, LocalTime(9 + index, 0), LocalTime(10 + index, 0)),
+                        WeeklyClassSlot("friday", DayOfWeek.FRIDAY, LocalTime(11 + index, 0), LocalTime(12 + index, 0)),
                     ),
                 )
                 groups.create(CreateStudentGroupRequest("Group $index", newSchedule = schedule))
@@ -95,14 +95,14 @@ class ScheduledClassHistoryTest {
                                     WeeklyClassSlot(
                                         "monday",
                                         DayOfWeek.MONDAY,
-                                        LocalTime(9 + index, 0),
-                                        LocalTime(10 + index, 0),
+                                        LocalTime(11 + index, 0),
+                                        LocalTime(12 + index, 0),
                                     ),
                                     WeeklyClassSlot(
                                         "friday",
                                         DayOfWeek.FRIDAY,
-                                        LocalTime(9 + index, 0),
-                                        LocalTime(10 + index, 0),
+                                        LocalTime(11 + index, 0),
+                                        LocalTime(12 + index, 0),
                                     ),
                                 ),
                             ),

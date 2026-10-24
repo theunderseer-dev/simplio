@@ -88,8 +88,11 @@ class StudentGroupCreationDialogUiTest {
         }
         onNodeWithTag("group-name").performTextInput("Private")
         onNodeWithText("New schedule").performClick()
+        onNodeWithTag("group-day-MONDAY").performClick()
+        onNodeWithTag("group-day-FRIDAY").performClick()
         onNodeWithTag("group-day-TUESDAY").assertIsDisplayed().performClick()
         onNodeWithTag("group-time-zone").performScrollTo().assertIsDisplayed()
+        waitUntil(timeoutMillis = 5000) { runCatching { onNodeWithText("Create").assertIsEnabled() }.isSuccess }
         onNodeWithText("Create").assertIsEnabled()
     }
 }

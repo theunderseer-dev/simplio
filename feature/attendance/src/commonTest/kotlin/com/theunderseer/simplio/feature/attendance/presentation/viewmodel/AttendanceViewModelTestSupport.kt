@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
@@ -75,6 +76,7 @@ internal fun createViewModel(
     localChanges: Flow<Unit> = flowOf(Unit),
     createStudentGroupUseCase: CreateStudentGroupUseCase? = null,
     currentInstants: Flow<Instant?> = flowOf(null),
+    classScheduleRepository: ClassScheduleRepository? = null,
     markStudentPresentUseCase: MarkStudentPresentUseCase =
         createMarkStudentPresentUseCase(
             studentPackageRepository = studentPackageRepository,
@@ -92,6 +94,7 @@ internal fun createViewModel(
     renewStudentPackageUseCase = renewStudentPackageUseCase,
     createStudentGroupUseCase = createStudentGroupUseCase,
     currentInstants = currentInstants,
+    classScheduleRepository = classScheduleRepository,
     updateStudentNoteUseCase = UpdateStudentNoteUseCase(studentRepository = studentRepository),
     getAttendanceUseCase = GetAttendanceUseCase(
         studentRepository = studentRepository,

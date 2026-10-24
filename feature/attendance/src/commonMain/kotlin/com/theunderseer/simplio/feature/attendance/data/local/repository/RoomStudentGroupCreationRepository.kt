@@ -13,6 +13,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.displayGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupCreationRepository
+import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlap
 
 class RoomStudentGroupCreationRepository(private val database: AttendanceDatabase) : StudentGroupCreationRepository {
     override suspend fun create(request: CreateStudentGroupRequest): CreateStudentGroupResult =
@@ -32,6 +33,9 @@ class RoomStudentGroupCreationRepository(private val database: AttendanceDatabas
             if (request.newSchedule != null) {
                 if (existing || request.newSchedule.slots.groupBy { it.dayOfWeek }.any { it.value.size > 1 }) {
                     return@write CreateStudentGroupResult.InvalidSchedule
+                }
+                findScheduleOverlap(request.newSchedule, RoomClassScheduleRepository(database).getAll())?.let {
+                    return@write CreateStudentGroupResult.ScheduleOverlap(it.second.name)
                 }
                 dao.save(request.newSchedule.toEntity())
                 dao.insertSlots(request.newSchedule.slotEntities())

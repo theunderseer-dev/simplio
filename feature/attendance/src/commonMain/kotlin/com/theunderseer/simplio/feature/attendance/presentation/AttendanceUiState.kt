@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStuden
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
 import kotlinx.datetime.LocalDate
 
 sealed interface AttendanceUiState {
@@ -28,6 +29,7 @@ sealed interface AttendanceUiState {
         val groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
         val groupCurrentDates: Map<Int, LocalDate> = emptyMap(),
         val createStudentGroupState: CreateStudentGroupUiState = CreateStudentGroupUiState.Idle,
+        val scheduleOverlaps: List<ScheduleOverlap> = emptyList(),
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState
