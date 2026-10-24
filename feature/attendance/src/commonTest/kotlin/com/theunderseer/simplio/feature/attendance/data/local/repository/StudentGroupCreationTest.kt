@@ -3,23 +3,30 @@ package com.theunderseer.simplio.feature.attendance.data.local.repository
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
+import com.theunderseer.simplio.feature.attendance.domain.model.WeeklyClassSlot
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.seedSyncDefaults
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.withSyncDatabases
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 class StudentGroupCreationTest {
+    private val freeSchedule = testClassSchedule(
+        slots = listOf(WeeklyClassSlot("friday", DayOfWeek.FRIDAY, LocalTime(11, 0), LocalTime(12, 0))),
+    )
+
     @Test
     fun `create group and series atomically then reuse same series for another group`() = runTest {
         withSyncDatabases { database, _ ->
             database.seedSyncDefaults()
             val repository = RoomStudentGroupCreationRepository(database)
-            val schedule = testClassSchedule()
+            val schedule = freeSchedule
             val a = assertIs<CreateStudentGroupResult.Success>(
                 repository.create(
                     CreateStudentGroupRequest("  Private   yoga ", newSchedule = schedule),
@@ -42,7 +49,7 @@ class StudentGroupCreationTest {
         withSyncDatabases { database, _ ->
             database.seedSyncDefaults()
             val repository = RoomStudentGroupCreationRepository(database)
-            repository.create(CreateStudentGroupRequest("Private yoga", newSchedule = testClassSchedule()))
+            repository.create(CreateStudentGroupRequest("Private yoga", newSchedule = freeSchedule))
             val pending = RoomSyncOutbox(database).getPending()
             val schedules = database.classScheduleDao().schedules()
             assertEquals(

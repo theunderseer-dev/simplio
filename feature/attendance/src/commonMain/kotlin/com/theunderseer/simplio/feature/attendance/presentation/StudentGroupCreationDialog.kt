@@ -26,6 +26,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,6 +39,10 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.model.WeeklyClassSlot
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
+import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
+import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -92,9 +97,20 @@ internal fun StudentGroupCreationDialog(
         null
     }
     val selected = eligible.firstOrNull { it.id == selectedId }
+    val checked by produceState<CheckedSchedule?>(null, draft, schedules) {
+        value = null
+        val candidate = draft ?: return@produceState
+        value = withContext(Dispatchers.Default) {
+            CheckedSchedule(candidate, findScheduleOverlap(candidate, schedules))
+        }
+    }
+    val checking = newSchedule && draft != null && checked?.schedule != draft
+    val overlap = checked?.takeIf { it.schedule == draft }?.overlap
     val canSave = !saving &&
         isValidGroupName(name) &&
         !duplicate &&
+        !checking &&
+        overlap == null &&
         (if (newSchedule) draft != null else selected != null)
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -234,6 +250,17 @@ internal fun StudentGroupCreationDialog(
                     if (draft == null && name.isNotBlank() && days.isNotEmpty()) {
                         Text("Check times, time zone and dates", color = MaterialTheme.colorScheme.error)
                     }
+                    if (checking) {
+                        Text("Checking schedule...", style = MaterialTheme.typography.bodySmall)
+                    }
+                    overlap?.let {
+                        Text(
+                            "Schedule overlaps with \"${it.second.name}\". " +
+                                "Use the existing schedule or change the time or days",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag("schedule-overlap-error"),
+                        )
+                    }
                 }
                 (state as? CreateStudentGroupUiState.Error)?.let {
                     Text(it.message, color = MaterialTheme.colorScheme.error)
@@ -305,6 +332,8 @@ internal fun StudentGroupCreationDialog(
         )
     }
 }
+
+private data class CheckedSchedule(val schedule: ClassSchedule, val overlap: ScheduleOverlap?)
 
 @Composable
 private fun ScheduleTimeField(

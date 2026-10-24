@@ -83,6 +83,13 @@ session reference also uses schema version 2. Protocol version identifies client
 No production Firestore data or rules are changed by the test run. Emulator coverage does not substitute for Security
 Rules testing. All data stays under the current user's existing document hierarchy.
 
+## Overlapping schedules
+
+New schedules are checked in the creation form and again inside the group write transaction.
+Groups can still share an existing schedule. Distinct series imported or reconciled from offline devices are retained;
+the attendance screen reports temporal overlaps without deleting groups or changing recorded classes.
+See [Schedule overlap validation](schedule-overlaps.md) for interval, time-zone and synchronization policy.
+
 ## Deferred
 
 Onboarding, group/schedule editing, group deletion, group transfers, several classes per student per day, recurrence

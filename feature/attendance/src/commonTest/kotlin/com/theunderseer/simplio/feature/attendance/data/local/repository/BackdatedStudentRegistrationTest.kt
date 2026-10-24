@@ -31,8 +31,8 @@ class BackdatedStudentRegistrationTest {
     private val schedule = testClassSchedule(
         startsOn = today,
         slots = listOf(
-            WeeklyClassSlot("monday", DayOfWeek.MONDAY, LocalTime(9, 0), LocalTime(10, 15)),
-            WeeklyClassSlot("friday", DayOfWeek.FRIDAY, LocalTime(9, 0), LocalTime(10, 15)),
+            WeeklyClassSlot("monday", DayOfWeek.MONDAY, LocalTime(11, 0), LocalTime(12, 15)),
+            WeeklyClassSlot("friday", DayOfWeek.FRIDAY, LocalTime(11, 0), LocalTime(12, 15)),
         ),
     )
 
