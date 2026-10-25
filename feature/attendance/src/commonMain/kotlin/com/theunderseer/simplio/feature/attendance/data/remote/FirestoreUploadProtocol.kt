@@ -8,7 +8,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 internal object FirestoreUploadProtocol {
-    const val CURRENT_VERSION = 3
+    const val CURRENT_VERSION = 4
     const val HEAD_COLLECTION = "syncState"
     const val HEAD_ID = "attendance"
     const val RECEIPT_COLLECTION = "syncReceipts"
@@ -24,6 +24,8 @@ internal object FirestoreUploadProtocol {
 
     fun string(value: String): JsonObject = buildJsonObject { put("stringValue", value) }
     fun integer(value: Number): JsonObject = buildJsonObject { put("integerValue", value.toString()) }
+    fun nullableInteger(value: Int?): JsonObject = value?.let(::integer)
+        ?: buildJsonObject { put("nullValue", kotlinx.serialization.json.JsonNull) }
     fun boolean(value: Boolean): JsonObject = buildJsonObject { put("booleanValue", value) }
 
     fun receiptFields(snapshot: UploadSnapshot): JsonObject = buildJsonObject {

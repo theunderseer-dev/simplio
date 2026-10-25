@@ -49,12 +49,16 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceD
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isRegistrationClassDate
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestRegistrationClassDate
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
+import com.theunderseer.simplio.feature.attendance.resources.package_valid_until
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,6 +92,7 @@ internal fun StudentPackageDialog(
                 packageTypes.firstOrNull { it.id == initialPackageTypeId } ?: packageTypes.firstOrNull()
             } else {
                 packageTypes.firstOrNull { it.totalClasses == 4 && it.maxVisitsPerAttendance == 1 }
+                    ?: packageTypes.firstOrNull()
             },
         )
     }
@@ -122,10 +127,8 @@ internal fun StudentPackageDialog(
 
     val packageExpirationDate =
         if (recordFirstAttendance) {
-            selectedPackage?.let { packageType ->
-                selectedDate?.plus(
-                    DatePeriod(days = packageType.validityWeeks * 7),
-                )
+            selectedPackage?.validityWeeks?.let { weeks ->
+                selectedDate?.plus(DatePeriod(days = weeks * 7))
             }
         } else {
             null
@@ -201,10 +204,18 @@ internal fun StudentPackageDialog(
                         if (packageExpirationDate != null) {
                             {
                                 Text(
-                                    text = "Valid until ${packageExpirationDate.toDisplayDate()}, " +
-                                        "${packageExpirationDate.year}",
+                                    text = stringResource(
+                                        Res.string.package_valid_until,
+                                        packageExpirationDate.toDisplayDate(),
+                                        packageExpirationDate.year.toString(),
+                                    ),
                                 )
                             }
+                        } else if (recordFirstAttendance &&
+                            selectedPackage?.validityWeeks == null &&
+                            selectedPackage != null
+                        ) {
+                            { Text(stringResource(Res.string.package_no_expiration)) }
                         } else {
                             null
                         },

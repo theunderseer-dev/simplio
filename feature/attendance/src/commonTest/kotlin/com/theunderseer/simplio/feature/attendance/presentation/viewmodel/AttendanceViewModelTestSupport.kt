@@ -4,8 +4,8 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
-import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
+import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
@@ -18,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentA
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
+import com.theunderseer.simplio.feature.attendance.fake.FakePackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeTransactionRunner
@@ -71,6 +72,8 @@ internal fun createViewModel(
     studentPackageRepository: FakeStudentPackageRepository,
     classHistoryRepository: ClassHistoryRepository = FakeClassHistoryRepository(),
     packageTypes: List<PackageType> = listOf(AttendanceTestData.fourClassPackage),
+    packageCatalog: FakePackageTypeRepository = FakePackageTypeRepository(packageTypes),
+    createPackageTypeUseCase: CreatePackageTypeUseCase = CreatePackageTypeUseCase(packageCatalog),
     studentGroups: List<StudentGroup> = testStudentGroups(),
     currentDates: Flow<LocalDate> = flowOf(AttendanceTestData.currentDate),
     localChanges: Flow<Unit> = flowOf(Unit),
@@ -100,9 +103,8 @@ internal fun createViewModel(
         studentRepository = studentRepository,
         studentPackageRepository = studentPackageRepository,
     ),
-    getPackageTypesUseCase = createGetPackageTypesUseCase(
-        packageTypes = packageTypes,
-    ),
+    getPackageTypesUseCase = GetPackageTypesUseCase(packageCatalog),
+    createPackageTypeUseCase = createPackageTypeUseCase,
     getStudentGroupsUseCase = createGetStudentGroupsUseCase(
         studentGroups = studentGroups,
     ),
@@ -122,17 +124,6 @@ internal fun createViewModel(
     localChanges = localChanges,
     transactionRunner = FakeTransactionRunner(),
 )
-
-private fun createGetPackageTypesUseCase(packageTypes: List<PackageType>): GetPackageTypesUseCase =
-    GetPackageTypesUseCase(
-        packageTypeRepository = object : PackageTypeRepository {
-            override suspend fun getAll(): List<PackageType> = packageTypes
-
-            override suspend fun getById(id: Int): PackageType? = packageTypes.firstOrNull {
-                it.id == id
-            }
-        },
-    )
 
 private fun createGetStudentGroupsUseCase(studentGroups: List<StudentGroup>): GetStudentGroupsUseCase =
     GetStudentGroupsUseCase(

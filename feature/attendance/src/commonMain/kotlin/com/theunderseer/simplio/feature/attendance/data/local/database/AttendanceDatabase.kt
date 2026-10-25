@@ -42,7 +42,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadS
         SyncUploadBatchEntity::class,
         SyncConflictReviewEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {

@@ -27,7 +27,13 @@ data class SyncConflictItem(
     val cloudDetails: List<String>,
     val requiresGroupRename: Boolean = false,
     val unavailableGroupNames: List<String> = emptyList(),
-)
+    val requiresPackageRename: Boolean = false,
+    val unavailablePackageNames: List<String> = emptyList(),
+) {
+    val requiresRename: Boolean get() = requiresGroupRename || requiresPackageRename
+    val unavailableNames: List<String>
+        get() = if (requiresPackageRename) unavailablePackageNames else unavailableGroupNames
+}
 
 data class SyncConflictReview(val id: String, val items: List<SyncConflictItem>, val localGroupCount: Int)
 

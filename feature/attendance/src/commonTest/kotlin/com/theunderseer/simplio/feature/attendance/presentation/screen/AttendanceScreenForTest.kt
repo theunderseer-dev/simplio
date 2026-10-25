@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.presentation.screen
 
 import androidx.compose.runtime.Composable
+import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceScreen
@@ -31,11 +32,15 @@ internal fun AttendanceScreenForTest(
         String,
     ) -> Unit = { _, _, _, _, _, _, _ -> },
     onClearRenewStudentPackageState: () -> Unit = {},
+    onCreatePackageType: (CreatePackageTypeRequest) -> Unit = {},
+    onClearCreatePackageTypeState: () -> Unit = {},
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
 ) {
     AttendanceScreen(
         state = state,
         onCreateStudentGroup = onCreateStudentGroup,
+        onCreatePackageType = onCreatePackageType,
+        onClearCreatePackageTypeState = onClearCreatePackageTypeState,
         onRegisterStudent = onRegisterStudent,
         onRenewStudentPackage = onRenewStudentPackage,
         onClearRenewStudentPackageState = onClearRenewStudentPackageState,

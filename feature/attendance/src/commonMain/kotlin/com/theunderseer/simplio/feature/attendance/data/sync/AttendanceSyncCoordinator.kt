@@ -51,13 +51,13 @@ class AttendanceSyncCoordinator(
     suspend fun applyReview(
         id: String,
         choices: Map<String, ConflictChoice>,
-        groupRenames: Map<String, String> = emptyMap(),
+        catalogRenames: Map<String, String> = emptyMap(),
     ) = cycleMutex.withLock {
         val ready = mutableReview.value as? ConflictReviewState.Ready ?: return@withLock
         if (ready.review.id != id || ready.isApplying) return@withLock
         mutableReview.value = ready.copy(isApplying = true, message = null)
         try {
-            checkNotNull(conflicts).apply(id, choices, remote.readHead(), groupRenames)
+            checkNotNull(conflicts).apply(id, choices, remote.readHead(), catalogRenames)
             mutableReview.value = ConflictReviewState.Closed
             failures = 0
             mutableStatus.value = AttendanceSyncStatus.Syncing

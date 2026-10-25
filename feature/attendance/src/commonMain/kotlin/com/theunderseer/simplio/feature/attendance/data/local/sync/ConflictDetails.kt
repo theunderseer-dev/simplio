@@ -27,12 +27,14 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
         result += "Package: ${pack.string("packageName")}"
         result += "Purchased: ${LocalDate.fromEpochDays(pack.integer("purchasedOnEpochDay"))}"
         result += "Visits: ${visits.sumOf { it.integer("visitCount") }} / ${pack.integer("totalClasses")}"
-        result += "Price: ${pack.integer("price")} · Validity: ${pack.integer("validityWeeks")} weeks"
+        result += "Price: ${pack.integer("price")} · Validity: ${pack.validityWeeks()?.let { "$it weeks" } ?: "—"}"
         result += "People per class: ${pack.integer("maxVisitsPerAttendance")}"
         val activation = visits.firstOrNull()?.integer("attendedOnEpochDay")?.let { LocalDate.fromEpochDays(it) }
         result += "Activation: ${activation ?: "—"}"
         result +=
-            "Valid until: ${activation?.plus(DatePeriod(days = pack.integer("validityWeeks").toInt() * 7)) ?: "—"}"
+            "Valid until: ${pack.validityWeeks()?.let { weeks ->
+                activation?.plus(DatePeriod(days = weeks * 7))
+            } ?: "—"}"
         result += "Attendance: " + visits.joinToString { visit ->
             "${LocalDate.fromEpochDays(visit.integer("attendedOnEpochDay"))} × ${visit.integer("visitCount")}"
         }.ifBlank { "None" }
@@ -49,7 +51,8 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
     }
     live.filter { it.type == SyncEntityType.PACKAGE_TYPE }.forEach {
         result += "Package: ${it.string("name")} · Classes: ${it.integer("totalClasses")}"
-        result += "Price: ${it.integer("price")} · Validity: ${it.integer("validityWeeks")} weeks"
+        result +=
+            "Price: ${it.integer("price")} · Validity: ${it.validityWeeks()?.let { weeks -> "$weeks weeks" } ?: "—"}"
         result += "People per class: ${it.integer("maxVisitsPerAttendance")}"
     }
     live.filter { it.type == SyncEntityType.CLASS_SCHEDULE }.forEach { document ->

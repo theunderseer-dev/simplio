@@ -39,7 +39,8 @@ internal fun mapCloudSnapshot(
         requireCloudId(document.cloudId)
         require(Instant.parse(document.updateTime) <= readTime)
         val version = document.number("schemaVersion")
-        require(version in 1L..2L)
+        require(version in 1L..3L)
+        require(version != 3L || document.type in setOf(SyncEntityType.PACKAGE_TYPE, SyncEntityType.STUDENT_PACKAGE))
         require(document.type != SyncEntityType.CLASS_SCHEDULE || version == 2L)
         require("scheduleIds" !in document.fields || document.type == SyncEntityType.STUDENT_GROUP && version == 2L)
         requireCloudId(document.text("lastMutationId"))
@@ -97,7 +98,7 @@ internal fun mapCloudSnapshot(
             id(SyncEntityType.PACKAGE_TYPE, it.cloudId),
             it.nonBlank("name"),
             it.int("totalClasses"),
-            it.int("validityWeeks"),
+            it.validityWeeks(),
             it.int("price"),
             it.int("maxVisitsPerAttendance"),
         )
@@ -118,7 +119,7 @@ internal fun mapCloudSnapshot(
             studentId = parent(SyncEntityType.STUDENT, it.text("studentId")),
             packageTypeId = parent(SyncEntityType.PACKAGE_TYPE, it.text("packageTypeId")),
             packageName = it.nonBlank("packageName"), totalClasses = it.int("totalClasses"),
-            validityWeeks = it.int("validityWeeks"), price = it.int("price"),
+            validityWeeks = it.validityWeeks(), price = it.int("price"),
             purchasedOnEpochDay = purchased, maxVisitsPerAttendance = it.int("maxVisitsPerAttendance"),
         )
     }
@@ -156,7 +157,9 @@ internal fun mapCloudSnapshot(
         )
         require(visits.sumOf { it.visitCount.toLong() } <= pack.totalClasses)
         val start = visits.minOfOrNull { it.attendedOnEpochDay }
-        start?.let { LocalDate.fromEpochDays(it).plus(DatePeriod(days = pack.validityWeeks * 7)) }
+        pack.validityWeeks?.let { weeks ->
+            start?.let { LocalDate.fromEpochDays(it).plus(DatePeriod(days = weeks * 7)) }
+        }
         pack.copy(startedOnEpochDay = start)
     }
     require(students.all { student -> restoredPackages.any { it.studentId == student.id } })
@@ -214,7 +217,8 @@ private fun AttendanceCloudDocument.int(key: String): Int = number(key).also {
 private fun AttendanceCloudDocument.deleted(): Boolean = fields.getValue("isDeleted").jsonObject
     .getValue("booleanValue").jsonPrimitive.also { require(!it.isString) }.boolean
 private fun AttendanceCloudDocument.requireTerms() {
-    require(int("totalClasses") > 0 && int("validityWeeks") in 1..(Int.MAX_VALUE / 7))
+    require(int("totalClasses") > 0)
+    validityWeeks()
     require(int("price") >= 0 && int("maxVisitsPerAttendance") in 1..int("totalClasses"))
 }
 private fun requireCloudId(value: String) {

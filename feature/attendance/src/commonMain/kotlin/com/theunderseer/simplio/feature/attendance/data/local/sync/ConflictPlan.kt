@@ -7,7 +7,9 @@ import com.theunderseer.simplio.feature.attendance.data.sync.ConflictChoice
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictLocalSnapshot
 import com.theunderseer.simplio.feature.attendance.data.sync.SyncConflictItem
 import com.theunderseer.simplio.feature.attendance.domain.model.displayGroupName
+import com.theunderseer.simplio.feature.attendance.domain.model.displayPackageName
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
+import com.theunderseer.simplio.feature.attendance.domain.model.isValidPackageName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -75,10 +77,12 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
     private val changedGroups = cloud.documents.filter { known[it.key]?.serverUpdateTime != it.updateTime }
         .map { checkNotNull(serverGroups[it.key]) }.toSet()
     private val nameCollisions = device.values.filter {
-        it.type == SyncEntityType.STUDENT_GROUP && !it.isDeleted && deviceGroups[it.key] in originalGroups
+        it.type in setOf(SyncEntityType.STUDENT_GROUP, SyncEntityType.PACKAGE_TYPE) &&
+            !it.isDeleted &&
+            deviceGroups[it.key] in originalGroups
     }.mapNotNull { localGroup ->
         val remote = server.values.firstOrNull {
-            it.type == SyncEntityType.STUDENT_GROUP &&
+            it.type == localGroup.type &&
                 !it.isDeleted &&
                 it.key != localGroup.key &&
                 normalizedGroupName(it.string("name")) == normalizedGroupName(localGroup.string("name"))
@@ -111,7 +115,14 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
             label(deviceRows, cloudRows),
             conflictDetails(deviceRows, device.values.toList()),
             conflictDetails(cloudRows, server.values.toList()),
-            requiresGroupRename = group in nameCollisions,
+            requiresGroupRename = group in nameCollisions && deviceRows.single().type == SyncEntityType.STUDENT_GROUP,
+            requiresPackageRename = group in nameCollisions && deviceRows.single().type == SyncEntityType.PACKAGE_TYPE,
+            unavailablePackageNames = if (group in nameCollisions) {
+                (device.values + server.values)
+                    .filter { it.type == SyncEntityType.PACKAGE_TYPE && !it.isDeleted }.map { it.string("name") }
+            } else {
+                emptyList()
+            },
             unavailableGroupNames = if (group in nameCollisions) {
                 (device.values + server.values)
                     .filter { it.type == SyncEntityType.STUDENT_GROUP && !it.isDeleted }.map { it.string("name") }
@@ -123,11 +134,13 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
 
     fun merge(
         choices: Map<String, ConflictChoice>,
-        groupRenames: Map<String, String> = emptyMap(),
+        catalogRenames: Map<String, String> = emptyMap(),
     ): AttendanceCloudSnapshot {
-        require(groupRenames.keys == nameCollisions.keys)
-        groupRenames.forEach { (group, name) ->
-            require(choices[group] == ConflictChoice.DEVICE && isValidGroupName(name))
+        require(catalogRenames.keys == nameCollisions.keys)
+        catalogRenames.forEach { (group, name) ->
+            val type = device.values.single { deviceGroups[it.key] == group }.type
+            require(choices[group] == ConflictChoice.DEVICE)
+            require(if (type == SyncEntityType.PACKAGE_TYPE) isValidPackageName(name) else isValidGroupName(name))
         }
         require(choices.keys == conflictingKeys)
         val merged = server.toMutableMap()
@@ -139,26 +152,36 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
                 merged[it.key] = it.copy(fields = tombstoneFields())
             }
             device.values.filter { deviceGroups[it.key] == group }.forEach { document ->
-                val renamed = groupRenames[group]?.takeIf { document.type == SyncEntityType.STUDENT_GROUP }
+                val renamed = catalogRenames[group]?.takeIf {
+                    document.type in
+                        setOf(SyncEntityType.STUDENT_GROUP, SyncEntityType.PACKAGE_TYPE)
+                }
                 merged[document.key] = if (renamed == null) {
                     document
                 } else {
                     document.copy(
                         fields = buildJsonObject {
                             document.fields.forEach { (key, value) -> put(key, value) }
-                            put("name", FirestoreUploadProtocol.string(displayGroupName(renamed)))
+                            val name = if (document.type ==
+                                SyncEntityType.PACKAGE_TYPE
+                            ) {
+                                displayPackageName(renamed)
+                            } else {
+                                displayGroupName(renamed)
+                            }
+                            put("name", FirestoreUploadProtocol.string(name))
                         },
                     )
                 }
             }
         }
-        groupRenames.keys.forEach { group ->
+        catalogRenames.keys.forEach { group ->
             val localGroup = device.values.single { deviceGroups[it.key] == group }
             val desired = checkNotNull(merged[localGroup.key])
             require(
                 merged.values.none {
                     it.key != desired.key &&
-                        it.type == SyncEntityType.STUDENT_GROUP &&
+                        it.type == desired.type &&
                         !it.isDeleted &&
                         normalizedGroupName(it.string("name")) == normalizedGroupName(desired.string("name"))
                 },

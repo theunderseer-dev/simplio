@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.di
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassScheduleRepository
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeCreationRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupCreationRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupRepository
@@ -14,12 +15,14 @@ import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbo
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeCreationRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupCreationRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
@@ -40,6 +43,8 @@ import org.koin.dsl.module
 import kotlin.time.Clock
 
 fun attendanceModule() = module {
+    single<PackageTypeCreationRepository> { RoomPackageTypeCreationRepository(get()) }
+    factory { CreatePackageTypeUseCase(get()) }
     single<StudentGroupCreationRepository> { RoomStudentGroupCreationRepository(get()) }
     factory { CreateStudentGroupUseCase(get()) }
     single<ClassScheduleRepository> { RoomClassScheduleRepository(database = get()) }
@@ -178,6 +183,7 @@ fun attendanceModule() = module {
         AttendanceViewModel(
             getAttendanceUseCase = get(),
             getPackageTypesUseCase = get(),
+            createPackageTypeUseCase = get(),
             getStudentGroupsUseCase = get(),
             registerStudentUseCase = get(),
             renewStudentPackageUseCase = get(),

@@ -38,6 +38,38 @@ internal object AttendanceTestData {
         plan = PackagePlan.DUO_SPECIAL,
     )
 
+    val privateEightClassPackage = PackageType(
+        id = 4,
+        name = "Private · 8 classes · 2/week",
+        totalClasses = 8,
+        validityWeeks = null,
+        price = 9000,
+        maxVisitsPerAttendance = 1,
+    )
+    val privateThreeWeeklyPackage = privateEightClassPackage.copy(
+        id = 5,
+        name = "Private · 8 classes · 3/week",
+        price = 8000,
+    )
+    val privateTwelveClassPackage = privateEightClassPackage.copy(
+        id = 6,
+        name = "Private · 12 classes · 3/week",
+        totalClasses = 12,
+        price = 12000,
+    )
+    val privateTwentyClassPackage = privateEightClassPackage.copy(
+        id = 7,
+        name = "Private · 20 classes · 3/week",
+        totalClasses = 20,
+        price = 22000,
+    )
+    val privatePackages = listOf(
+        privateEightClassPackage,
+        privateThreeWeeklyPackage,
+        privateTwelveClassPackage,
+        privateTwentyClassPackage,
+    )
+
     val availablePackages = listOf(
         fourClassPackage,
         fiveClassPackage,
@@ -52,6 +84,25 @@ internal object AttendanceTestData {
     val sixthClassDate = LocalDate(2026, 10, 19)
     val seventhClassDate = LocalDate(2026, 10, 23)
     val eighthClassDate = LocalDate(2026, 10, 26)
+
+    val class9Date = LocalDate(2026, 10, 30)
+    val class10Date = LocalDate(2026, 11, 2)
+    val class11Date = LocalDate(2026, 11, 6)
+    val class12Date = LocalDate(2026, 11, 9)
+    val class13Date = LocalDate(2026, 11, 13)
+    val class14Date = LocalDate(2026, 11, 16)
+    val class15Date = LocalDate(2026, 11, 20)
+    val class16Date = LocalDate(2026, 11, 23)
+    val class17Date = LocalDate(2026, 11, 27)
+    val class18Date = LocalDate(2026, 11, 30)
+    val class19Date = LocalDate(2026, 12, 4)
+    val class20Date = LocalDate(2026, 12, 7)
+    val packageClassDates = listOf(
+        firstClassDate, secondClassDate, thirdClassDate, fourthClassDate,
+        fifthClassDate, sixthClassDate, seventhClassDate, eighthClassDate,
+        class9Date, class10Date, class11Date, class12Date, class13Date, class14Date,
+        class15Date, class16Date, class17Date, class18Date, class19Date, class20Date,
+    )
 
     val currentDate = LocalDate(2026, 10, 8)
 }

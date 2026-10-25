@@ -33,7 +33,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictChoice
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
+import com.theunderseer.simplio.feature.attendance.domain.model.isValidPackageName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.group_name_conflict
+import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
+import com.theunderseer.simplio.feature.attendance.resources.package_name_conflict
+import com.theunderseer.simplio.feature.attendance.resources.package_rename
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SyncConflictReviewDialog(
@@ -89,9 +96,13 @@ fun SyncConflictReviewDialog(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         Text(item.label, style = MaterialTheme.typography.titleMedium)
-                                        if (item.requiresGroupRename) {
+                                        if (item.requiresRename) {
                                             Text(
-                                                "Another group already uses this name. Rename this device's group to keep both.",
+                                                if (item.requiresPackageRename) {
+                                                    stringResource(Res.string.package_name_conflict)
+                                                } else {
+                                                    stringResource(Res.string.group_name_conflict)
+                                                },
                                             )
                                             Text("This device", style = MaterialTheme.typography.titleSmall)
                                             item.deviceDetails.forEach {
@@ -103,7 +114,7 @@ fun SyncConflictReviewDialog(
                                             }
                                             val value = renames[item.key].orEmpty()
                                             val duplicate = value.isNotBlank() &&
-                                                item.unavailableGroupNames.any {
+                                                item.unavailableNames.any {
                                                     normalizedGroupName(it) == normalizedGroupName(value)
                                                 }
                                             OutlinedTextField(
@@ -112,11 +123,27 @@ fun SyncConflictReviewDialog(
                                                 enabled = !applying,
                                                 singleLine = true,
                                                 label = {
-                                                    Text("New group name")
+                                                    Text(
+                                                        if (item.requiresPackageRename) {
+                                                            stringResource(
+                                                                Res.string.package_rename,
+                                                            )
+                                                        } else {
+                                                            "New group name"
+                                                        },
+                                                    )
                                                 },
                                                 isError = duplicate,
                                                 supportingText = {
-                                                    if (duplicate) Text("A group with this name already exists")
+                                                    if (duplicate) {
+                                                        Text(
+                                                            if (item.requiresPackageRename) {
+                                                                stringResource(Res.string.package_duplicate_name)
+                                                            } else {
+                                                                "A group with this name already exists"
+                                                            },
+                                                        )
+                                                    }
                                                 },
                                                 modifier = Modifier.fillMaxWidth().testTag("rename-${item.key}"),
                                             )
@@ -162,7 +189,7 @@ fun SyncConflictReviewDialog(
                     if (ready != null) {
                         TextButton(
                             onClick = {
-                                val resolved = choices + ready.review.items.filter { it.requiresGroupRename }
+                                val resolved = choices + ready.review.items.filter { it.requiresRename }
                                     .associate { it.key to ConflictChoice.DEVICE }
                                 if (renames.isEmpty()) {
                                     onApply(ready.review.id, resolved)
@@ -172,18 +199,28 @@ fun SyncConflictReviewDialog(
                             },
                             enabled = !applying &&
                                 ready.review.items.all { item ->
-                                    if (!item.requiresGroupRename) {
+                                    if (!item.requiresRename) {
                                         item.key in choices
                                     } else {
                                         val name = renames[item.key].orEmpty()
                                         onApplyRenamed != null &&
-                                            isValidGroupName(name) &&
-                                            item.unavailableGroupNames.none {
+                                            (
+                                                if (item.requiresPackageRename) {
+                                                    isValidPackageName(
+                                                        name,
+                                                    )
+                                                } else {
+                                                    isValidGroupName(name)
+                                                }
+                                                ) &&
+                                            item.unavailableNames.none {
                                                 normalizedGroupName(it) ==
                                                     normalizedGroupName(name)
                                             } &&
-                                            renames.values.count {
-                                                normalizedGroupName(it) == normalizedGroupName(name)
+                                            ready.review.items.count {
+                                                it.requiresPackageRename == item.requiresPackageRename &&
+                                                    normalizedGroupName(renames[it.key].orEmpty()) ==
+                                                    normalizedGroupName(name)
                                             } ==
                                             1
                                     }

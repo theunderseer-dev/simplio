@@ -25,9 +25,9 @@ data class StudentPackage(
         get() = (packageType.totalClasses - usedClasses).coerceAtLeast(0)
 
     val expiresOn: LocalDate?
-        get() = startedOn?.plus(
-            DatePeriod(days = packageType.validityWeeks * 7),
-        )
+        get() = packageType.validityWeeks?.let { weeks ->
+            startedOn?.plus(DatePeriod(days = weeks * 7))
+        }
 
     val isCompleted: Boolean
         get() = usedClasses >= packageType.totalClasses

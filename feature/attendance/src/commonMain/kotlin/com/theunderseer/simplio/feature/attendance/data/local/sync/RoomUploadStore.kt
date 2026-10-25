@@ -135,7 +135,7 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                     buildJsonObject {
                         put("name", FirestoreUploadProtocol.string(row.name))
                         put("totalClasses", FirestoreUploadProtocol.integer(row.totalClasses))
-                        put("validityWeeks", FirestoreUploadProtocol.integer(row.validityWeeks))
+                        put("validityWeeks", FirestoreUploadProtocol.nullableInteger(row.validityWeeks))
                         put("price", FirestoreUploadProtocol.integer(row.price))
                         put("maxVisitsPerAttendance", FirestoreUploadProtocol.integer(row.maxVisitsPerAttendance))
                     }
@@ -158,7 +158,7 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                         put("packageTypeId", FirestoreUploadProtocol.string(type))
                         put("packageName", FirestoreUploadProtocol.string(row.packageName))
                         put("totalClasses", FirestoreUploadProtocol.integer(row.totalClasses))
-                        put("validityWeeks", FirestoreUploadProtocol.integer(row.validityWeeks))
+                        put("validityWeeks", FirestoreUploadProtocol.nullableInteger(row.validityWeeks))
                         put("price", FirestoreUploadProtocol.integer(row.price))
                         put("maxVisitsPerAttendance", FirestoreUploadProtocol.integer(row.maxVisitsPerAttendance))
                         put("purchasedOnEpochDay", FirestoreUploadProtocol.integer(row.purchasedOnEpochDay))
@@ -183,7 +183,12 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             put(
                 "schemaVersion",
                 FirestoreUploadProtocol.integer(
-                    if (change.entityType == SyncEntityType.CLASS_SCHEDULE ||
+                    if ("validityWeeks" in businessFields &&
+                        businessFields["validityWeeks"] ==
+                        FirestoreUploadProtocol.nullableInteger(null)
+                    ) {
+                        3
+                    } else if (change.entityType == SyncEntityType.CLASS_SCHEDULE ||
                         "scheduleIds" in businessFields ||
                         "sessionId" in businessFields
                     ) {
