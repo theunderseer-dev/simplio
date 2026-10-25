@@ -65,7 +65,7 @@ class RoomConflictStore(private val database: AttendanceDatabase, private val ta
         id: String,
         choices: Map<String, ConflictChoice>,
         currentHead: AttendanceCloudHead,
-        groupRenames: Map<String, String> = emptyMap(),
+        catalogRenames: Map<String, String> = emptyMap(),
     ) = transactions.run {
         validateHead(currentHead)
         val row = checkNotNull(reviews.get(id))
@@ -80,7 +80,7 @@ class RoomConflictStore(private val database: AttendanceDatabase, private val ta
         val plan = ConflictPlan(local, cloud)
         if (choices.keys != plan.conflictingKeys) throw InvalidConflictChoice()
         val merged = try {
-            plan.merge(choices, groupRenames).copy(head = currentHead)
+            plan.merge(choices, catalogRenames).copy(head = currentHead)
         } catch (error: IllegalArgumentException) {
             throw InvalidConflictChoice()
         }
@@ -183,7 +183,7 @@ class RoomConflictStore(private val database: AttendanceDatabase, private val ta
         )
         val resolution = buildJsonObject {
             put("choices", Json.encodeToJsonElement(choices.toList().sortedBy { it.first }.toMap()))
-            put("groupRenames", Json.encodeToJsonElement(groupRenames.toList().sortedBy { it.first }.toMap()))
+            put("groupRenames", Json.encodeToJsonElement(catalogRenames.toList().sortedBy { it.first }.toMap()))
         }
         reviews.applied(id, resolution.toString())
     }

@@ -4,7 +4,7 @@ data class PackageType(
     val id: Int,
     val name: String,
     val totalClasses: Int,
-    val validityWeeks: Int,
+    val validityWeeks: Int?,
     val price: Int,
     val maxVisitsPerAttendance: Int = 1,
 ) {

@@ -5,6 +5,8 @@
 #### Domain behavior
 
 - custom student groups with normalized unique names;
+- custom package templates with unique names, optional validity in weeks and one/two-credit attendance;
+- package purchases keep their terms independently of later catalog changes;
 - new weekly schedules or explicitly shared existing schedules;
 - group-specific registration, renewal and attendance calendars;
 - history shows one card per day, merges matching time intervals visually and loads five complete dates at a time;
@@ -62,3 +64,11 @@ For the current one-class-per-student-per-day model, attendance cannot be charge
 Renewal, ordinary marking and Room writes validate all locally stored packages inside the write transaction.
 The calendar also excludes previous-package attendance dates after renewal. Existing historical data is retained;
 there is no schema migration. Multi-device offline conflicts continue to use the existing synchronization workflow.
+
+## Custom packages
+
+Use **Add Package** after **Add Group** to define a reusable template. It contains a name, positive class capacity,
+a nonnegative whole-unit price, optional validity in weeks and a one/two-credit attendance option. Dates and notes
+are assigned when registering a student or renewing a purchase. Without expiration, only actual attendance consumes
+credits; recurring schedule dates do not. See [custom package architecture](../architecture/custom-packages.md)
+for migration, synchronization and compatibility details.

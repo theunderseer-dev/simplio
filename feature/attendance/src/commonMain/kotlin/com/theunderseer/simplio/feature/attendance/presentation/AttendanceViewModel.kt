@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeResult
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -16,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassS
 import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
 import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlaps
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
@@ -52,6 +55,7 @@ import kotlin.time.Instant
 class AttendanceViewModel(
     private val getAttendanceUseCase: GetAttendanceUseCase,
     private val getPackageTypesUseCase: GetPackageTypesUseCase,
+    private val createPackageTypeUseCase: CreatePackageTypeUseCase,
     private val getStudentGroupsUseCase: GetStudentGroupsUseCase,
     private val registerStudentUseCase: RegisterStudentUseCase,
     private val markStudentPresentUseCase: MarkStudentPresentUseCase,
@@ -93,6 +97,8 @@ class AttendanceViewModel(
     private val renewalState = MutableStateFlow<RenewStudentPackageUiState>(RenewStudentPackageUiState.Idle)
 
     private val currentInstant = currentInstants.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val packageCreationState = MutableStateFlow<CreatePackageTypeUiState>(CreatePackageTypeUiState.Idle)
 
     private val groupCreationState = MutableStateFlow<CreateStudentGroupUiState>(CreateStudentGroupUiState.Idle)
 
@@ -143,6 +149,8 @@ class AttendanceViewModel(
             }
         }.combine(groupCreationState) { state, creation ->
             if (state is AttendanceUiState.Content) state.copy(createStudentGroupState = creation) else state
+        }.combine(packageCreationState) { state, creation ->
+            if (state is AttendanceUiState.Content) state.copy(createPackageTypeState = creation) else state
         }.combine(currentInstant) { state, now ->
             if (state is AttendanceUiState.Content && now != null) {
                 val dates = state.studentGroups.associate { group ->
@@ -202,6 +210,38 @@ class AttendanceViewModel(
             currentDates
                 .distinctUntilChangedBy { it }
                 .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
+    }
+
+    fun createPackageType(request: CreatePackageTypeRequest) {
+        if (packageCreationState.value == CreatePackageTypeUiState.Saving) return
+        packageCreationState.value = CreatePackageTypeUiState.Saving
+        viewModelScope.launch {
+            try {
+                when (val result = createPackageTypeUseCase(request)) {
+                    is CreatePackageTypeResult.Success -> {
+                        refreshAttendance()
+                        packageCreationState.value = CreatePackageTypeUiState.Success(result.packageType.name)
+                    }
+                    CreatePackageTypeResult.DuplicateName -> {
+                        refreshAttendance()
+                        packageCreationState.value = CreatePackageTypeUiState.DuplicateName
+                    }
+                    is CreatePackageTypeResult.Invalid ->
+                        packageCreationState.value = CreatePackageTypeUiState.Invalid(result.reason)
+                }
+            } catch (error: CancellationException) {
+                packageCreationState.value = CreatePackageTypeUiState.Idle
+                throw error
+            } catch (error: Exception) {
+                packageCreationState.value = CreatePackageTypeUiState.SaveFailed
+            }
+        }
+    }
+
+    fun clearCreatePackageTypeState() {
+        if (packageCreationState.value != CreatePackageTypeUiState.Saving) {
+            packageCreationState.value = CreatePackageTypeUiState.Idle
         }
     }
 

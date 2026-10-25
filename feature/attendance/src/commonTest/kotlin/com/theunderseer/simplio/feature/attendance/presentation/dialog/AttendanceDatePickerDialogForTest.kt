@@ -16,7 +16,7 @@ internal fun AttendanceDatePickerDialogForTest(
     startedOn: LocalDate? = AttendanceTestData.firstClassDate,
     expiresOn: LocalDate? = startedOn?.plus(
         DatePeriod(
-            days = AttendanceTestData.fourClassPackage.validityWeeks * 7,
+            days = checkNotNull(AttendanceTestData.fourClassPackage.validityWeeks) * 7,
         ),
     ),
     purchasedOn: LocalDate =

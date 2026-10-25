@@ -50,18 +50,24 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.add_package
 import com.theunderseer.simplio.feature.attendance.resources.ic_check
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
 import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
+import com.theunderseer.simplio.feature.attendance.resources.package_added
+import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun AttendanceScreen(
@@ -79,9 +85,12 @@ fun AttendanceScreen(
     onClearUpdateStudentNoteState: () -> Unit,
     onRenewStudentPackage: (Int, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onClearRenewStudentPackageState: () -> Unit,
+    onCreatePackageType: (CreatePackageTypeRequest) -> Unit,
+    onClearCreatePackageTypeState: () -> Unit,
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
     onClearCreateStudentGroupState: () -> Unit = {},
 ) {
+    var showPackageDialog by remember { mutableStateOf(false) }
     var showGroupDialog by remember { mutableStateOf(false) }
 
     var showRegistrationDialog by remember {
@@ -113,6 +122,14 @@ fun AttendanceScreen(
             val removeState = state.removeStudentAttendanceState
             val noteState = state.updateStudentNoteState
             val renewState = state.renewStudentPackageState
+            val packageState = state.createPackageTypeState
+            LaunchedEffect(packageState) {
+                if (packageState is CreatePackageTypeUiState.Success) {
+                    showPackageDialog = false
+                    onClearCreatePackageTypeState()
+                    snackbarHostState.showSnackbar(getString(Res.string.package_added, packageState.name))
+                }
+            }
             val groupState = state.createStudentGroupState
             LaunchedEffect(groupState) {
                 if (groupState is CreateStudentGroupUiState.Success) {
@@ -161,6 +178,10 @@ fun AttendanceScreen(
             ) { contentPadding ->
                 AttendanceContent(
                     state = state,
+                    onAddPackageClick = {
+                        onClearCreatePackageTypeState()
+                        showPackageDialog = true
+                    },
                     onAddGroupClick = {
                         onClearCreateStudentGroupState()
                         showGroupDialog = true
@@ -243,6 +264,18 @@ fun AttendanceScreen(
                 )
             }
 
+            if (showPackageDialog) {
+                PackageTypeCreationDialog(
+                    packageTypes = state.packageTypes,
+                    state = packageState,
+                    onConfirm = onCreatePackageType,
+                    onClearError = onClearCreatePackageTypeState,
+                    onDismiss = {
+                        showPackageDialog = false
+                        onClearCreatePackageTypeState()
+                    },
+                )
+            }
             if (showGroupDialog) {
                 StudentGroupCreationDialog(
                     groups = state.studentGroups,
@@ -468,6 +501,7 @@ private fun AttendanceContent(
     state: AttendanceUiState.Content,
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
+    onAddPackageClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
@@ -626,6 +660,7 @@ private fun AttendanceContent(
                     Text("Add Student")
                 }
                 OutlinedButton(onClick = onAddGroupClick) { Text("Add Group") }
+                OutlinedButton(onClick = onAddPackageClick) { Text(stringResource(Res.string.add_package)) }
             }
         }
 
@@ -799,7 +834,11 @@ private fun StudentAttendanceRow(
         )
 
         Text(
-            text = studentPackage.expiresOn?.toDisplayDate().orEmpty(),
+            text = if (studentPackage.packageType.validityWeeks == null) {
+                stringResource(Res.string.package_no_expiration)
+            } else {
+                studentPackage.expiresOn?.toDisplayDate().orEmpty()
+            },
             modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

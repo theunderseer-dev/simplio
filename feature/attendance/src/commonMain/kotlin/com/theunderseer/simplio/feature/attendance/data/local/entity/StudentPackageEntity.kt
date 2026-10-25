@@ -34,7 +34,7 @@ data class StudentPackageEntity(
     // snapshot of purchase terms
     val packageName: String,
     val totalClasses: Int,
-    val validityWeeks: Int,
+    val validityWeeks: Int?,
     val price: Int,
     val purchasedOnEpochDay: Long,
     val startedOnEpochDay: Long? = null,

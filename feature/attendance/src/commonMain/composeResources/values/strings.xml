@@ -1,0 +1,27 @@
+<resources>
+    <string name="add_package">Add Package</string>
+    <string name="create_package_title">Create package</string>
+    <string name="package_name">Package name</string>
+    <string name="package_classes">Number of classes</string>
+    <string name="package_price">Package price</string>
+    <string name="package_validity">Validity (weeks)</string>
+    <string name="package_no_expiration">No expiration</string>
+    <string name="package_allow_two">Allow attendance for 1 or 2 people.</string>
+    <string name="package_two_hint">One class is deducted per person.</string>
+    <string name="package_validity_hint">Starts with the first attendance.</string>
+    <string name="package_create">Create</string>
+    <string name="package_cancel">Cancel</string>
+    <string name="package_saving">Saving…</string>
+    <string name="package_added">Package added: %1$s</string>
+    <string name="package_invalid_name">Enter a name of 1–80 characters.</string>
+    <string name="package_invalid_classes">Enter a positive whole number of classes.</string>
+    <string name="package_invalid_price">Enter a whole price of zero or more.</string>
+    <string name="package_invalid_validity">Enter a positive whole number of weeks.</string>
+    <string name="package_invalid_visits">Two-class attendance requires at least two classes.</string>
+    <string name="package_duplicate_name">A package with this name already exists.</string>
+    <string name="package_save_failed">Could not save the package. Try again.</string>
+    <string name="package_valid_until">Valid until %1$s, %2$s</string>
+    <string name="package_rename">New package name</string>
+    <string name="package_name_conflict">Another package uses this name. Rename this device’s package to keep both.</string>
+    <string name="group_name_conflict">Another group already uses this name. Rename this device's group to keep both.</string>
+</resources>

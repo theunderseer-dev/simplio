@@ -10,7 +10,7 @@ data class PackageTypeEntity(
     val id: Int = 0,
     val name: String,
     val totalClasses: Int,
-    val validityWeeks: Int,
+    val validityWeeks: Int?,
     val price: Int,
 
     @ColumnInfo(defaultValue = "1")

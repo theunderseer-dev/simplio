@@ -78,7 +78,7 @@ class StudentRegistrationDialogUiTest {
     }
 
     @Test
-    fun `registers student with entered name and selected package`() = runComposeUiTest {
+    fun `registers student with entered name and the only available package`() = runComposeUiTest {
         // Given
         setContent {
             StudentRegistrationDialogForTest(
@@ -94,17 +94,7 @@ class StudentRegistrationDialogUiTest {
         onNodeWithTag("registration-full-name")
             .performTextInput("Anna Smith")
 
-        // Then
-        onNodeWithText("Register")
-            .assertIsNotEnabled()
-
-        // When
-        onNodeWithText("Package")
-            .performClick()
-
-        onNodeWithText("5-class package")
-            .performClick()
-
+        // Then: a catalog without the standard four-class template still has a usable default
         onNodeWithText("Register")
             .assertIsEnabled()
             .performClick()
