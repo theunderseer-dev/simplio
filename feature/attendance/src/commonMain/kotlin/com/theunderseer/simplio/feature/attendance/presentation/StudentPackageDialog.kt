@@ -50,7 +50,6 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.isRegistratio
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestRegistrationClassDate
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
-import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
 import com.theunderseer.simplio.feature.attendance.resources.package_valid_until
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -211,11 +210,6 @@ internal fun StudentPackageDialog(
                                     ),
                                 )
                             }
-                        } else if (recordFirstAttendance &&
-                            selectedPackage?.validityWeeks == null &&
-                            selectedPackage != null
-                        ) {
-                            { Text(stringResource(Res.string.package_no_expiration)) }
                         } else {
                             null
                         },
