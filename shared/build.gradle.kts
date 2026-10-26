@@ -24,10 +24,14 @@ kotlin {
             api(libs.kotlinx.serialization.json)
             api(libs.kotlinx.coroutines.core)
         }
+        jvmTest.dependencies {
+            implementation(compose.desktop.currentOs)
+        }
         jvmMain.dependencies {
             implementation(libs.ktor.client.cio)
         }
         commonTest.dependencies {
+            implementation(libs.compose.ui.test)
             implementation(libs.kotlin.test)
             implementation(libs.ktor.client.mock)
             implementation(libs.kotlinx.coroutines.test)
@@ -37,8 +41,9 @@ kotlin {
 
 ktlint {
     filter {
-        exclude("**/build/**")
-        exclude("**/generated/**")
+        exclude { element ->
+            element.file.path.contains("${File.separator}build${File.separator}")
+        }
     }
 
     additionalEditorconfig.set(
@@ -46,4 +51,8 @@ ktlint {
             "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
         ),
     )
+}
+
+compose.resources {
+    packageOfResClass = "com.theunderseer.simplio.shared.resources"
 }

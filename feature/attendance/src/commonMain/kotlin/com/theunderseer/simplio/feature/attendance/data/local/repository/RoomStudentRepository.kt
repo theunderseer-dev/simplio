@@ -4,7 +4,9 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncJournal
+import com.theunderseer.simplio.feature.attendance.domain.model.InvalidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
+import com.theunderseer.simplio.feature.attendance.domain.model.isValidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 
 class RoomStudentRepository(private val database: AttendanceDatabase) : StudentRepository {
@@ -12,8 +14,9 @@ class RoomStudentRepository(private val database: AttendanceDatabase) : StudentR
 
     override suspend fun create(fullName: String, groupId: Int, note: String): Student =
         RoomSyncJournal.write(database) { journal ->
+            if (!isValidStudentName(fullName)) throw InvalidStudentName()
             val entity = StudentEntity(
-                fullName = fullName,
+                fullName = fullName.trim(),
                 groupId = groupId,
                 note = note,
             )

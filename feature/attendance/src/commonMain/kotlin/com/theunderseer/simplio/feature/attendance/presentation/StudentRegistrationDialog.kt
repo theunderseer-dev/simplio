@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,9 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.model.MAX_STUDENT_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import com.theunderseer.simplio.feature.attendance.domain.model.isValidStudentName
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
+import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
+import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
+import com.theunderseer.simplio.shared.validation.InputPolicy
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +40,9 @@ fun StudentRegistrationDialog(
     groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
     groupCurrentDates: Map<Int, LocalDate> = emptyMap(),
 ) {
-    var fullName by remember { mutableStateOf("") }
+    val nameInput = rememberValidatedInput("", InputPolicy.SingleLine(MAX_STUDENT_NAME_LENGTH))
+    val fullName = nameInput.text
+    val invalidName = fullName.isNotEmpty() && !isValidStudentName(fullName)
     var selectedGroupId by remember(studentGroups) { mutableStateOf<Int?>(null) }
     StudentPackageDialog(
         title = "Add Student",
@@ -42,13 +51,17 @@ fun StudentRegistrationDialog(
         datePickerTitle = "Select registration date",
         packageTypes = packageTypes,
         initialDate = groupCurrentDates[selectedGroupId] ?: initialDate,
-        canSubmit = fullName.isNotBlank() && selectedGroupId != null,
+        canSubmit = isValidStudentName(fullName) && !nameInput.rejectedEdit && selectedGroupId != null,
         schedules = groupSchedules[selectedGroupId],
         studentFields = {
-            OutlinedTextField(
-                value = fullName,
-                onValueChange = { fullName = it },
-                singleLine = true,
+            ValidatedOutlinedTextField(
+                input = nameInput,
+                isError = invalidName,
+                supportingText = if (invalidName) {
+                    { Text(stringResource(Res.string.student_name_invalid)) }
+                } else {
+                    null
+                },
                 modifier = Modifier.fillMaxWidth().testTag("registration-full-name"),
                 label = {
                     Text("Full name")

@@ -6,7 +6,7 @@
     <string name="package_price">Package price</string>
     <string name="package_validity">Validity (weeks)</string>
     <string name="package_no_expiration">No expiration</string>
-    <string name="package_allow_two">Allow attendance for 1 or 2 people.</string>
+    <string name="package_allow_two">Allow attendance for 1 or 2 people</string>
     <string name="package_two_hint">One class is deducted per person.</string>
     <string name="package_validity_hint">Starts with the first attendance.</string>
     <string name="package_create">Create</string>
@@ -24,4 +24,12 @@
     <string name="package_rename">New package name</string>
     <string name="package_name_conflict">Another package uses this name. Rename this device’s package to keep both.</string>
     <string name="group_name_conflict">Another group already uses this name. Rename this device's group to keep both.</string>
+    <string name="student_name_invalid">Enter a name of 1–200 characters on one line.</string>
+    <string name="group_name_invalid">Enter a name of 1–80 characters on one line.</string>
+    <string name="schedule_time_invalid">Use HH:mm between 00:00 and 23:59.</string>
+    <string name="schedule_zone_invalid">Enter a valid time zone, e.g. Asia/Bangkok.</string>
+    <string name="schedule_end_invalid">End time must be later than start time.</string>
+    <string name="schedule_zone_hint">Venue time zone, e.g. Asia/Bangkok.</string>
+    <string name="schedule_time_hint">HH:mm</string>
+    <string name="schedule_dates_invalid">End date must be on or after the start date.</string>
 </resources>

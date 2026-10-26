@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTyp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeResult
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
+import com.theunderseer.simplio.feature.attendance.domain.model.InvalidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
@@ -30,6 +31,8 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStuden
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -49,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.getString
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
@@ -314,12 +318,13 @@ class AttendanceViewModel(
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
-                attendanceData.value =
-                    AttendanceDataState.Error(
-                        message =
-                        exception.message
-                            ?: "Failed to register student",
-                    )
+                attendanceData.value = AttendanceDataState.Error(
+                    message = if (exception is InvalidStudentName) {
+                        getString(Res.string.student_name_invalid)
+                    } else {
+                        exception.message ?: "Failed to register student"
+                    },
+                )
             }
         }
     }

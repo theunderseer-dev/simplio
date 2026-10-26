@@ -1,5 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.domain.model
 
+import com.theunderseer.simplio.shared.validation.isLineControl
+
 data class CreatePackageTypeRequest(
     val name: String,
     val totalClasses: Int,
@@ -26,7 +28,7 @@ fun displayPackageName(name: String): String = name.trim().split(Regex("\\s+")).
 fun normalizedPackageName(name: String): String = displayPackageName(name).lowercase()
 
 fun isValidPackageName(name: String): Boolean = displayPackageName(name).let {
-    it.isNotEmpty() && it.length <= MAX_PACKAGE_NAME_LENGTH && name.none(Char::isISOControl)
+    it.isNotEmpty() && it.length <= MAX_PACKAGE_NAME_LENGTH && name.none(::isLineControl)
 }
 
 const val MAX_PACKAGE_NAME_LENGTH = 80

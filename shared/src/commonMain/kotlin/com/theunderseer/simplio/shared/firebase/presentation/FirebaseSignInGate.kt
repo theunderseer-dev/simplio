@@ -30,10 +30,17 @@ import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
+import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
+import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
+import com.theunderseer.simplio.shared.resources.Res
+import com.theunderseer.simplio.shared.resources.sign_in_invalid_email
+import com.theunderseer.simplio.shared.validation.InputPolicy
+import com.theunderseer.simplio.shared.validation.isValidSignInEmail
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun FirebaseSignInGate(
@@ -43,7 +50,9 @@ fun FirebaseSignInGate(
 ) {
     val session by sessionManager.session.collectAsState()
     var verifiedUserId by remember { mutableStateOf<String?>(null) }
-    var email by remember { mutableStateOf("") }
+    val emailInput = rememberValidatedInput("", InputPolicy.Email)
+    val email = emailInput.text
+    val invalidEmail = email.isNotEmpty() && !isValidSignInEmail(email)
     var password by remember { mutableStateOf("") }
     var isSigningIn by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -83,13 +92,17 @@ fun FirebaseSignInGate(
                         style = MaterialTheme.typography.titleLarge,
                     )
 
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
+                    ValidatedOutlinedTextField(
+                        input = emailInput,
+                        isError = invalidEmail,
+                        supportingText = if (invalidEmail) {
+                            { Text(stringResource(Res.string.sign_in_invalid_email)) }
+                        } else {
+                            null
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isSigningIn,
                         label = { Text("Email") },
-                        singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                         ),
@@ -118,7 +131,8 @@ fun FirebaseSignInGate(
                     Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isSigningIn &&
-                            email.isNotBlank() &&
+                            isValidSignInEmail(email) &&
+                            !emailInput.rejectedEdit &&
                             password.isNotEmpty(),
                         onClick = {
                             if (!isSigningIn) {

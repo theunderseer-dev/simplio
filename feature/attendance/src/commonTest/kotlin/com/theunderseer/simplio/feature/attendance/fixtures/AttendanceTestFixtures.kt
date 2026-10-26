@@ -21,6 +21,8 @@ import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
 
 internal object AttendanceTestData {
+    val studentWithCompanionName = "Анна + 1 · ครู"
+    val unrestrictedNote = "Give 20 ฿ change + 1 bonus 😊 — นัดหมาย\nNext time: 09:00!"
     val studentNote = "Return 100 THB next time"
 
     val student = testStudent()
