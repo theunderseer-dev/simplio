@@ -14,7 +14,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -32,14 +31,21 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictChoice
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
+import com.theunderseer.simplio.feature.attendance.domain.model.MAX_GROUP_NAME_LENGTH
+import com.theunderseer.simplio.feature.attendance.domain.model.MAX_PACKAGE_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidPackageName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.group_name_conflict
+import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
 import com.theunderseer.simplio.feature.attendance.resources.package_name_conflict
 import com.theunderseer.simplio.feature.attendance.resources.package_rename
+import com.theunderseer.simplio.shared.presentation.input.ObserveInputFeedback
+import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
+import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
+import com.theunderseer.simplio.shared.validation.InputPolicy
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
@@ -54,7 +60,18 @@ fun SyncConflictReviewDialog(
     val ready = state as? ConflictReviewState.Ready
     val applying = ready?.isApplying == true
     var choices by remember(ready?.review?.id) { mutableStateOf(emptyMap<String, ConflictChoice>()) }
-    var renames by remember(ready?.review?.id) { mutableStateOf(emptyMap<String, String>()) }
+    val renameInputs = remember(ready?.review?.id) {
+        ready?.review?.items.orEmpty().filter { it.requiresRename }.associate { item ->
+            item.key to ValidatedInputState(
+                "",
+                InputPolicy.SingleLine(
+                    if (item.requiresPackageRename) MAX_PACKAGE_NAME_LENGTH else MAX_GROUP_NAME_LENGTH,
+                ),
+            )
+        }
+    }
+    renameInputs.values.forEach { ObserveInputFeedback(it) }
+    val renames = renameInputs.mapValues { it.value.text }
     Dialog(
         onDismissRequest = { if (!applying) onDismiss() },
         properties = DialogProperties(
@@ -117,11 +134,9 @@ fun SyncConflictReviewDialog(
                                                 item.unavailableNames.any {
                                                     normalizedGroupName(it) == normalizedGroupName(value)
                                                 }
-                                            OutlinedTextField(
-                                                value = value,
-                                                onValueChange = { renames = renames + (item.key to it) },
+                                            ValidatedOutlinedTextField(
+                                                input = renameInputs.getValue(item.key),
                                                 enabled = !applying,
-                                                singleLine = true,
                                                 label = {
                                                     Text(
                                                         if (item.requiresPackageRename) {
@@ -133,7 +148,18 @@ fun SyncConflictReviewDialog(
                                                         },
                                                     )
                                                 },
-                                                isError = duplicate,
+                                                isError =
+                                                duplicate ||
+                                                    (
+                                                        value.isNotEmpty() &&
+                                                            !(
+                                                                if (item.requiresPackageRename) {
+                                                                    isValidPackageName(value)
+                                                                } else {
+                                                                    isValidGroupName(value)
+                                                                }
+                                                                )
+                                                        ),
                                                 supportingText = {
                                                     if (duplicate) {
                                                         Text(
@@ -143,6 +169,16 @@ fun SyncConflictReviewDialog(
                                                                 "A group with this name already exists"
                                                             },
                                                         )
+                                                    } else if (value.isNotEmpty() &&
+                                                        !(
+                                                            if (item.requiresPackageRename) {
+                                                                isValidPackageName(value)
+                                                            } else {
+                                                                isValidGroupName(value)
+                                                            }
+                                                            )
+                                                    ) {
+                                                        Text(stringResource(Res.string.group_name_invalid))
                                                     }
                                                 },
                                                 modifier = Modifier.fillMaxWidth().testTag("rename-${item.key}"),
@@ -198,6 +234,7 @@ fun SyncConflictReviewDialog(
                                 }
                             },
                             enabled = !applying &&
+                                renameInputs.values.none { it.rejectedEdit } &&
                                 ready.review.items.all { item ->
                                     if (!item.requiresRename) {
                                         item.key in choices

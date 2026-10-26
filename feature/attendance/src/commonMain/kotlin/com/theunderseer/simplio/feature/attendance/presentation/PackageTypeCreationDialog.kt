@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.MAX_PACKAGE_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageTypeValidation
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedPackageName
@@ -53,6 +53,10 @@ import com.theunderseer.simplio.feature.attendance.resources.package_saving
 import com.theunderseer.simplio.feature.attendance.resources.package_two_hint
 import com.theunderseer.simplio.feature.attendance.resources.package_validity
 import com.theunderseer.simplio.feature.attendance.resources.package_validity_hint
+import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
+import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
+import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
+import com.theunderseer.simplio.shared.validation.InputPolicy
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -64,10 +68,14 @@ internal fun PackageTypeCreationDialog(
     onDismiss: () -> Unit,
     onClearError: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
-    var classes by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var weeks by remember { mutableStateOf("") }
+    val nameInput = rememberValidatedInput("", InputPolicy.SingleLine(MAX_PACKAGE_NAME_LENGTH), onClearError)
+    val classesInput = rememberValidatedInput("", InputPolicy.UnsignedInteger, onClearError)
+    val priceInput = rememberValidatedInput("", InputPolicy.UnsignedInteger, onClearError)
+    val weeksInput = rememberValidatedInput("", InputPolicy.UnsignedInteger, onClearError)
+    val name = nameInput.text
+    val classes = classesInput.text
+    val price = priceInput.text
+    val weeks = weeksInput.text
     var noExpiration by remember { mutableStateOf(false) }
     var allowTwo by remember { mutableStateOf(false) }
     val saving = state == CreatePackageTypeUiState.Saving
@@ -95,10 +103,12 @@ internal fun PackageTypeCreationDialog(
         allowTwo && count != null && count < 2 -> PackageTypeValidation.VISITS
         else -> null
     }
+    val remoteReason = (state as? CreatePackageTypeUiState.Invalid)?.reason
+    val duplicateName = duplicate || state == CreatePackageTypeUiState.DuplicateName
+    val invalidName = localError == PackageTypeValidation.NAME || remoteReason == PackageTypeValidation.NAME
     val message = when {
-        duplicate || state == CreatePackageTypeUiState.DuplicateName -> Res.string.package_duplicate_name
-        localError != null -> localError.messageResource()
-        state is CreatePackageTypeUiState.Invalid -> state.reason.messageResource()
+        localError == PackageTypeValidation.VISITS || remoteReason == PackageTypeValidation.VISITS ->
+            Res.string.package_invalid_visits
         state == CreatePackageTypeUiState.SaveFailed -> Res.string.package_save_failed
         else -> null
     }
@@ -111,35 +121,60 @@ internal fun PackageTypeCreationDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        onClearError()
-                    },
+                ValidatedOutlinedTextField(
+                    input = nameInput,
                     label = { Text(stringResource(Res.string.package_name)) },
-                    singleLine = true,
                     enabled = !saving,
-                    isError = duplicate || localError == PackageTypeValidation.NAME,
+                    isError = duplicateName || invalidName,
+                    supportingText = if (duplicateName || invalidName) {
+                        {
+                            Text(
+                                stringResource(
+                                    if (duplicateName) {
+                                        Res.string.package_duplicate_name
+                                    } else {
+                                        Res.string.package_invalid_name
+                                    },
+                                ),
+                            )
+                        }
+                    } else {
+                        null
+                    },
                     modifier = Modifier.fillMaxWidth().testTag("create-package-name"),
                 )
-                PackageNumberField(classes, Res.string.package_classes, "create-package-classes", saving) {
-                    classes = it
-                    onClearError()
-                }
-                PackageNumberField(price, Res.string.package_price, "create-package-price", saving) {
-                    price = it
-                    onClearError()
-                }
+                PackageNumberField(
+                    classesInput,
+                    Res.string.package_classes,
+                    "create-package-classes",
+                    saving,
+                    (classes.isNotEmpty() && (count == null || count <= 0)) ||
+                        remoteReason == PackageTypeValidation.CLASSES,
+                    Res.string.package_invalid_classes,
+                )
+                PackageNumberField(
+                    priceInput,
+                    Res.string.package_price,
+                    "create-package-price",
+                    saving,
+                    (price.isNotEmpty() && (amount == null || amount < 0)) ||
+                        remoteReason == PackageTypeValidation.PRICE,
+                    Res.string.package_invalid_price,
+                )
                 PackageOption(noExpiration, !saving, Res.string.package_no_expiration, "create-package-no-expiration") {
                     noExpiration = it
                     onClearError()
                 }
                 if (!noExpiration) {
-                    PackageNumberField(weeks, Res.string.package_validity, "create-package-weeks", saving) {
-                        weeks = it
-                        onClearError()
-                    }
+                    PackageNumberField(
+                        weeksInput,
+                        Res.string.package_validity,
+                        "create-package-weeks",
+                        saving,
+                        (weeks.isNotEmpty() && (validity == null || validity !in 1..(Int.MAX_VALUE / 7))) ||
+                            remoteReason == PackageTypeValidation.VALIDITY,
+                        Res.string.package_invalid_validity,
+                    )
                     Text(
                         stringResource(Res.string.package_validity_hint),
                         style = MaterialTheme.typography.bodySmall,
@@ -165,7 +200,13 @@ internal fun PackageTypeCreationDialog(
         confirmButton = {
             TextButton(
                 onClick = { request?.let(onConfirm) },
-                enabled = !saving && !duplicate && request != null && packageTypeValidation(request) == null,
+                enabled = !saving &&
+                    !duplicateName &&
+                    remoteReason == null &&
+                    request != null &&
+                    packageTypeValidation(request) == null &&
+                    listOf(nameInput, classesInput, priceInput).none { it.rejectedEdit } &&
+                    (noExpiration || !weeksInput.rejectedEdit),
                 modifier = Modifier.testTag("create-package-confirm"),
             ) {
                 Text(stringResource(if (saving) Res.string.package_saving else Res.string.package_create))
@@ -179,18 +220,23 @@ internal fun PackageTypeCreationDialog(
 
 @Composable
 private fun PackageNumberField(
-    value: String,
+    input: ValidatedInputState,
     label: StringResource,
     tag: String,
     saving: Boolean,
-    onChange: (String) -> Unit,
+    invalid: Boolean,
+    error: StringResource,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
+    ValidatedOutlinedTextField(
+        input = input,
         label = { Text(stringResource(label)) },
-        singleLine = true,
         enabled = !saving,
+        isError = invalid,
+        supportingText = if (invalid) {
+            { Text(stringResource(error)) }
+        } else {
+            null
+        },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.fillMaxWidth().testTag(tag),
     )
@@ -216,12 +262,4 @@ private fun PackageOption(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f),
         )
     }
-}
-
-private fun PackageTypeValidation.messageResource(): StringResource = when (this) {
-    PackageTypeValidation.NAME -> Res.string.package_invalid_name
-    PackageTypeValidation.CLASSES -> Res.string.package_invalid_classes
-    PackageTypeValidation.PRICE -> Res.string.package_invalid_price
-    PackageTypeValidation.VALIDITY -> Res.string.package_invalid_validity
-    PackageTypeValidation.VISITS -> Res.string.package_invalid_visits
 }

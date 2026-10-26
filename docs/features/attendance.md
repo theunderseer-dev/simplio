@@ -72,3 +72,8 @@ a nonnegative whole-unit price, optional validity in weeks and a one/two-credit 
 are assigned when registering a student or renewing a purchase. Without expiration, only actual attendance consumes
 credits; recurring schedule dates do not. See [custom package architecture](../architecture/custom-packages.md)
 for migration, synchronization and compatibility details.
+
+## Form input
+
+All editable forms follow [Input validation](../architecture/input-validation.md), including numeric filtering,
+name lengths, 24-hour schedule time, time-zone checks, paste rejection and sign-in input. Notes remain free text.

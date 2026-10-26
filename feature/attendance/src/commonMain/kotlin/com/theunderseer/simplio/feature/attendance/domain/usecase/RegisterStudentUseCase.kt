@@ -1,8 +1,10 @@
 package com.theunderseer.simplio.feature.attendance.domain.usecase
 
 import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
+import com.theunderseer.simplio.feature.attendance.domain.model.InvalidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import com.theunderseer.simplio.feature.attendance.domain.model.isValidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
@@ -22,6 +24,7 @@ class RegisterStudentUseCase(
         recordFirstAttendance: Boolean = true,
         note: String = "",
     ): RegisteredStudent = transactionRunner.run {
+        if (!isValidStudentName(fullName)) throw InvalidStudentName()
         if (recordFirstAttendance) {
             require(packageType.allowsVisitCount(visitCount)) {
                 "Visit count is not allowed for the selected package"
@@ -29,7 +32,7 @@ class RegisterStudentUseCase(
         }
 
         val student = studentRepository.create(
-            fullName = fullName,
+            fullName = fullName.trim(),
             groupId = groupId,
             note = note.trim(),
         )

@@ -1,0 +1,8 @@
+<resources>
+    <string name="input_digits_only">Use up to 10 digits (0–9). Value was not changed.</string>
+    <string name="input_single_line">Use up to %1$d characters on one line. Value was not changed.</string>
+    <string name="input_time_format">Use HH:mm, for example 09:00. Value was not changed.</string>
+    <string name="input_zone_characters">Use a time zone without spaces, up to 128 characters. Value was not changed.</string>
+    <string name="input_email_characters">Use an email without spaces, up to 254 characters. Value was not changed.</string>
+    <string name="sign_in_invalid_email">Enter an email address, e.g. name@example.com.</string>
+</resources>

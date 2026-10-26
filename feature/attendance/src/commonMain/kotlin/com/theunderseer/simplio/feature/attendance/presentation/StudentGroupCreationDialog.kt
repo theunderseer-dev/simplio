@@ -17,7 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -35,12 +34,25 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.MAX_GROUP_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.model.WeeklyClassSlot
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
 import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlap
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_dates_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_end_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_time_hint
+import com.theunderseer.simplio.feature.attendance.resources.schedule_time_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_hint
+import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_invalid
+import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
+import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
+import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
+import com.theunderseer.simplio.shared.validation.InputPolicy
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DayOfWeek
@@ -49,6 +61,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -62,15 +75,23 @@ internal fun StudentGroupCreationDialog(
     onCreate: (CreateStudentGroupRequest) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf("") }
+    val nameInput = rememberValidatedInput("", InputPolicy.SingleLine(MAX_GROUP_NAME_LENGTH))
+    val name = nameInput.text
     val eligible = schedules.filter { it.slots.groupBy { slot -> slot.dayOfWeek }.all { it.value.size == 1 } }
     var newSchedule by remember { mutableStateOf(eligible.isEmpty()) }
     var selectedId by remember { mutableStateOf(eligible.firstOrNull()?.id) }
     var expanded by remember { mutableStateOf(false) }
     var days by remember { mutableStateOf(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)) }
-    var startTime by remember { mutableStateOf("09:00") }
-    var endTime by remember { mutableStateOf("10:15") }
-    var zone by remember { mutableStateOf(TimeZone.currentSystemDefault().id) }
+    val startInput = rememberValidatedInput("09:00", InputPolicy.ClockTime)
+    val endInput = rememberValidatedInput("10:15", InputPolicy.ClockTime)
+    val zoneInput = rememberValidatedInput(TimeZone.currentSystemDefault().id, InputPolicy.TimeZone)
+    val startTime = startInput.text
+    val endTime = endInput.text
+    val zone = zoneInput.text
+    val parsedStart = parseScheduleTime(startTime)
+    val parsedEnd = parseScheduleTime(endTime)
+    val invalidZone = runCatching { TimeZone.of(zone) }.isFailure
+    val invalidOrder = parsedStart != null && parsedEnd != null && parsedEnd <= parsedStart
     var startDate by remember { mutableStateOf(today) }
     var endDate by remember { mutableStateOf<LocalDate?>(null) }
     var chooseDate by remember { mutableStateOf<String?>(null) }
@@ -79,7 +100,7 @@ internal fun StudentGroupCreationDialog(
     val scroll = rememberScrollState()
     val saving = state == CreateStudentGroupUiState.Saving
     val duplicate = name.isNotBlank() && groups.any { normalizedGroupName(it.name) == normalizedGroupName(name) }
-    val invalidName = name.isNotBlank() && !isValidGroupName(name)
+    val invalidName = name.isNotEmpty() && !isValidGroupName(name)
     val draft = if (newSchedule && isValidGroupName(name)) {
         runCatching {
             ClassSchedule(
@@ -89,7 +110,7 @@ internal fun StudentGroupCreationDialog(
                 startsOn = startDate,
                 endsOn = endDate,
                 slots = days.sortedBy { it.ordinal }.map {
-                    WeeklyClassSlot(it.name.lowercase(), it, LocalTime.parse(startTime), LocalTime.parse(endTime))
+                    WeeklyClassSlot(it.name.lowercase(), it, checkNotNull(parsedStart), checkNotNull(parsedEnd))
                 },
             )
         }.getOrNull()
@@ -109,6 +130,8 @@ internal fun StudentGroupCreationDialog(
     val canSave = !saving &&
         isValidGroupName(name) &&
         !duplicate &&
+        !nameInput.rejectedEdit &&
+        (!newSchedule || listOf(startInput, endInput, zoneInput).none { it.rejectedEdit }) &&
         !checking &&
         overlap == null &&
         (if (newSchedule) draft != null else selected != null)
@@ -125,11 +148,9 @@ internal fun StudentGroupCreationDialog(
                 modifier = Modifier.verticalScroll(scroll).testTag("group-form"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
+                ValidatedOutlinedTextField(
+                    input = nameInput,
                     enabled = !saving,
-                    singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("group-name"),
                     label = { Text("Group name") },
                     isError = duplicate || invalidName,
@@ -137,7 +158,7 @@ internal fun StudentGroupCreationDialog(
                         if (duplicate) {
                             Text("A group with this name already exists")
                         } else if (invalidName) {
-                            Text("Use 1–80 characters")
+                            Text(stringResource(Res.string.group_name_invalid))
                         }
                     },
                 )
@@ -206,30 +227,38 @@ internal fun StudentGroupCreationDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         ScheduleTimeField(
                             "Starts at",
-                            startTime,
+                            startInput,
                             !saving,
-                            { startTime = it },
+                            false,
                             { chooseTime = "start" },
                             Modifier.weight(1f),
                         )
                         ScheduleTimeField(
                             "Ends at",
-                            endTime,
+                            endInput,
                             !saving,
-                            { endTime = it },
+                            invalidOrder,
                             { chooseTime = "end" },
                             Modifier.weight(1f),
                         )
                     }
-                    OutlinedTextField(
-                        value = zone,
-                        onValueChange = { zone = it },
-                        singleLine = true,
+                    ValidatedOutlinedTextField(
+                        input = zoneInput,
                         enabled = !saving,
                         label = { Text("Time zone") },
                         modifier = Modifier.fillMaxWidth().testTag("group-time-zone"),
-                        isError = runCatching { TimeZone.of(zone.trim()) }.isFailure,
-                        supportingText = { Text("Venue time zone, e.g. Asia/Bangkok") },
+                        isError = invalidZone,
+                        supportingText = {
+                            Text(
+                                stringResource(
+                                    if (invalidZone) {
+                                        Res.string.schedule_zone_invalid
+                                    } else {
+                                        Res.string.schedule_zone_hint
+                                    },
+                                ),
+                            )
+                        },
                     )
                     TextButton(
                         onClick = { chooseDate = "start" },
@@ -247,8 +276,8 @@ internal fun StudentGroupCreationDialog(
                             TextButton(onClick = { chooseDate = "end" }, enabled = !saving) { Text(it.toString()) }
                         }
                     }
-                    if (draft == null && name.isNotBlank() && days.isNotEmpty()) {
-                        Text("Check times, time zone and dates", color = MaterialTheme.colorScheme.error)
+                    if (endDate?.let { it < startDate } == true) {
+                        Text(stringResource(Res.string.schedule_dates_invalid), color = MaterialTheme.colorScheme.error)
                     }
                     if (checking) {
                         Text("Checking schedule...", style = MaterialTheme.typography.bodySmall)
@@ -324,7 +353,7 @@ internal fun StudentGroupCreationDialog(
             confirmButton = {
                 TextButton(onClick = {
                     val value = LocalTime(picker.hour, picker.minute).toString()
-                    if (field == "start") startTime = value else endTime = value
+                    if (field == "start") startInput.replaceText(value) else endInput.replaceText(value)
                     chooseTime = null
                 }) { Text("OK") }
             },
@@ -338,20 +367,34 @@ private data class CheckedSchedule(val schedule: ClassSchedule, val overlap: Sch
 @Composable
 private fun ScheduleTimeField(
     label: String,
-    value: String,
+    input: ValidatedInputState,
     enabled: Boolean,
-    onChange: (String) -> Unit,
+    invalidOrder: Boolean,
     onChoose: () -> Unit,
     modifier: Modifier,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onChange,
-        singleLine = true,
+    val invalid = parseScheduleTime(input.text) == null
+    ValidatedOutlinedTextField(
+        input = input,
         enabled = enabled,
         modifier = modifier.testTag(label),
         label = { Text(label) },
-        supportingText = { Text("HH:mm") },
+        isError = invalid || invalidOrder,
+        supportingText = {
+            Text(
+                stringResource(
+                    if (invalidOrder &&
+                        !invalid
+                    ) {
+                        Res.string.schedule_end_invalid
+                    } else if (invalid) {
+                        Res.string.schedule_time_invalid
+                    } else {
+                        Res.string.schedule_time_hint
+                    },
+                ),
+            )
+        },
         trailingIcon = { TextButton(onClick = onChoose, enabled = enabled) { Text("Pick") } },
     )
 }
