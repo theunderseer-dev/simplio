@@ -44,6 +44,11 @@ internal fun mapCloudSnapshot(
         require(version != 3L || document.type in setOf(SyncEntityType.PACKAGE_TYPE, SyncEntityType.STUDENT_PACKAGE))
         require(document.type != SyncEntityType.CLASS_SCHEDULE || version == 2L)
         require("scheduleIds" !in document.fields || document.type == SyncEntityType.STUDENT_GROUP && version == 2L)
+        require(
+            "archivedAtEpochMillis" !in document.fields ||
+                document.type == SyncEntityType.CLASS_SCHEDULE &&
+                version == 2L,
+        )
         requireCloudId(document.text("lastMutationId"))
         document.deleted()
     }
@@ -90,6 +95,9 @@ internal fun mapCloudSnapshot(
                 schedulesById[scheduleId] = DefaultClassSchedule.schedule
             }
             require(scheduleId in schedulesById) { "Missing schedule parent" }
+            require(schedulesById.getValue(scheduleId).archivedAt == null) {
+                "A live group cannot use an archived schedule"
+            }
             StudentGroupScheduleEntity(id(SyncEntityType.STUDENT_GROUP, group.cloudId), scheduleId)
         }
     }

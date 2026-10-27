@@ -47,6 +47,9 @@ internal suspend fun scheduleFields(database: AttendanceDatabase, id: String): J
         put("timeZoneId", FirestoreUploadProtocol.string(schedule.timeZoneId))
         schedule.startsOn?.let { put("startsOnEpochDay", FirestoreUploadProtocol.integer(it.toEpochDays())) }
         schedule.endsOn?.let { put("endsOnEpochDay", FirestoreUploadProtocol.integer(it.toEpochDays())) }
+        schedule.archivedAt?.let {
+            put("archivedAtEpochMillis", FirestoreUploadProtocol.integer(it.toEpochMilliseconds()))
+        }
         put("slots", firestoreArray(slots))
     }
 }
@@ -73,5 +76,8 @@ internal fun AttendanceCloudDocument.toSchedule(): ClassSchedule {
         },
         startsOn = fields["startsOnEpochDay"]?.let { LocalDate.fromEpochDays(integer("startsOnEpochDay")) },
         endsOn = fields["endsOnEpochDay"]?.let { LocalDate.fromEpochDays(integer("endsOnEpochDay")) },
+        archivedAt = fields["archivedAtEpochMillis"]?.let {
+            kotlin.time.Instant.fromEpochMilliseconds(integer("archivedAtEpochMillis"))
+        },
     )
 }

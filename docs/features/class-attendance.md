@@ -38,7 +38,7 @@ Cancelled sessions reject ordinary student checks and registration/renewal that 
 
 - Room schema 14 adds class_session_states; migration 13→14 preserves existing tables and queued/frozen work. Historical schema JSON files are unchanged.
 - Firestore protocol 5 adds users/{uid}/classSessions/{sessionId}, with scheduleId, dateEpochDay and status, plus the existing schema/mutation metadata. Session IDs are stable across devices.
-- All devices sharing an account must upgrade before using this feature. Older readers reject protocol 5 rather than silently losing class decisions. Previously frozen protocol 1–4 uploads retain their original body and receipt recovery.
+- All devices sharing an account must upgrade before using this feature. The current protocol is 6 (including group deletion); older readers reject newer heads rather than silently losing class decisions. Previously frozen protocol 1–5 uploads retain their original body and receipt recovery.
 - A date's pending class decisions and attendance changes are selected as one upload unit, with required new student/purchase parents. Unrelated queued dates can be sent in subsequent batches. Student deletion dependencies expand the unit when necessary.
 - The existing limit of 400 business documents and 8 MiB per atomic upload remains. An oversized indivisible unit pauses with TOO_LARGE; the uploader never splits a decision from its attendance. Chunked class finalization is outside this MVP.
 - Full snapshot import validates session identity, schedule reference, status and absence of attendance for cancelled sessions before replacing local data. Pull never creates echo uploads.

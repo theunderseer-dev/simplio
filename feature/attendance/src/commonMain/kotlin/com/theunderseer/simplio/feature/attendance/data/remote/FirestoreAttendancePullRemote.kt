@@ -23,8 +23,11 @@ class FirestoreAttendancePullRemote(private val client: FirestoreRestClient) : A
             FirestoreUploadProtocol.HEAD_ID,
         )
         snapshot.document?.let { head ->
-            if (head.fields["protocolVersion"]?.jsonObject?.get("integerValue")?.jsonPrimitive?.content !in
-                setOf("1", "2", "3", "4", "5") ||
+            val protocol = head.fields["protocolVersion"]?.jsonObject?.get(
+                "integerValue",
+            )?.jsonPrimitive?.content?.toIntOrNull()
+            if (protocol == null ||
+                protocol !in 1..FirestoreUploadProtocol.CURRENT_VERSION ||
                 head.fields["batchId"]?.jsonObject?.get("stringValue")?.jsonPrimitive?.content.isNullOrBlank()
             ) {
                 throw FirestoreFailure(FirestoreFailureKind.INVALID_RESPONSE)

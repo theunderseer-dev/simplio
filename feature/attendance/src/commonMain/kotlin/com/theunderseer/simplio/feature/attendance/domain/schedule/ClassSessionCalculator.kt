@@ -15,7 +15,7 @@ fun ClassSchedule.sessionsBetween(from: LocalDate, through: LocalDate): List<Cla
     require(from <= through)
     require(through.toEpochDays() - from.toEpochDays() <= 3660) { "Request at most ten years at once" }
     val first = maxOf(from, startsOn ?: from)
-    val last = minOf(through, endsOn ?: through)
+    val last = minOf(through, endsOn ?: through, archivedAt?.toLocalDateTime(TimeZone.of(timeZoneId))?.date ?: through)
     if (first > last) return emptyList()
     val zone = TimeZone.of(timeZoneId)
     val sessions = mutableListOf<ClassSession>()
@@ -29,7 +29,7 @@ fun ClassSchedule.sessionsBetween(from: LocalDate, through: LocalDate): List<Cla
             // Nonexistent wall times during a DST gap do not silently become a different class time.
             // Overlaps use kotlinx-datetime's earlier offset consistently on every device.
             if (start.toLocalDateTime(zone) == localStart && end.toLocalDateTime(zone) == localEnd && start < end) {
-                sessions += ClassSession(id, slot.id, date, start, end)
+                if (archivedAt == null || start <= archivedAt) sessions += ClassSession(id, slot.id, date, start, end)
             }
         }
         if (date == last) break

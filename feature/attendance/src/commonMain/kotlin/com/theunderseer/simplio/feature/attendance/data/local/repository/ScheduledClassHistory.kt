@@ -49,7 +49,10 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
         )
             .groupBy { it.attendedOnEpochDay }
         val collectedDays = mutableListOf<List<ClassHistoryEntry>>()
-        val activeSchedules = schedules.filter { schedule -> links.any { it.scheduleId == schedule.id } }
+        val activeSchedules = schedules.filter { schedule ->
+            schedule.archivedAt != null ||
+                links.any { it.scheduleId == schedule.id }
+        }
         fun previousDate(bound: LocalDate): LocalDate? = (
             activeSchedules.mapNotNull { listOf(it).latestClassDate(minOf(bound, venueDates.getValue(it.id))) } +
                 recorded.keys.map(LocalDate::fromEpochDays).filter { it <= bound }

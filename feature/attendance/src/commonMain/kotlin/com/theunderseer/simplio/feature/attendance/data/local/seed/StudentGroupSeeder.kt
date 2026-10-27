@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.seed
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncJournal
+import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
 import com.theunderseer.simplio.feature.attendance.domain.model.DefaultStudentGroups
 
 class StudentGroupSeeder(private val database: AttendanceDatabase) {
@@ -17,7 +18,10 @@ class StudentGroupSeeder(private val database: AttendanceDatabase) {
                     .toSet()
 
             defaultStudentGroups
-                .filterNot { it.id in existingIds }
+                .filterNot {
+                    it.id in existingIds ||
+                        database.syncDao().getRecord(SyncEntityType.STUDENT_GROUP, it.id.toString())?.isDeleted == true
+                }
                 .forEach { group ->
                     studentGroupDao.insert(group)
                 }

@@ -88,10 +88,13 @@ fun AttendanceScreen(
     onCreatePackageType: (CreatePackageTypeRequest) -> Unit,
     onClearCreatePackageTypeState: () -> Unit,
     classAttendanceCallbacks: ClassAttendanceCallbacks,
+    onDeleteStudentGroup: (Int) -> Unit,
+    onClearDeleteStudentGroupState: () -> Unit,
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
     onClearCreateStudentGroupState: () -> Unit = {},
 ) {
     var showPackageDialog by remember { mutableStateOf(false) }
+    var showManageGroups by remember { mutableStateOf(false) }
     var showGroupDialog by remember { mutableStateOf(false) }
 
     var showRegistrationDialog by remember {
@@ -125,6 +128,17 @@ fun AttendanceScreen(
                 onCreatePackageType,
                 onClearCreatePackageTypeState,
             )
+            if (showManageGroups) {
+                StudentGroupManagementDialog(
+                    state,
+                    onDeleteStudentGroup,
+                    onClearDeleteStudentGroupState,
+                    {
+                        onClearDeleteStudentGroupState()
+                        showManageGroups = false
+                    },
+                )
+            }
             val markState = state.markStudentPresentState
             val removeState = state.removeStudentAttendanceState
             val noteState = state.updateStudentNoteState
@@ -188,6 +202,10 @@ fun AttendanceScreen(
                     onAddPackageClick = {
                         onClearCreatePackageTypeState()
                         showPackageDialog = true
+                    },
+                    onManageGroupsClick = {
+                        onClearDeleteStudentGroupState()
+                        showManageGroups = true
                     },
                     onAddGroupClick = {
                         onClearCreateStudentGroupState()
@@ -510,6 +528,7 @@ private fun AttendanceContent(
     onTrackClassAttendance: (String) -> Unit,
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
+    onManageGroupsClick: () -> Unit,
     onAddPackageClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,
@@ -668,8 +687,15 @@ private fun AttendanceContent(
                 Button(onClick = onAddStudentClick) {
                     Text("Add Student")
                 }
-                OutlinedButton(onClick = onAddGroupClick) { Text("Add Group") }
-                OutlinedButton(onClick = onAddPackageClick) { Text(stringResource(Res.string.add_package)) }
+                OutlinedButton(onClick = onAddGroupClick) {
+                    Text("Add Group")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(onClick = onAddPackageClick) {
+                        Text(stringResource(Res.string.add_package))
+                    }
+                    StudentGroupOptions(onManageGroupsClick)
+                }
             }
         }
 

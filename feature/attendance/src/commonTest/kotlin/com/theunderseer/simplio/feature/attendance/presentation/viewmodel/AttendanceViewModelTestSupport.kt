@@ -5,10 +5,13 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
+import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupDeletionRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
 import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
@@ -80,6 +83,9 @@ internal fun createViewModel(
     packageCatalog: FakePackageTypeRepository = FakePackageTypeRepository(packageTypes),
     createPackageTypeUseCase: CreatePackageTypeUseCase = CreatePackageTypeUseCase(packageCatalog),
     studentGroups: List<StudentGroup> = testStudentGroups(),
+    groupDeletionRepository: StudentGroupDeletionRepository = object : StudentGroupDeletionRepository {
+        override suspend fun delete(groupId: Int) = DeleteStudentGroupResult.DELETED
+    },
     currentDates: Flow<LocalDate> = flowOf(AttendanceTestData.currentDate),
     localChanges: Flow<Unit> = flowOf(Unit),
     createStudentGroupUseCase: CreateStudentGroupUseCase? = null,
@@ -99,6 +105,7 @@ internal fun createViewModel(
         transactionRunner = FakeTransactionRunner(),
     ),
 ): AttendanceViewModel = AttendanceViewModel(
+    deleteStudentGroupUseCase = DeleteStudentGroupUseCase(groupDeletionRepository),
     classAttendanceRepository = classAttendanceRepository,
     classStudentActions = ClassStudentActionsUseCase(
         classAttendanceRepository,

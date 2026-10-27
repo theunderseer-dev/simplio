@@ -14,6 +14,7 @@ internal fun ClassSchedule.toEntity() = ClassScheduleEntity(
     timeZoneId,
     startsOn?.toEpochDays(),
     endsOn?.toEpochDays(),
+    archivedAt?.toEpochMilliseconds(),
 )
 
 internal fun ClassSchedule.slotEntities(): List<ClassScheduleSlotEntity> = slots.map {
@@ -41,4 +42,5 @@ internal fun ClassScheduleEntity.toDomain(slots: List<ClassScheduleSlotEntity>):
     },
     startsOnEpochDay?.let(LocalDate::fromEpochDays),
     endsOnEpochDay?.let(LocalDate::fromEpochDays),
+    archivedAtEpochMillis?.let(kotlin.time.Instant::fromEpochMilliseconds),
 )

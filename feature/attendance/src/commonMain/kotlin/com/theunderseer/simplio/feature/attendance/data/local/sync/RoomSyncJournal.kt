@@ -28,6 +28,8 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
         if (existing == null) ensureSchedule(id) else change(existing, deleted = false)
     }
 
+    suspend fun deleteGroup(id: Int) = change(ensureGroup(id), deleted = true)
+
     suspend fun upsertGroup(id: Int) {
         val existing = dao.getRecord(SyncEntityType.STUDENT_GROUP, id.toString())
         if (existing == null) ensureGroup(id) else change(existing, deleted = false)

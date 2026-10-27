@@ -33,6 +33,8 @@ data class SyncConflictItem(
     val unavailablePackageNames: List<String> = emptyList(),
     val deviceClasses: List<SyncClassSessionSummary> = emptyList(),
     val cloudClasses: List<SyncClassSessionSummary> = emptyList(),
+    val deviceChoiceAllowed: Boolean = true,
+    val cloudChoiceAllowed: Boolean = true,
 ) {
     val requiresRename: Boolean get() = requiresGroupRename || requiresPackageRename
     val unavailableNames: List<String>

@@ -38,8 +38,8 @@ class FirestoreScheduleProtocolTest {
     private val headers = headersOf("Content-Type", "application/json")
 
     @Test
-    fun `head accepts versions one through five and rejects unknown protocol before reading data`() = runTest {
-        listOf(1, 2, 3, 4, 5, 6).forEach { protocol ->
+    fun `head accepts versions one through six and rejects unknown protocol before reading data`() = runTest {
+        listOf(1, 2, 3, 4, 5, 6, 7).forEach { protocol ->
             withClient(
                 MockEngine {
                     respond(
@@ -72,7 +72,7 @@ class FirestoreScheduleProtocolTest {
                 },
             ) { client ->
                 val remote = FirestoreAttendancePullRemote(client)
-                if (protocol <= 5) {
+                if (protocol <= 6) {
                     assertEquals(version, remote.readHead().updateTime)
                 } else {
                     assertEquals(

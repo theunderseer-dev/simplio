@@ -10,6 +10,7 @@ import kotlin.time.Instant
 
 /** Each schedule keeps its own tracking window, including multiple slots on the same date. */
 fun ClassSchedule.latestStartedClass(now: Instant): ClassSession? {
+    if (archivedAt != null) return null
     val upper = minOf(
         now.toLocalDateTime(TimeZone.of(timeZoneId)).date,
         endsOn ?: now.toLocalDateTime(

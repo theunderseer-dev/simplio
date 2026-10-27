@@ -18,7 +18,8 @@ data class ScheduleOverlap(
 )
 
 suspend fun findScheduleOverlap(candidate: ClassSchedule, existing: List<ClassSchedule>): ScheduleOverlap? {
-    for (other in existing) {
+    if (candidate.archivedAt != null) return null
+    for (other in existing.filter { it.archivedAt == null }) {
         if (candidate.id == other.id) continue
         currentCoroutineContext().ensureActive()
         // Within one zone, disjoint wall-time intervals cannot collide, including across DST changes.

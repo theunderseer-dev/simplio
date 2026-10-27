@@ -12,6 +12,7 @@ data class ClassScheduleEntity(
     val timeZoneId: String,
     val startsOnEpochDay: Long?,
     val endsOnEpochDay: Long?,
+    val archivedAtEpochMillis: Long? = null,
 )
 
 @Entity(
