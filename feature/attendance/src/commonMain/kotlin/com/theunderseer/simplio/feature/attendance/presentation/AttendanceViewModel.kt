@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceFailure
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceSheet
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeResult
@@ -22,6 +23,7 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverl
 import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlaps
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
@@ -73,6 +75,7 @@ class AttendanceViewModel(
     private val renewStudentPackageUseCase: RenewStudentPackageUseCase,
     private val updateStudentNoteUseCase: UpdateStudentNoteUseCase,
     private val classAttendanceRepository: ClassAttendanceRepository,
+    private val classStudentActions: ClassStudentActionsUseCase,
     private val currentDates: Flow<LocalDate>,
     private val transactionRunner: TransactionRunner,
     private val localChanges: Flow<Unit>,
@@ -232,7 +235,8 @@ class AttendanceViewModel(
     }
 
     fun openClassAttendance(sessionId: String) {
-        if ((classAttendanceState.value as? ClassAttendanceUiState.Content)?.isSaving == true) return
+        val current = classAttendanceState.value as? ClassAttendanceUiState.Content
+        if (current?.isSaving == true || current?.studentAction != null) return
         classAttendanceJob?.cancel()
         classAttendanceState.value = ClassAttendanceUiState.Loading
         classAttendanceJob = viewModelScope.launch {
@@ -247,14 +251,15 @@ class AttendanceViewModel(
     }
 
     fun closeClassAttendance() {
-        if ((classAttendanceState.value as? ClassAttendanceUiState.Content)?.isSaving == true) return
+        val current = classAttendanceState.value as? ClassAttendanceUiState.Content
+        if (current?.isSaving == true || current?.studentAction != null) return
         classAttendanceJob?.cancel()
         classAttendanceState.value = ClassAttendanceUiState.Closed
     }
 
     fun saveClassAttendance(visitsByStudent: Map<Int, Int>, cancel: Boolean) {
         val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
-        if (content.isSaving) return
+        if (content.isSaving || content.studentAction != null) return
         classAttendanceState.value = content.copy(isSaving = true, problem = null, saveFailed = false)
         classAttendanceJob = viewModelScope.launch {
             try {
@@ -280,6 +285,109 @@ class AttendanceViewModel(
         }
     }
 
+    fun selectClassAttendance(studentId: Int, count: Int) {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        classAttendanceState.value = content.withVisit(studentId, count)
+    }
+
+    fun addStudentToClass() = beginClassStudentAction(ClassStudentActionKind.REGISTER, null)
+
+    fun renewStudentInClass(studentId: Int) = beginClassStudentAction(ClassStudentActionKind.RENEW, studentId)
+
+    private fun beginClassStudentAction(kind: ClassStudentActionKind, studentId: Int?) {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        if (content.isSaving || content.studentAction != null) return
+        if (kind == ClassStudentActionKind.RENEW &&
+            content.sheet.rows.none { it.student.id == studentId && it.canRenew }
+        ) {
+            return
+        }
+        classAttendanceState.value = content.copy(studentAction = ClassStudentAction(kind, studentId))
+    }
+
+    fun dismissClassStudentAction() {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        if (content.studentAction?.isSaving == true ||
+            packageCreationState.value == CreatePackageTypeUiState.Saving
+        ) {
+            return
+        }
+        classAttendanceState.value = content.copy(studentAction = null)
+    }
+
+    fun showClassPackageCreation(show: Boolean) {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        val action = content.studentAction ?: return
+        if (action.isSaving || packageCreationState.value == CreatePackageTypeUiState.Saving) return
+        clearCreatePackageTypeState()
+        classAttendanceState.value = content.copy(studentAction = action.copy(creatingPackage = show))
+    }
+
+    fun registerStudentInClass(
+        fullName: String,
+        groupId: Int,
+        packageType: PackageType,
+        visitCount: Int,
+        recordFirstAttendance: Boolean,
+        note: String,
+    ) = saveClassStudent(ClassStudentActionKind.REGISTER) { content ->
+        classStudentActions.register(
+            content.sheet,
+            fullName,
+            groupId,
+            packageType,
+            visitCount,
+            recordFirstAttendance,
+            note,
+        )
+    }
+
+    fun renewPackageInClass(packageType: PackageType, visitCount: Int, recordFirstAttendance: Boolean, note: String) =
+        saveClassStudent(ClassStudentActionKind.RENEW) { content ->
+            classStudentActions.renew(
+                content.sheet,
+                checkNotNull(content.studentAction?.studentId),
+                packageType,
+                visitCount,
+                recordFirstAttendance,
+                note,
+            )
+        }
+
+    private fun saveClassStudent(
+        kind: ClassStudentActionKind,
+        save: suspend (ClassAttendanceUiState.Content) -> ClassAttendanceSheet,
+    ) {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        val action = content.studentAction ?: return
+        if (content.isSaving || action.kind != kind || action.isSaving || action.creatingPackage) return
+        classAttendanceState.value =
+            content.copy(studentAction = action.copy(isSaving = true, problem = null, saveFailed = false))
+        classAttendanceJob = viewModelScope.launch {
+            val updated = try {
+                save(content)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: ClassAttendanceFailure) {
+                classAttendanceState.value = content.copy(studentAction = action.copy(problem = error.problem))
+                return@launch
+            } catch (error: Exception) {
+                classAttendanceState.value = content.copy(studentAction = action.copy(saveFailed = true))
+                return@launch
+            }
+            classAttendanceState.value = content.afterStudentSave(updated)
+            // The mutation already committed; a failed refresh must not offer to submit it again.
+            try {
+                refreshAttendance()
+                loadClassHistory()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Room observers or the next refresh will update the main screen.
+            }
+        }
+    }
+
     fun createPackageType(request: CreatePackageTypeRequest) {
         if (packageCreationState.value == CreatePackageTypeUiState.Saving) return
         packageCreationState.value = CreatePackageTypeUiState.Saving
@@ -288,6 +396,16 @@ class AttendanceViewModel(
                 when (val result = createPackageTypeUseCase(request)) {
                     is CreatePackageTypeResult.Success -> {
                         refreshAttendance()
+                        val classContent = classAttendanceState.value as? ClassAttendanceUiState.Content
+                        val action = classContent?.studentAction
+                        if (classContent != null && action?.creatingPackage == true) {
+                            classAttendanceState.value = classContent.copy(
+                                studentAction = action.copy(
+                                    creatingPackage = false,
+                                    preferredPackageTypeId = result.packageType.id,
+                                ),
+                            )
+                        }
                         packageCreationState.value = CreatePackageTypeUiState.Success(result.packageType.name)
                     }
                     CreatePackageTypeResult.DuplicateName -> {

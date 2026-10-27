@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,6 +51,8 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.isRegistratio
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestRegistrationClassDate
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestScheduledClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.class_add_package
+import com.theunderseer.simplio.feature.attendance.resources.class_student_save_hint
 import com.theunderseer.simplio.feature.attendance.resources.package_valid_until
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -77,6 +80,10 @@ internal fun StudentPackageDialog(
     errorMessage: String? = null,
     canSubmit: Boolean = true,
     schedules: List<ClassSchedule>? = null,
+    fixedDate: LocalDate? = null,
+    visible: Boolean = true,
+    preferredPackageTypeId: Int? = null,
+    onCreatePackage: (() -> Unit)? = null,
     studentFields: @Composable () -> Unit,
     onConfirm: (PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
@@ -85,16 +92,17 @@ internal fun StudentPackageDialog(
     val formScrollState = rememberScrollState()
     val hasMoreFields by remember { derivedStateOf { formScrollState.canScrollForward } }
 
-    var selectedPackage by remember(packageTypes, initialPackageTypeId) {
+    var selectedPackageId by remember(initialPackageTypeId) {
         mutableStateOf(
-            if (initialPackageTypeId != null) {
-                packageTypes.firstOrNull { it.id == initialPackageTypeId } ?: packageTypes.firstOrNull()
-            } else {
-                packageTypes.firstOrNull { it.totalClasses == 4 && it.maxVisitsPerAttendance == 1 }
-                    ?: packageTypes.firstOrNull()
-            },
+            packageTypes.firstOrNull { it.id == initialPackageTypeId }?.id ?: packageTypes.firstOrNull {
+                it.totalClasses == 4 && it.maxVisitsPerAttendance == 1
+            }?.id ?: packageTypes.firstOrNull()?.id,
         )
     }
+    LaunchedEffect(preferredPackageTypeId) {
+        if (preferredPackageTypeId != null) selectedPackageId = preferredPackageTypeId
+    }
+    val selectedPackage = packageTypes.firstOrNull { it.id == selectedPackageId }
 
     var wantsFirstAttendance by remember {
         mutableStateOf(true)
@@ -113,8 +121,8 @@ internal fun StudentPackageDialog(
         mutableStateOf(false)
     }
 
-    var selectedDate by remember(initialDate, earliestDate, schedules) {
-        mutableStateOf(initialPackagePurchaseDate(initialDate, earliestDate, schedules))
+    var selectedDate by remember(initialDate, earliestDate, schedules, fixedDate) {
+        mutableStateOf(fixedDate ?: initialPackagePurchaseDate(initialDate, earliestDate, schedules))
     }
 
     val attendanceAlreadyRecorded = selectedDate?.let { it in recordedAttendanceDates } == true
@@ -133,250 +141,266 @@ internal fun StudentPackageDialog(
             null
         }
 
-    AlertDialog(
-        onDismissRequest = { if (!isSaving) onDismiss() },
-        title = {
-            Column {
-                Text(title)
-                if (hasMoreFields) {
-                    Text(
-                        text = "Scroll for more",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    )
+    if (visible) {
+        AlertDialog(
+            onDismissRequest = { if (!isSaving) onDismiss() },
+            title = {
+                Column {
+                    Text(title)
+                    if (hasMoreFields) {
+                        Text(
+                            text = "Scroll for more",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        )
+                    }
                 }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(formScrollState),
-            ) {
-                studentFields()
-
-                Box {
-                    OutlinedTextField(
-                        enabled = !isSaving,
-                        value = selectedDate?.toDisplayDate().orEmpty(),
-                        supportingText = if (selectedDate == null) {
-                            { Text("No scheduled dates available yet") }
-                        } else {
-                            null
-                        },
-                        onValueChange = {},
-                        readOnly = true,
-                        label = {
-                            Text(dateLabel)
-                        },
-                    )
-
-                    Box(
-                        modifier =
-                        Modifier
-                            .matchParentSize()
-                            .clickable(enabled = !isSaving) {
-                                showDatePicker = true
-                            }
-                            .semantics {
-                                contentDescription = dateLabel
-                            },
-                    )
-                }
-
-                ExposedDropdownMenuBox(
-                    expanded = isPackageMenuExpanded,
-                    onExpandedChange = {
-                        if (!isSaving) isPackageMenuExpanded = it
-                    },
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(formScrollState),
                 ) {
-                    OutlinedTextField(
-                        enabled = !isSaving,
-                        value = selectedPackage?.name.orEmpty(),
-                        onValueChange = {},
-                        readOnly = true,
-                        singleLine = true,
-                        label = {
-                            Text("Package")
+                    if (fixedDate != null) {
+                        Text(
+                            stringResource(Res.string.class_student_save_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    studentFields()
+
+                    Box {
+                        OutlinedTextField(
+                            enabled = !isSaving,
+                            value = selectedDate?.toDisplayDate().orEmpty(),
+                            supportingText = if (selectedDate == null) {
+                                { Text("No scheduled dates available yet") }
+                            } else {
+                                null
+                            },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = {
+                                Text(dateLabel)
+                            },
+                        )
+
+                        Box(
+                            modifier =
+                            Modifier
+                                .matchParentSize()
+                                .clickable(enabled = !isSaving && fixedDate == null) {
+                                    showDatePicker = true
+                                }
+                                .semantics {
+                                    contentDescription = dateLabel
+                                },
+                        )
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = isPackageMenuExpanded,
+                        onExpandedChange = {
+                            if (!isSaving) isPackageMenuExpanded = it
                         },
-                        supportingText =
-                        if (packageExpirationDate != null) {
-                            {
-                                Text(
-                                    text = stringResource(
-                                        Res.string.package_valid_until,
-                                        packageExpirationDate.toDisplayDate(),
-                                        packageExpirationDate.year.toString(),
-                                    ),
+                    ) {
+                        OutlinedTextField(
+                            enabled = !isSaving,
+                            value = selectedPackage?.name.orEmpty(),
+                            onValueChange = {},
+                            readOnly = true,
+                            singleLine = true,
+                            label = {
+                                Text("Package")
+                            },
+                            supportingText =
+                            if (packageExpirationDate != null) {
+                                {
+                                    Text(
+                                        text = stringResource(
+                                            Res.string.package_valid_until,
+                                            packageExpirationDate.toDisplayDate(),
+                                            packageExpirationDate.year.toString(),
+                                        ),
+                                    )
+                                }
+                            } else {
+                                null
+                            },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(
+                                    expanded = isPackageMenuExpanded,
+                                )
+                            },
+                            modifier =
+                            Modifier.testTag("package-purchase-package").menuAnchor(
+                                type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                enabled = packageTypes.isNotEmpty() && !isSaving,
+                            ),
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = isPackageMenuExpanded,
+                            onDismissRequest = {
+                                isPackageMenuExpanded = false
+                            },
+                        ) {
+                            packageTypes.forEach { packageType ->
+                                DropdownMenuItem(
+                                    enabled = !isSaving,
+                                    text = {
+                                        Text(packageType.name)
+                                    },
+                                    onClick = {
+                                        selectedPackageId = packageType.id
+                                        isPackageMenuExpanded = false
+                                    },
                                 )
                             }
-                        } else {
-                            null
-                        },
-                        trailingIcon = {
-                            ExposedDropdownMenuDefaults.TrailingIcon(
-                                expanded = isPackageMenuExpanded,
-                            )
-                        },
-                        modifier =
-                        Modifier.testTag("package-purchase-package").menuAnchor(
-                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
-                            enabled = packageTypes.isNotEmpty() && !isSaving,
-                        ),
-                    )
-
-                    ExposedDropdownMenu(
-                        expanded = isPackageMenuExpanded,
-                        onDismissRequest = {
-                            isPackageMenuExpanded = false
-                        },
-                    ) {
-                        packageTypes.forEach { packageType ->
-                            DropdownMenuItem(
-                                enabled = !isSaving,
-                                text = {
-                                    Text(packageType.name)
-                                },
-                                onClick = {
-                                    selectedPackage = packageType
-                                    isPackageMenuExpanded = false
-                                },
-                            )
                         }
                     }
-                }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 48.dp)
-                        .toggleable(
-                            value = recordFirstAttendance,
+                    if (onCreatePackage != null) {
+                        TextButton(onClick = onCreatePackage, enabled = !isSaving) {
+                            Text(stringResource(Res.string.class_add_package))
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .toggleable(
+                                value = recordFirstAttendance,
+                                enabled = !isSaving && !attendanceAlreadyRecorded,
+                                role = Role.Checkbox,
+                                onValueChange = {
+                                    wantsFirstAttendance = it
+                                },
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = recordFirstAttendance,
                             enabled = !isSaving && !attendanceAlreadyRecorded,
-                            role = Role.Checkbox,
-                            onValueChange = {
-                                wantsFirstAttendance = it
-                            },
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Checkbox(
-                        checked = recordFirstAttendance,
-                        enabled = !isSaving && !attendanceAlreadyRecorded,
-                        onCheckedChange = null,
-                    )
+                            onCheckedChange = null,
+                        )
 
-                    Text(
-                        text = "Record first attendance",
-                        modifier = Modifier.padding(start = 12.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(
-                            alpha = if (isSaving || attendanceAlreadyRecorded) 0.38f else 1f,
-                        ),
-                    )
-                }
+                        Text(
+                            text = "Record first attendance",
+                            modifier = Modifier.padding(start = 12.dp),
+                            color = MaterialTheme.colorScheme.onSurface.copy(
+                                alpha = if (isSaving || attendanceAlreadyRecorded) 0.38f else 1f,
+                            ),
+                        )
+                    }
 
-                if (attendanceAlreadyRecorded) {
-                    Text(
-                        "Attendance already recorded for this date. Renew without adding a visit",
-                        modifier = Modifier.offset(y = (-2).dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.warning,
-                    )
-                }
+                    if (attendanceAlreadyRecorded) {
+                        Text(
+                            "Attendance already recorded for this date. Renew without adding a visit",
+                            modifier = Modifier.offset(y = (-2).dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.warning,
+                        )
+                    }
 
-                if (isPairedPackage && recordFirstAttendance) {
-                    Column(
-                        modifier = Modifier.padding(top = 16.dp),
-                    ) {
-                        Text("People attending")
-
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .heightIn(min = 48.dp),
+                    if (isPairedPackage && recordFirstAttendance) {
+                        Column(
+                            modifier = Modifier.padding(top = 16.dp),
                         ) {
-                            SegmentedButton(
-                                enabled = !isSaving,
-                                selected = selectedVisitCount == 1,
-                                onClick = {
-                                    selectedVisitCount = 1
-                                },
-                                shape =
-                                SegmentedButtonDefaults.itemShape(
-                                    index = 0,
-                                    count = 2,
-                                ),
-                            ) {
-                                Text("1 person")
-                            }
+                            Text("People attending")
 
-                            SegmentedButton(
-                                enabled = !isSaving,
-                                selected = selectedVisitCount == 2,
-                                onClick = {
-                                    selectedVisitCount = 2
-                                },
-                                shape =
-                                SegmentedButtonDefaults.itemShape(
-                                    index = 1,
-                                    count = 2,
-                                ),
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp)
+                                    .heightIn(min = 48.dp),
                             ) {
-                                Text("2 people")
+                                SegmentedButton(
+                                    enabled = !isSaving,
+                                    selected = selectedVisitCount == 1,
+                                    onClick = {
+                                        selectedVisitCount = 1
+                                    },
+                                    shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = 0,
+                                        count = 2,
+                                    ),
+                                ) {
+                                    Text("1 person")
+                                }
+
+                                SegmentedButton(
+                                    enabled = !isSaving,
+                                    selected = selectedVisitCount == 2,
+                                    onClick = {
+                                        selectedVisitCount = 2
+                                    },
+                                    shape =
+                                    SegmentedButtonDefaults.itemShape(
+                                        index = 1,
+                                        count = 2,
+                                    ),
+                                ) {
+                                    Text("2 people")
+                                }
                             }
                         }
                     }
-                }
 
-                OutlinedTextField(
-                    value = note,
-                    enabled = !isSaving,
-                    onValueChange = { note = it },
-                    label = { Text("Note (optional)") },
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = if (attendanceAlreadyRecorded) 12.dp else 8.dp)
-                        .testTag("registration-note"),
-                )
-
-                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled =
-                !isSaving &&
-                    canSubmit &&
-                    selectedPackage != null &&
-                    selectedDate?.let { isPackagePurchaseDateSelectable(it, initialDate, earliestDate, schedules) } ==
-                    true &&
-                    (!recordFirstAttendance || checkNotNull(selectedPackage).allowsVisitCount(selectedVisitCount)),
-                onClick = {
-                    onConfirm(
-                        checkNotNull(selectedPackage),
-                        checkNotNull(selectedDate),
-                        selectedVisitCount,
-                        recordFirstAttendance,
-                        note.trim(),
+                    OutlinedTextField(
+                        value = note,
+                        enabled = !isSaving,
+                        onValueChange = { note = it },
+                        label = { Text("Note (optional)") },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = if (attendanceAlreadyRecorded) 12.dp else 8.dp)
+                            .testTag("registration-note"),
                     )
-                },
-            ) {
-                Text(if (isSaving) "Saving..." else confirmLabel)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                enabled = !isSaving,
-                onClick = onDismiss,
-            ) {
-                Text("Cancel")
-            }
-        },
-    )
 
-    if (showDatePicker) {
+                    errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                Button(
+                    enabled =
+                    !isSaving &&
+                        canSubmit &&
+                        selectedPackage != null &&
+                        selectedDate?.let {
+                            isPackagePurchaseDateSelectable(it, initialDate, earliestDate, schedules)
+                        } ==
+                        true &&
+                        (!recordFirstAttendance || checkNotNull(selectedPackage).allowsVisitCount(selectedVisitCount)),
+                    onClick = {
+                        onConfirm(
+                            checkNotNull(selectedPackage),
+                            checkNotNull(selectedDate),
+                            selectedVisitCount,
+                            recordFirstAttendance,
+                            note.trim(),
+                        )
+                    },
+                ) {
+                    Text(if (isSaving) "Saving..." else confirmLabel)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !isSaving,
+                    onClick = onDismiss,
+                ) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
+    if (visible && showDatePicker && fixedDate == null) {
         val selectableDates =
             remember(initialDate, earliestDate, schedules) {
                 object : SelectableDates {
