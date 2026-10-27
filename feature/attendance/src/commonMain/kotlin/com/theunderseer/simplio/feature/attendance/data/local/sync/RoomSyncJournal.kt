@@ -12,6 +12,12 @@ import kotlin.uuid.Uuid
 internal class RoomSyncJournal private constructor(private val database: AttendanceDatabase) {
     private val dao = database.syncDao()
 
+    suspend fun ensureClassSession(id: String): SyncRecordEntity {
+        val state = checkNotNull(database.classSessionStateDao().get(id))
+        ensureSchedule(state.scheduleId)
+        return ensure(SyncEntityType.CLASS_SESSION, id, "CLASS_SESSION:$id", id)
+    }
+
     suspend fun ensureSchedule(id: String): SyncRecordEntity {
         check(database.classScheduleDao().schedules().any { it.id == id })
         return ensure(SyncEntityType.CLASS_SCHEDULE, id, "CLASS_SCHEDULE:$id", id)

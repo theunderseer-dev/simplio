@@ -32,6 +32,11 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
         uploadDao.getBatch()?.let { return@run it }
         val syncDao = database.syncDao()
         val pending = syncDao.getPendingCatalog(MAX_DOCUMENTS).ifEmpty {
+            if (syncDao.hasPendingClassSessions()) {
+                val all = syncDao.getPending(50_001)
+                if (all.size > 50_000) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+                return@ifEmpty classUploadUnit(database, all)
+            }
             val key = syncDao.getNextAggregateKey() ?: return@run null
             check(key.isNotBlank())
             syncDao.getPendingAggregate(key, MAX_DOCUMENTS + 1)
@@ -130,6 +135,23 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                     }
                 }
                 SyncEntityType.CLASS_SCHEDULE -> scheduleFields(database, change.localId)
+                SyncEntityType.CLASS_SESSION -> {
+                    val row = checkNotNull(database.classSessionStateDao().get(change.localId))
+                    val schedule =
+                        checkNotNull(database.syncDao().getRecord(SyncEntityType.CLASS_SCHEDULE, row.scheduleId))
+                    check(
+                        !schedule.isDeleted &&
+                            (
+                                schedule.acknowledgedRevision > 0 ||
+                                    SyncEntityType.CLASS_SCHEDULE to row.scheduleId in selected
+                                ),
+                    )
+                    buildJsonObject {
+                        put("scheduleId", FirestoreUploadProtocol.string(row.scheduleId))
+                        put("dateEpochDay", FirestoreUploadProtocol.integer(row.dateEpochDay))
+                        put("status", FirestoreUploadProtocol.string(row.status))
+                    }
+                }
                 SyncEntityType.PACKAGE_TYPE -> {
                     val row = database.packageTypeDao().getAll().single { it.id.toString() == change.localId }
                     buildJsonObject {

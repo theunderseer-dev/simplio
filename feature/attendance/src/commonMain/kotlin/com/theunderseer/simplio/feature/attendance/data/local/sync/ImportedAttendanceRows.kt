@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.sync
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassScheduleEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassScheduleSlotEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassSessionStateEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
@@ -20,4 +21,5 @@ internal data class ImportedAttendanceRows(
     val schedules: List<ClassScheduleEntity>,
     val slots: List<ClassScheduleSlotEntity>,
     val groupSchedules: List<StudentGroupScheduleEntity>,
+    val classSessions: List<ClassSessionStateEntity>,
 )

@@ -25,8 +25,18 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStudent
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.class_status_cancelled
+import com.theunderseer.simplio.feature.attendance.resources.class_status_held
+import com.theunderseer.simplio.feature.attendance.resources.class_status_no_attendance
+import com.theunderseer.simplio.feature.attendance.resources.class_status_schedule
+import com.theunderseer.simplio.feature.attendance.resources.class_status_unrecorded
+import com.theunderseer.simplio.feature.attendance.resources.class_track_attendance
+import com.theunderseer.simplio.feature.attendance.resources.class_track_schedule
 import kotlinx.datetime.LocalDate
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 internal fun ClassHistorySection(
@@ -34,6 +44,7 @@ internal fun ClassHistorySection(
     studentGroups: List<StudentGroup>,
     onLoadNextPage: () -> Unit,
     onRetry: () -> Unit,
+    onTrackAttendance: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -45,6 +56,7 @@ internal fun ClassHistorySection(
             studentGroups = studentGroups,
             onLoadNextPage = onLoadNextPage,
             onRetry = onRetry,
+            onTrackAttendance = onTrackAttendance,
         )
     }
 }
@@ -54,6 +66,7 @@ internal fun LazyListScope.classHistoryItems(
     studentGroups: List<StudentGroup>,
     onLoadNextPage: () -> Unit,
     onRetry: () -> Unit,
+    onTrackAttendance: (String) -> Unit,
 ) {
     item(key = "history-header", contentType = "history-header") {
         Column(
@@ -129,6 +142,7 @@ internal fun LazyListScope.classHistoryItems(
                     ClassHistoryDayCard(
                         day = day,
                         groupNames = groupNames,
+                        onTrackAttendance = onTrackAttendance,
                     )
                 }
             }
@@ -147,7 +161,11 @@ internal fun LazyListScope.classHistoryItems(
 }
 
 @Composable
-private fun ClassHistoryDayCard(day: ClassHistoryDayUiState, groupNames: Map<Int, String>) {
+private fun ClassHistoryDayCard(
+    day: ClassHistoryDayUiState,
+    groupNames: Map<Int, String>,
+    onTrackAttendance: (String) -> Unit,
+) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -178,9 +196,56 @@ private fun ClassHistoryDayCard(day: ClassHistoryDayUiState, groupNames: Map<Int
                     HorizontalDivider()
                     val timeLabel = block.timeLabel ?: if (day.blocks.size > 1) "Time not recorded" else null
                     timeLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    if (block.students.isEmpty()) {
+                    block.sessions.filter { it.canTrackAttendance }.forEach { entry ->
+                        TextButton(
+                            onClick = { entry.sessionId?.let(onTrackAttendance) },
+                            modifier = Modifier.testTag("track-class-${entry.key}"),
+                        ) {
+                            Text(
+                                if (block.sessions.size > 1 && entry.scheduleName != null) {
+                                    stringResource(Res.string.class_track_schedule, entry.scheduleName)
+                                } else {
+                                    stringResource(Res.string.class_track_attendance)
+                                },
+                            )
+                        }
+                    }
+                    if (block.sessions.size > 1 && block.sessions.map { it.status }.distinct().size > 1) {
+                        block.sessions.filter { it.status != ClassSessionStatus.UNRECORDED }.forEach { entry ->
+                            Text(
+                                stringResource(
+                                    Res.string.class_status_schedule,
+                                    entry.scheduleName ?: entry.timeLabel.orEmpty(),
+                                    stringResource(
+                                        if (entry.status == ClassSessionStatus.CANCELLED) {
+                                            Res.string.class_status_cancelled
+                                        } else {
+                                            Res.string.class_status_held
+                                        },
+                                    ),
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                    if (block.students.isEmpty() &&
+                        (
+                            block.sessions.map { it.status }.distinct().size == 1 ||
+                                block.sessions.any { it.status == ClassSessionStatus.UNRECORDED }
+                            )
+                    ) {
                         Text(
-                            text = "No attendance recorded",
+                            text = stringResource(
+                                when {
+                                    block.sessions.all {
+                                        it.status == ClassSessionStatus.CANCELLED
+                                    } -> Res.string.class_status_cancelled
+                                    block.sessions.all {
+                                        it.status == ClassSessionStatus.HELD
+                                    } -> Res.string.class_status_no_attendance
+                                    else -> Res.string.class_status_unrecorded
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

@@ -2,6 +2,8 @@ package com.theunderseer.simplio.feature.attendance.data.sync
 
 import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncRecordEntity
 import com.theunderseer.simplio.feature.attendance.data.local.sync.PendingSyncChange
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -29,11 +31,20 @@ data class SyncConflictItem(
     val unavailableGroupNames: List<String> = emptyList(),
     val requiresPackageRename: Boolean = false,
     val unavailablePackageNames: List<String> = emptyList(),
+    val deviceClasses: List<SyncClassSessionSummary> = emptyList(),
+    val cloudClasses: List<SyncClassSessionSummary> = emptyList(),
 ) {
     val requiresRename: Boolean get() = requiresGroupRename || requiresPackageRename
     val unavailableNames: List<String>
         get() = if (requiresPackageRename) unavailablePackageNames else unavailableGroupNames
 }
+
+data class SyncClassSessionSummary(
+    val date: LocalDate,
+    val status: ClassSessionStatus,
+    val scheduleName: String,
+    val timeLabel: String,
+)
 
 data class SyncConflictReview(val id: String, val items: List<SyncConflictItem>, val localGroupCount: Int)
 

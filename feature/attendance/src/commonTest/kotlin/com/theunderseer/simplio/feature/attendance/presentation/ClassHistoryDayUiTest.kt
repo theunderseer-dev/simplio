@@ -42,6 +42,7 @@ class ClassHistoryDayUiTest {
                 AttendanceTestData.studentGroups,
                 onLoadNextPage = {},
                 onRetry = {},
+                onTrackAttendance = {},
             )
         }
         onAllNodesWithText("Oct 5, 2026 (Monday)").assertCountEquals(1)
@@ -51,7 +52,7 @@ class ClassHistoryDayUiTest {
         onNodeWithText("Group A").assertIsDisplayed()
         onNodeWithText("Group B").assertIsDisplayed()
         onNodeWithText("3 visits").assertIsDisplayed()
-        onNodeWithText("No attendance recorded").assertDoesNotExist()
+        onNodeWithText("Attendance not recorded").assertDoesNotExist()
     }
 
     @Test
@@ -79,6 +80,7 @@ class ClassHistoryDayUiTest {
                 AttendanceTestData.studentGroups,
                 onLoadNextPage = {},
                 onRetry = {},
+                onTrackAttendance = {},
             )
         }
         onAllNodesWithText("Oct 5, 2026 (Monday)").assertCountEquals(1)

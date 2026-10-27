@@ -24,7 +24,7 @@ class FirestoreAttendancePullRemote(private val client: FirestoreRestClient) : A
         )
         snapshot.document?.let { head ->
             if (head.fields["protocolVersion"]?.jsonObject?.get("integerValue")?.jsonPrimitive?.content !in
-                setOf("1", "2", "3", "4") ||
+                setOf("1", "2", "3", "4", "5") ||
                 head.fields["batchId"]?.jsonObject?.get("stringValue")?.jsonPrimitive?.content.isNullOrBlank()
             ) {
                 throw FirestoreFailure(FirestoreFailureKind.INVALID_RESPONSE)

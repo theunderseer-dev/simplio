@@ -4,9 +4,10 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryEntry
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryPage
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStudent
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
-import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
 import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -29,9 +30,12 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
             it.id to
                 (currentInstant?.toLocalDateTime(TimeZone.of(it.timeZoneId))?.date ?: today)
         }
-        if (schedules.all { it.id == DefaultClassSchedule.ID } && venueDates.values.all { it == today }) return null
-        val first = database.attendanceDao().getFirstAttendanceEpochDay()?.let(LocalDate::fromEpochDays)
-            ?: return ClassHistoryPage(emptyList(), null)
+        val decisions = database.classSessionStateDao().getAll().associateBy { it.sessionId }
+        val first = listOfNotNull(
+            database.attendanceDao().getFirstAttendanceEpochDay(),
+            database.syncPullDao().packages().minOfOrNull { it.purchasedOnEpochDay },
+            decisions.values.minOfOrNull { it.dateEpochDay },
+        ).minOrNull()?.let(LocalDate::fromEpochDays) ?: return ClassHistoryPage(emptyList(), null)
         val latestVenueDate = venueDates.values.maxOrNull() ?: today
         val upper = minOf(
             latestVenueDate,
@@ -56,7 +60,9 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
             val matched = mutableSetOf<Int>()
             val dayEntries = activeSchedules.filter { date <= venueDates.getValue(it.id) }.flatMap { schedule ->
                 val groupIds = links.filter { it.scheduleId == schedule.id }.map { it.groupId }.toSet()
-                schedule.sessionsBetween(date, date).map { session ->
+                schedule.sessionsBetween(date, date).filter {
+                    currentInstant == null || it.startsAt <= currentInstant
+                }.map { session ->
                     val students = rows.filterIndexed { index, row ->
                         val belongs = row.sessionId?.let { it == session.id } ?: (row.groupId in groupIds)
                         if (belongs) matched += index
@@ -70,6 +76,12 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
                         "${slot.startsAt}–${slot.endsAt} · ${schedule.timeZoneId}",
                         session.startsAt,
                         session.endsAt,
+                        decisions[session.id]?.let { ClassSessionStatus.valueOf(it.status) }
+                            ?: ClassSessionStatus.UNRECORDED,
+                        currentInstant != null &&
+                            schedule.latestStartedClass(currentInstant)?.id == session.id &&
+                            session.id !in decisions,
+                        schedule.name,
                     )
                 }
             }.toMutableList()

@@ -103,7 +103,7 @@ class AttendanceScreenClassHistoryUiTest {
         // Then
         onNodeWithText("Oct 5, 2026 (Monday)").assertIsDisplayed()
         onNodeWithText("0 visits").assertIsDisplayed()
-        onNodeWithText("No attendance recorded").assertIsDisplayed()
+        onNodeWithText("Attendance not recorded").assertIsDisplayed()
     }
 
     @Test

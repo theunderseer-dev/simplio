@@ -31,12 +31,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictChoice
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
+import com.theunderseer.simplio.feature.attendance.data.sync.SyncClassSessionSummary
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.model.MAX_GROUP_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.MAX_PACKAGE_NAME_LENGTH
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidGroupName
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidPackageName
 import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupName
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.class_conflict_status
+import com.theunderseer.simplio.feature.attendance.resources.class_status_cancelled
+import com.theunderseer.simplio.feature.attendance.resources.class_status_held
+import com.theunderseer.simplio.feature.attendance.resources.class_summary_schedule
 import com.theunderseer.simplio.feature.attendance.resources.group_name_conflict
 import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
@@ -125,10 +131,12 @@ fun SyncConflictReviewDialog(
                                             item.deviceDetails.forEach {
                                                 Text(it, style = MaterialTheme.typography.bodySmall)
                                             }
+                                            item.deviceClasses.forEach { ClassSessionConflictDetail(it) }
                                             Text("Cloud", style = MaterialTheme.typography.titleSmall)
                                             item.cloudDetails.forEach {
                                                 Text(it, style = MaterialTheme.typography.bodySmall)
                                             }
+                                            item.cloudClasses.forEach { ClassSessionConflictDetail(it) }
                                             val value = renames[item.key].orEmpty()
                                             val duplicate = value.isNotBlank() &&
                                                 item.unavailableNames.any {
@@ -188,6 +196,7 @@ fun SyncConflictReviewDialog(
                                                 ConflictVersion(
                                                     "This device",
                                                     item.deviceDetails,
+                                                    item.deviceClasses,
                                                     choices[item.key] == ConflictChoice.DEVICE,
                                                     !applying,
                                                     "device-${item.key}",
@@ -198,6 +207,7 @@ fun SyncConflictReviewDialog(
                                                 ConflictVersion(
                                                     "Cloud",
                                                     item.cloudDetails,
+                                                    item.cloudClasses,
                                                     choices[item.key] == ConflictChoice.CLOUD,
                                                     !applying,
                                                     "cloud-${item.key}",
@@ -276,6 +286,7 @@ fun SyncConflictReviewDialog(
 private fun ConflictVersion(
     title: String,
     details: List<String>,
+    classes: List<SyncClassSessionSummary>,
     selected: Boolean,
     enabled: Boolean,
     tag: String,
@@ -293,5 +304,28 @@ private fun ConflictVersion(
             Text(title, style = MaterialTheme.typography.titleSmall)
         }
         details.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+        classes.forEach { ClassSessionConflictDetail(it) }
     }
+}
+
+@Composable
+private fun ClassSessionConflictDetail(value: SyncClassSessionSummary) {
+    Text(
+        stringResource(
+            Res.string.class_conflict_status,
+            value.date.toString(),
+            stringResource(
+                if (value.status == ClassSessionStatus.CANCELLED) {
+                    Res.string.class_status_cancelled
+                } else {
+                    Res.string.class_status_held
+                },
+            ),
+        ),
+        style = MaterialTheme.typography.bodySmall,
+    )
+    Text(
+        stringResource(Res.string.class_summary_schedule, value.scheduleName, value.timeLabel),
+        style = MaterialTheme.typography.bodySmall,
+    )
 }

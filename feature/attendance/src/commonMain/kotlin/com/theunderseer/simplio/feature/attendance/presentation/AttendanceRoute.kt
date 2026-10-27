@@ -11,6 +11,9 @@ fun AttendanceRoute(onCopyAttendance: (String) -> Unit, viewModel: AttendanceVie
 
     AttendanceScreen(
         state = state,
+        onTrackClassAttendance = viewModel::openClassAttendance,
+        onCloseClassAttendance = viewModel::closeClassAttendance,
+        onSaveClassAttendance = viewModel::saveClassAttendance,
         onRegisterStudent = viewModel::registerStudent,
         onCreatePackageType = viewModel::createPackageType,
         onClearCreatePackageTypeState = viewModel::clearCreatePackageTypeState,
