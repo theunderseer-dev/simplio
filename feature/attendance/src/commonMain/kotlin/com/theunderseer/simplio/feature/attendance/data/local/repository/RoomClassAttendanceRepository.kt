@@ -99,10 +99,17 @@ class RoomClassAttendanceRepository(private val database: AttendanceDatabase, pr
                 session.date >= (pack.startedOn ?: pack.purchasedOn) &&
                 pack.isActiveOn(session.date) &&
                 !otherVisit
-            ClassAttendanceRow(student.toDomain(), pack, count, canRecord)
+            val latest = packages.maxWithOrNull(compareBy({ it.purchasedOnEpochDay }, { it.id }))
+            val canRenew = count == 0 &&
+                pack != null &&
+                entity.id == latest?.id &&
+                !pack.isActiveOn(session.date) &&
+                session.date >= pack.earliestRenewalDate &&
+                !otherVisit
+            ClassAttendanceRow(student.toDomain(), pack, count, canRecord, canRenew)
         }.sortedWith(compareBy<ClassAttendanceRow> { it.student.fullName.lowercase() }.thenBy { it.student.id })
         val slot = schedule.slots.single { it.id == session.slotId }
-        return ClassAttendanceSheet(session, "${slot.startsAt}–${slot.endsAt} · ${schedule.timeZoneId}", rows)
+        return ClassAttendanceSheet(session, "${slot.startsAt}–${slot.endsAt} · ${schedule.timeZoneId}", rows, groups)
     }
 
     private fun fail(problem: ClassAttendanceProblem): Nothing = throw ClassAttendanceFailure(problem)

@@ -39,22 +39,37 @@ fun StudentRegistrationDialog(
     onDismiss: () -> Unit,
     groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
     groupCurrentDates: Map<Int, LocalDate> = emptyMap(),
+    fixedDate: LocalDate? = null,
+    initialGroupId: Int? = null,
+    isSaving: Boolean = false,
+    errorMessage: String? = null,
+    visible: Boolean = true,
+    preferredPackageTypeId: Int? = null,
+    onCreatePackage: (() -> Unit)? = null,
 ) {
     val nameInput = rememberValidatedInput("", InputPolicy.SingleLine(MAX_STUDENT_NAME_LENGTH))
     val fullName = nameInput.text
     val invalidName = fullName.isNotEmpty() && !isValidStudentName(fullName)
-    var selectedGroupId by remember(studentGroups) { mutableStateOf<Int?>(null) }
+    var selectedGroupId by remember { mutableStateOf(initialGroupId) }
     StudentPackageDialog(
         title = "Add Student",
+        fixedDate = fixedDate,
+        visible = visible,
+        preferredPackageTypeId = preferredPackageTypeId,
+        onCreatePackage = onCreatePackage,
+        isSaving = isSaving,
+        errorMessage = errorMessage,
         confirmLabel = "Register",
         dateLabel = "Registration date",
         datePickerTitle = "Select registration date",
         packageTypes = packageTypes,
         initialDate = groupCurrentDates[selectedGroupId] ?: initialDate,
-        canSubmit = isValidStudentName(fullName) && !nameInput.rejectedEdit && selectedGroupId != null,
+        canSubmit =
+        isValidStudentName(fullName) && !nameInput.rejectedEdit && studentGroups.any { it.id == selectedGroupId },
         schedules = groupSchedules[selectedGroupId],
         studentFields = {
             ValidatedOutlinedTextField(
+                enabled = !isSaving,
                 input = nameInput,
                 isError = invalidName,
                 supportingText = if (invalidName) {
@@ -79,6 +94,7 @@ fun StudentRegistrationDialog(
                 ) {
                     studentGroups.forEach { group ->
                         FilterChip(
+                            enabled = !isSaving,
                             selected = selectedGroupId == group.id,
                             onClick = {
                                 selectedGroupId = group.id

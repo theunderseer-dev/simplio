@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceDialogForTest
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassAttendanceSheet
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,7 +21,7 @@ class ClassAttendanceDialogUiTest {
         val sheet = testClassAttendanceSheet(duo = true)
         var saved: Map<Int, Int>? = null
         setContent {
-            ClassAttendanceDialog(ClassAttendanceUiState.Content(sheet), {}, {}, { visits, _ -> saved = visits })
+            ClassAttendanceDialogForTest(ClassAttendanceUiState.Content(sheet), {}, {}, { visits, _ -> saved = visits })
         }
         onNodeWithTag("class-attendance-people-1-2").assertIsNotEnabled()
         onNodeWithTag("class-attendance-student-1").performClick()
@@ -37,7 +38,7 @@ class ClassAttendanceDialogUiTest {
         var closed = false
         var saves = 0
         setContent {
-            ClassAttendanceDialog(
+            ClassAttendanceDialogForTest(
                 ClassAttendanceUiState.Content(testClassAttendanceSheet()),
                 { closed = true },
                 {},
@@ -60,7 +61,7 @@ class ClassAttendanceDialogUiTest {
     fun `cancel requires confirmation and saved attendance disables cancellation`() = runComposeUiTest {
         var cancelled = false
         setContent {
-            ClassAttendanceDialog(
+            ClassAttendanceDialogForTest(
                 ClassAttendanceUiState.Content(testClassAttendanceSheet()),
                 {},
                 {},
@@ -83,7 +84,7 @@ class ClassAttendanceDialogUiTest {
     @Test
     fun `existing attendance stays checked and cancellation is unavailable`() = runComposeUiTest {
         setContent {
-            ClassAttendanceDialog(
+            ClassAttendanceDialogForTest(
                 ClassAttendanceUiState.Content(testClassAttendanceSheet(recordedVisitCount = 1)),
                 {},
                 {},

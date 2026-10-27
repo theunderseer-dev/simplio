@@ -24,6 +24,7 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGrou
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentRepository
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
@@ -188,9 +189,12 @@ fun attendanceModule() = module {
         )
     }
 
+    factory { ClassStudentActionsUseCase(get(), get(), get(), get()) }
+
     viewModel {
         AttendanceViewModel(
             classAttendanceRepository = get(),
+            classStudentActions = get(),
             getAttendanceUseCase = get(),
             getPackageTypesUseCase = get(),
             createPackageTypeUseCase = get(),

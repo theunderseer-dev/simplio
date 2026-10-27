@@ -20,6 +20,10 @@ internal fun StudentPackageRenewalDialog(
     onRenew: (PackageType, LocalDate, Int, Boolean, String) -> Unit,
     onDismiss: () -> Unit,
     groupSchedules: Map<Int, List<ClassSchedule>> = emptyMap(),
+    fixedDate: LocalDate? = null,
+    visible: Boolean = true,
+    preferredPackageTypeId: Int? = null,
+    onCreatePackage: (() -> Unit)? = null,
 ) {
     val student = registeredStudent.student
     val previousPackage = registeredStudent.studentPackage
@@ -27,6 +31,10 @@ internal fun StudentPackageRenewalDialog(
         StudentPackageDialog(
             title = "Renew package for ${student.fullName}",
             confirmLabel = "Renew",
+            fixedDate = fixedDate,
+            visible = visible,
+            preferredPackageTypeId = preferredPackageTypeId,
+            onCreatePackage = onCreatePackage,
             dateLabel = "Purchase date",
             datePickerTitle = "Select purchase date",
             packageTypes = packageTypes,

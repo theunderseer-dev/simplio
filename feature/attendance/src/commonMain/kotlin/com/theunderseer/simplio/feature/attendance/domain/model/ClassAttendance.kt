@@ -7,6 +7,7 @@ data class ClassAttendanceRow(
     val studentPackage: StudentPackage?,
     val recordedVisitCount: Int,
     val canRecord: Boolean,
+    val canRenew: Boolean,
 ) {
     val maximumVisitCount: Int get() = studentPackage?.let {
         minOf(it.packageType.maxVisitsPerAttendance, it.remainingClasses + recordedVisitCount)
@@ -14,7 +15,12 @@ data class ClassAttendanceRow(
 }
 
 /** An immutable snapshot used to reject stale saves without losing the user's draft. */
-data class ClassAttendanceSheet(val session: ClassSession, val timeLabel: String, val rows: List<ClassAttendanceRow>) {
+data class ClassAttendanceSheet(
+    val session: ClassSession,
+    val timeLabel: String,
+    val rows: List<ClassAttendanceRow>,
+    val groupIds: Set<Int>,
+) {
     val canCancel: Boolean get() = rows.none { it.recordedVisitCount > 0 }
 }
 

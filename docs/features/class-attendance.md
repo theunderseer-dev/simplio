@@ -14,7 +14,7 @@
 - Existing visits stay checked even when they complete or outlive a package. Existing visits can be unchecked before the class is finalized.
 - New attendance requires a package valid for the session date, sufficient remaining credits and no other attendance for that student on the same date. The existing one-attendance-per-student-per-date restriction remains.
 - Duo uses 1 person / 2 people. The choice cannot exceed the remaining credits, including credits already recorded for this session.
-- Checkbox and people-count changes update a dialog-local draft and its package progress. They do not write to Room or enqueue uploads.
+- Checkbox and people-count changes update a ViewModel-owned draft and its package progress. They do not write to Room or enqueue uploads.
 - Save validates the immutable roster/package snapshot again under the Room write transaction. A changed roster, attendance or package rejects the entire save and preserves the dialog draft.
 - The tracking window and explicit status are also rechecked at Save. No partial attendance or outbox changes are committed on failure.
 - Save commits attendance changes, derived package activation, an explicit HELD decision and outbox changes in the same local transaction.
@@ -47,7 +47,16 @@ Cancelled sessions reject ordinary student checks and registration/renewal that 
 
 ## Deferred
 
-- Add Student, Renew Package and Add Package inside the class dialog; use the main screen for these actions in this PR.
 - Reopen/edit a finalized or cancelled class.
 - Reschedule a class, notify students, or automatically extend finite package validity after cancellation. Cancellation only prevents credit deduction.
 - More than one attendance per student on the same local date, and changes to historical group membership.
+
+## Student actions while tracking
+
+- Add Student reuses registration, limited to groups linked to the selected schedule. A single eligible group is selected automatically.
+- Purchase and first attendance dates are fixed to the open class date. Package selection, optional first attendance, Duo count and notes use the existing forms.
+- Exhausted or expired latest packages offer Renew when there is no saved attendance for that class. A final saved visit remains a checkbox, even when it exhausts the package.
+- Add Package opens the existing template form from registration or renewal and returns with the template selected. Cancelling it preserves the original form inputs.
+- Student registration, renewal and template creation commit independently, immediately, through Room and its durable sync outbox. Discarding the attendance draft does not undo these actions; the forms disclose this.
+- Returning to the roster incorporates the saved child action and preserves all other unsaved selections. Saving the class does not charge an already saved first visit twice.
+- A child mutation revalidates the roster snapshot, class status and tracking window inside the same Room transaction. Stale or unavailable classes reject the mutation without partial writes. Close and reopen to reload; unrelated external changes are never silently merged into a dirty draft.

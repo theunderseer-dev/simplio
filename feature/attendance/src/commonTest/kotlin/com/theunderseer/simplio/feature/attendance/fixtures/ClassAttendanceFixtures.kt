@@ -1,13 +1,18 @@
 package com.theunderseer.simplio.feature.attendance.fixtures
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
+import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceRow
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceSheet
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
+import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -42,7 +47,8 @@ internal fun testClassAttendanceSheet(recordedVisitCount: Int = 0, duo: Boolean 
     return ClassAttendanceSheet(
         ClassAttendanceTestData.session,
         ClassAttendanceTestData.timeLabel,
-        listOf(ClassAttendanceRow(AttendanceTestData.student, pack, recordedVisitCount, true)),
+        listOf(ClassAttendanceRow(AttendanceTestData.student, pack, recordedVisitCount, true, false)),
+        AttendanceTestData.studentGroups.map { it.id }.toSet(),
     )
 }
 
@@ -66,3 +72,19 @@ internal suspend fun AttendanceDatabase.seedClassAttendanceStudents(
         RegisteredStudent(student, packages.create(student.id, stored, AttendanceTestData.firstClassDate, null))
     }
 }
+
+internal fun AttendanceDatabase.classStudentActions(clock: Clock = ClassAttendanceTestClock()) =
+    ClassStudentActionsUseCase(
+        RoomClassAttendanceRepository(this, clock),
+        RegisterStudentUseCase(
+            RoomStudentRepository(this),
+            RoomStudentPackageRepository(this),
+            RoomTransactionRunner(this),
+        ),
+        RenewStudentPackageUseCase(
+            RoomStudentPackageRepository(this),
+            RoomStudentRepository(this),
+            RoomTransactionRunner(this),
+        ),
+        RoomTransactionRunner(this),
+    )

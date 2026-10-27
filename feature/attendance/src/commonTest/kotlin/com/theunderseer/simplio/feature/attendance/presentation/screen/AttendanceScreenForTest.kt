@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassAttendanceCallbacks
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceScreen
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import kotlinx.datetime.LocalDate
@@ -41,9 +42,11 @@ internal fun AttendanceScreenForTest(
 ) {
     AttendanceScreen(
         state = state,
-        onTrackClassAttendance = onTrackClassAttendance,
-        onCloseClassAttendance = onCloseClassAttendance,
-        onSaveClassAttendance = onSaveClassAttendance,
+        classAttendanceCallbacks = testClassAttendanceCallbacks(
+            open = onTrackClassAttendance,
+            close = onCloseClassAttendance,
+            save = onSaveClassAttendance,
+        ),
         onCreateStudentGroup = onCreateStudentGroup,
         onCreatePackageType = onCreatePackageType,
         onClearCreatePackageTypeState = onClearCreatePackageTypeState,

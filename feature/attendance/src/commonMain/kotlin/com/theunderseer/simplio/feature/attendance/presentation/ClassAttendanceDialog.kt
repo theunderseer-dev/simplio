@@ -13,6 +13,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceProblem
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.class_add_student
 import com.theunderseer.simplio.feature.attendance.resources.class_attendance_for_student
 import com.theunderseer.simplio.feature.attendance.resources.class_attendance_title
 import com.theunderseer.simplio.feature.attendance.resources.class_cancel
@@ -41,18 +44,22 @@ import com.theunderseer.simplio.feature.attendance.resources.class_discard
 import com.theunderseer.simplio.feature.attendance.resources.class_discard_confirmation
 import com.theunderseer.simplio.feature.attendance.resources.class_discard_title
 import com.theunderseer.simplio.feature.attendance.resources.class_draft_stale
+import com.theunderseer.simplio.feature.attendance.resources.class_independent_saved
 import com.theunderseer.simplio.feature.attendance.resources.class_invalid_selection
 import com.theunderseer.simplio.feature.attendance.resources.class_keep
 import com.theunderseer.simplio.feature.attendance.resources.class_no_students
 import com.theunderseer.simplio.feature.attendance.resources.class_package_progress
 import com.theunderseer.simplio.feature.attendance.resources.class_package_required
 import com.theunderseer.simplio.feature.attendance.resources.class_people_count
+import com.theunderseer.simplio.feature.attendance.resources.class_renew_student
 import com.theunderseer.simplio.feature.attendance.resources.class_retry
 import com.theunderseer.simplio.feature.attendance.resources.class_save
 import com.theunderseer.simplio.feature.attendance.resources.class_save_failed
 import com.theunderseer.simplio.feature.attendance.resources.class_saving
 import com.theunderseer.simplio.feature.attendance.resources.class_track_attendance
 import com.theunderseer.simplio.feature.attendance.resources.class_unavailable
+import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -62,6 +69,9 @@ internal fun ClassAttendanceDialog(
     onClose: () -> Unit,
     onRetry: (String) -> Unit,
     onSave: (Map<Int, Int>, Boolean) -> Unit,
+    onSelect: (Int, Int) -> Unit,
+    onAddStudent: () -> Unit,
+    onRenewStudent: (Int) -> Unit,
 ) {
     if (state == ClassAttendanceUiState.Closed) return
     if (state !is ClassAttendanceUiState.Content) {
@@ -87,15 +97,12 @@ internal fun ClassAttendanceDialog(
         return
     }
     val sheet = state.sheet
-    val initial = remember(sheet) {
-        sheet.rows.filter { it.recordedVisitCount > 0 }.associate { it.student.id to it.recordedVisitCount }
-    }
-    var selected by remember(sheet) { mutableStateOf(initial) }
+    val selected = state.visitsByStudent
     var confirmingCancel by remember(sheet) { mutableStateOf(false) }
     var confirmingDiscard by remember(sheet) { mutableStateOf(false) }
     val close = {
         if (!state.isSaving) {
-            if (selected != initial) confirmingDiscard = true else onClose()
+            if (state.hasDraftChanges) confirmingDiscard = true else onClose()
         }
     }
     AlertDialog(
@@ -105,6 +112,12 @@ internal fun ClassAttendanceDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(sheet.timeLabel, style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onAddStudent, enabled = !state.isSaving) {
+                    Text(stringResource(Res.string.class_add_student))
+                }
+                if (state.hasIndependentChanges) {
+                    Text(stringResource(Res.string.class_independent_saved), style = MaterialTheme.typography.bodySmall)
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -129,7 +142,7 @@ internal fun ClassAttendanceDialog(
                                             style = MaterialTheme.typography.bodySmall,
                                         )
                                     }
-                                    if (!row.canRecord) {
+                                    if (!row.canRecord && !row.canRenew) {
                                         Text(
                                             stringResource(Res.string.class_package_required),
                                             style = MaterialTheme.typography.bodySmall,
@@ -137,25 +150,38 @@ internal fun ClassAttendanceDialog(
                                         )
                                     }
                                 }
-                                Checkbox(
-                                    checked = count > 0,
-                                    enabled = row.canRecord && !state.isSaving,
-                                    onCheckedChange = { checked ->
-                                        selected = if (checked) selected + (id to 1) else selected - id
-                                    },
-                                    modifier = Modifier.testTag("class-attendance-student-$id").semantics {
-                                        contentDescription =
-                                            description
-                                    },
-                                )
+                                if (row.canRenew) {
+                                    IconButton(
+                                        onClick = { onRenewStudent(id) },
+                                        enabled = !state.isSaving,
+                                        modifier = Modifier.testTag("class-renew-student-$id"),
+                                    ) {
+                                        Icon(
+                                            painterResource(Res.drawable.ic_refresh),
+                                            stringResource(Res.string.class_renew_student, row.student.fullName),
+                                        )
+                                    }
+                                } else {
+                                    Checkbox(
+                                        checked = count > 0,
+                                        enabled = row.canRecord && !state.isSaving,
+                                        onCheckedChange = { checked ->
+                                            onSelect(id, if (checked) 1 else 0)
+                                        },
+                                        modifier = Modifier.testTag("class-attendance-student-$id").semantics {
+                                            contentDescription =
+                                                description
+                                        },
+                                    )
+                                }
                             }
-                            if (row.studentPackage?.packageType?.maxVisitsPerAttendance == 2) {
+                            if (row.canRecord && row.studentPackage?.packageType?.maxVisitsPerAttendance == 2) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     (1..2).forEach { people ->
                                         FilterChip(
                                             selected = count == people,
                                             enabled = !state.isSaving && count > 0 && people <= row.maximumVisitCount,
-                                            onClick = { selected = selected + (id to people) },
+                                            onClick = { onSelect(id, people) },
                                             label = {
                                                 Text(
                                                     pluralStringResource(
