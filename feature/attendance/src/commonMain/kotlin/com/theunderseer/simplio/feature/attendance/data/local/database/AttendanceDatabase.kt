@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.dao.AttendanceDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.ClassScheduleDao
+import com.theunderseer.simplio.feature.attendance.data.local.dao.ClassSessionStateDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.PackageTypeDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.StudentGroupDao
@@ -15,6 +16,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.dao.SyncUploadDao
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassScheduleEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassScheduleSlotEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassSessionStateEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
@@ -29,6 +31,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadS
 @Database(
     entities = [
         ClassScheduleEntity::class,
+        ClassSessionStateEntity::class,
         ClassScheduleSlotEntity::class,
         StudentGroupScheduleEntity::class,
         StudentGroupEntity::class,
@@ -42,10 +45,12 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadS
         SyncUploadBatchEntity::class,
         SyncConflictReviewEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class AttendanceDatabase : RoomDatabase() {
+    abstract fun classSessionStateDao(): ClassSessionStateDao
+
     abstract fun classScheduleDao(): ClassScheduleDao
 
     abstract fun studentGroupDao(): StudentGroupDao

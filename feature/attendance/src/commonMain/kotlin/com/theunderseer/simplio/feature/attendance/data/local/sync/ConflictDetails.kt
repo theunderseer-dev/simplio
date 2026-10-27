@@ -1,6 +1,8 @@
 package com.theunderseer.simplio.feature.attendance.data.local.sync
 
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudDocument
+import com.theunderseer.simplio.feature.attendance.data.sync.SyncClassSessionSummary
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -62,6 +64,26 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
         result += "Dates: ${schedule.startsOn ?: "—"} – ${schedule.endsOn ?: "—"}"
         result += schedule.slots.joinToString { "${it.dayOfWeek}: ${it.startsAt}–${it.endsAt}" }
     }
-    if (result.isEmpty()) result += "Deleted records: ${rows.count { it.isDeleted }}"
+    if (result.isEmpty() && live.none { it.type == SyncEntityType.CLASS_SESSION }) {
+        result += "Deleted records: ${rows.count { it.isDeleted }}"
+    }
     return result
+}
+
+internal fun classSessionSummaries(
+    rows: List<AttendanceCloudDocument>,
+    all: List<AttendanceCloudDocument>,
+): List<SyncClassSessionSummary> = rows.filter {
+    it.type == SyncEntityType.CLASS_SESSION && !it.isDeleted
+}.map { document ->
+    val id = document.string("scheduleId")
+    val schedule = all.firstOrNull { it.type == SyncEntityType.CLASS_SCHEDULE && it.cloudId == id && !it.isDeleted }
+        ?.toSchedule() ?: DefaultClassSchedule.schedule.also { require(it.id == id) }
+    val slot = schedule.slots.single { it.id == document.cloudId.split(':')[1] }
+    SyncClassSessionSummary(
+        LocalDate.fromEpochDays(document.integer("dateEpochDay")),
+        ClassSessionStatus.valueOf(document.string("status")),
+        schedule.name,
+        "${slot.startsAt}–${slot.endsAt} · ${schedule.timeZoneId}",
+    )
 }

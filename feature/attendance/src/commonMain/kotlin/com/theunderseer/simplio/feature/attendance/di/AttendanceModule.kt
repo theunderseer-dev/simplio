@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.di
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeCreationRepository
@@ -13,6 +14,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.seed.PackageTypeSe
 import com.theunderseer.simplio.feature.attendance.data.local.seed.StudentGroupSeeder
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeCreationRepository
@@ -179,8 +181,16 @@ fun attendanceModule() = module {
         )
     }
 
+    single<ClassAttendanceRepository> {
+        RoomClassAttendanceRepository(
+            get(),
+            getOrNull<Clock>(named("attendanceClock")) ?: Clock.System,
+        )
+    }
+
     viewModel {
         AttendanceViewModel(
+            classAttendanceRepository = get(),
             getAttendanceUseCase = get(),
             getPackageTypesUseCase = get(),
             createPackageTypeUseCase = get(),
@@ -199,7 +209,7 @@ fun attendanceModule() = module {
             localChanges = get<AttendanceDatabase>().invalidationTracker.createFlow(
                 "students",
                 "student_packages",
-                "attendance",
+                "attendance", "class_session_states",
                 "package_types",
                 "student_groups",
                 "class_schedules", "class_schedule_slots", "student_group_schedules",

@@ -87,6 +87,9 @@ fun AttendanceScreen(
     onClearRenewStudentPackageState: () -> Unit,
     onCreatePackageType: (CreatePackageTypeRequest) -> Unit,
     onClearCreatePackageTypeState: () -> Unit,
+    onTrackClassAttendance: (String) -> Unit,
+    onCloseClassAttendance: () -> Unit,
+    onSaveClassAttendance: (Map<Int, Int>, Boolean) -> Unit,
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
     onClearCreateStudentGroupState: () -> Unit = {},
 ) {
@@ -118,6 +121,12 @@ fun AttendanceScreen(
 
     when (state) {
         is AttendanceUiState.Content -> {
+            ClassAttendanceDialog(
+                state.classAttendanceState,
+                onCloseClassAttendance,
+                onTrackClassAttendance,
+                onSaveClassAttendance,
+            )
             val markState = state.markStudentPresentState
             val removeState = state.removeStudentAttendanceState
             val noteState = state.updateStudentNoteState
@@ -254,6 +263,7 @@ fun AttendanceScreen(
                     },
                     onLoadNextClassHistoryPage = onLoadNextClassHistoryPage,
                     onRetryClassHistory = onRetryClassHistory,
+                    onTrackClassAttendance = onTrackClassAttendance,
                     onEditNoteClick = { studentId ->
                         onClearUpdateStudentNoteState()
                         noteStudentId = studentId
@@ -499,6 +509,7 @@ fun AttendanceScreen(
 @Composable
 private fun AttendanceContent(
     state: AttendanceUiState.Content,
+    onTrackClassAttendance: (String) -> Unit,
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
     onAddPackageClick: () -> Unit,
@@ -669,6 +680,7 @@ private fun AttendanceContent(
             studentGroups = state.studentGroups,
             onLoadNextPage = onLoadNextClassHistoryPage,
             onRetry = onRetryClassHistory,
+            onTrackAttendance = onTrackClassAttendance,
         )
     }
 }

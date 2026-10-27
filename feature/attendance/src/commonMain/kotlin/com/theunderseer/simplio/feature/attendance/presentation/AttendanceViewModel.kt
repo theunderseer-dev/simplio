@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceFailure
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeResult
@@ -11,6 +12,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGro
 import com.theunderseer.simplio.feature.attendance.domain.model.InvalidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
@@ -18,6 +20,7 @@ import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPac
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
 import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlaps
+import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
@@ -32,6 +35,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentA
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.class_cancelled_error
 import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -68,6 +72,7 @@ class AttendanceViewModel(
     private val getClassHistoryUseCase: GetClassHistoryUseCase,
     private val renewStudentPackageUseCase: RenewStudentPackageUseCase,
     private val updateStudentNoteUseCase: UpdateStudentNoteUseCase,
+    private val classAttendanceRepository: ClassAttendanceRepository,
     private val currentDates: Flow<LocalDate>,
     private val transactionRunner: TransactionRunner,
     private val localChanges: Flow<Unit>,
@@ -75,6 +80,9 @@ class AttendanceViewModel(
     private val classScheduleRepository: ClassScheduleRepository? = null,
     currentInstants: Flow<Instant?> = flowOf(null),
 ) : ViewModel() {
+    private val classAttendanceState = MutableStateFlow<ClassAttendanceUiState>(ClassAttendanceUiState.Closed)
+    private var classAttendanceJob: Job? = null
+
     private val attendanceData =
         MutableStateFlow<AttendanceDataState>(
             AttendanceDataState.Loading,
@@ -175,6 +183,8 @@ class AttendanceViewModel(
             } else {
                 state
             }
+        }.combine(classAttendanceState) { state, attendance ->
+            if (state is AttendanceUiState.Content) state.copy(classAttendanceState = attendance) else state
         }.stateIn(
             scope = viewModelScope,
             started =
@@ -191,7 +201,11 @@ class AttendanceViewModel(
                     null
                 } else {
                     data.classSchedules.map {
-                        it.id to now.toLocalDateTime(TimeZone.of(it.timeZoneId)).date
+                        Triple(
+                            it.id,
+                            now.toLocalDateTime(TimeZone.of(it.timeZoneId)).date,
+                            it.latestStartedClass(now)?.id,
+                        )
                     }
                 }
             }.distinctUntilChangedBy { it }.collect { if (it != null) loadClassHistory() }
@@ -214,6 +228,55 @@ class AttendanceViewModel(
             currentDates
                 .distinctUntilChangedBy { it }
                 .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
+    }
+
+    fun openClassAttendance(sessionId: String) {
+        if ((classAttendanceState.value as? ClassAttendanceUiState.Content)?.isSaving == true) return
+        classAttendanceJob?.cancel()
+        classAttendanceState.value = ClassAttendanceUiState.Loading
+        classAttendanceJob = viewModelScope.launch {
+            try {
+                classAttendanceState.value = ClassAttendanceUiState.Content(classAttendanceRepository.load(sessionId))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                classAttendanceState.value = ClassAttendanceUiState.LoadError(sessionId)
+            }
+        }
+    }
+
+    fun closeClassAttendance() {
+        if ((classAttendanceState.value as? ClassAttendanceUiState.Content)?.isSaving == true) return
+        classAttendanceJob?.cancel()
+        classAttendanceState.value = ClassAttendanceUiState.Closed
+    }
+
+    fun saveClassAttendance(visitsByStudent: Map<Int, Int>, cancel: Boolean) {
+        val content = classAttendanceState.value as? ClassAttendanceUiState.Content ?: return
+        if (content.isSaving) return
+        classAttendanceState.value = content.copy(isSaving = true, problem = null, saveFailed = false)
+        classAttendanceJob = viewModelScope.launch {
+            try {
+                classAttendanceRepository.save(content.sheet, visitsByStudent, cancel)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: ClassAttendanceFailure) {
+                classAttendanceState.value = content.copy(problem = error.problem)
+                return@launch
+            } catch (error: Exception) {
+                classAttendanceState.value = content.copy(saveFailed = true)
+                return@launch
+            }
+            classAttendanceState.value = ClassAttendanceUiState.Closed
+            try {
+                refreshAttendance()
+                loadClassHistory()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                attendanceData.value = AttendanceDataState.Error(error.message ?: "Failed to load attendance")
+            }
         }
     }
 
@@ -321,6 +384,8 @@ class AttendanceViewModel(
                 attendanceData.value = AttendanceDataState.Error(
                     message = if (exception is InvalidStudentName) {
                         getString(Res.string.student_name_invalid)
+                    } else if (exception is ClassAttendanceFailure) {
+                        getString(Res.string.class_cancelled_error)
                     } else {
                         exception.message ?: "Failed to register student"
                     },
@@ -375,7 +440,17 @@ class AttendanceViewModel(
                 renewalState.value = RenewStudentPackageUiState.Idle
                 throw error
             } catch (error: Exception) {
-                renewalState.value = RenewStudentPackageUiState.Error(studentId, "Failed to renew package. Try again.")
+                renewalState.value =
+                    RenewStudentPackageUiState.Error(
+                        studentId,
+                        if (error is ClassAttendanceFailure) {
+                            getString(
+                                Res.string.class_cancelled_error,
+                            )
+                        } else {
+                            "Failed to renew package. Try again."
+                        },
+                    )
             }
         }
     }
@@ -443,8 +518,11 @@ class AttendanceViewModel(
                 markAttendanceState.value =
                     MarkStudentPresentUiState.Error(
                         message =
-                        exception.message
-                            ?: "Failed to mark student present",
+                        if (exception is ClassAttendanceFailure) {
+                            getString(Res.string.class_cancelled_error)
+                        } else {
+                            exception.message ?: "Failed to mark student present"
+                        },
                     )
             }
         }

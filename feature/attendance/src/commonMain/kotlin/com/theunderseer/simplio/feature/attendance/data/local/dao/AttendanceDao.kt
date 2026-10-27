@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Upsert
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
 import com.theunderseer.simplio.feature.attendance.data.local.model.ClassAttendanceRow
 
@@ -21,6 +22,12 @@ interface AttendanceDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(attendance: AttendanceEntity): Long
+
+    @Upsert
+    suspend fun save(attendance: AttendanceEntity)
+
+    @Query("SELECT * FROM attendance ORDER BY packageId, attendedOnEpochDay")
+    suspend fun getAll(): List<AttendanceEntity>
 
     @Query(
         """

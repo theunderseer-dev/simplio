@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.data.local.sync
 
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
+import com.theunderseer.simplio.feature.attendance.data.local.entity.ClassSessionStateEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.PackageTypeEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentEntity
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentGroupEntity
@@ -53,7 +54,7 @@ internal fun mapCloudSnapshot(
     val old = existing.associateBy { it.entityType to it.cloudId }
     val ids = mutableMapOf<Pair<SyncEntityType, String>, Int>()
     SyncEntityType.entries.filter {
-        it != SyncEntityType.ATTENDANCE && it != SyncEntityType.CLASS_SCHEDULE
+        it !in setOf(SyncEntityType.ATTENDANCE, SyncEntityType.CLASS_SCHEDULE, SyncEntityType.CLASS_SESSION)
     }.forEach { type ->
         var next = (
             existing.filter { it.entityType == type }.maxOfOrNull {
@@ -146,6 +147,30 @@ internal fun mapCloudSnapshot(
         }
         AttendanceEntity(packageId, day, it.int("visitCount"), sessionId)
     }
+    val classSessions = documents.live(SyncEntityType.CLASS_SESSION).map { document ->
+        require(document.number("schemaVersion") == 1L)
+        val scheduleId = document.text("scheduleId")
+        val day = document.number("dateEpochDay")
+        val date = LocalDate.fromEpochDays(day)
+        val schedule = checkNotNull(schedulesById[scheduleId])
+        require(schedule.sessionsBetween(date, date).any { it.id == document.cloudId })
+        val status = document.text("status")
+        require(status in setOf("HELD", "CANCELLED"))
+        if (status == "CANCELLED") {
+            val groupIds = groupSchedules.filter { it.scheduleId == scheduleId }.map { it.groupId }.toSet()
+            val studentIds = students.filter { it.groupId in groupIds }.map { it.id }.toSet()
+            val packageIds = packages.filter { it.studentId in studentIds }.map { it.id }.toSet()
+            require(
+                attendance.none {
+                    it.sessionId == document.cloudId ||
+                        it.sessionId == null &&
+                        it.attendedOnEpochDay == day &&
+                        it.packageId in packageIds
+                },
+            )
+        }
+        ClassSessionStateEntity(document.cloudId, scheduleId, day, status)
+    }
     val attendanceKeys = attendance.map { it.packageId to it.attendedOnEpochDay }
     require(attendanceKeys.distinct().size == attendance.size)
     val restoredPackages = packages.map { pack ->
@@ -166,7 +191,7 @@ internal fun mapCloudSnapshot(
     val packageOwner = restoredPackages.associate { it.id to it.studentId }
     val records = documents.map { document ->
         val key = document.type to document.cloudId
-        val localId = if (document.type == SyncEntityType.CLASS_SCHEDULE) {
+        val localId = if (document.type in setOf(SyncEntityType.CLASS_SCHEDULE, SyncEntityType.CLASS_SESSION)) {
             document.cloudId
         } else if (document.type == SyncEntityType.ATTENDANCE) {
             val separator = document.cloudId.lastIndexOf('_')
@@ -180,6 +205,7 @@ internal fun mapCloudSnapshot(
         }
         val aggregate = when (document.type) {
             SyncEntityType.CLASS_SCHEDULE -> "CLASS_SCHEDULE:$localId"
+            SyncEntityType.CLASS_SESSION -> "CLASS_SESSION:$localId"
             SyncEntityType.STUDENT_GROUP -> "STUDENT_GROUP:$localId"
             SyncEntityType.PACKAGE_TYPE -> "PACKAGE_TYPE:$localId"
             SyncEntityType.STUDENT -> if (document.deleted()) "legacy-deletions" else "STUDENT:$localId"
@@ -201,7 +227,10 @@ internal fun mapCloudSnapshot(
     }
     return ImportedAttendanceRows(
         groups, types, students, restoredPackages, attendance, records,
-        schedulesById.values.map { it.toEntity() }, schedulesById.values.flatMap { it.slotEntities() }, groupSchedules,
+        schedulesById.values.map {
+            it.toEntity()
+        },
+        schedulesById.values.flatMap { it.slotEntities() }, groupSchedules, classSessions,
     )
 }
 

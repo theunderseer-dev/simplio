@@ -76,6 +76,9 @@ interface SyncDao {
     )
     suspend fun getNextAggregateKey(): String?
 
+    @Query("SELECT EXISTS(SELECT 1 FROM sync_outbox WHERE entityType = 'CLASS_SESSION')")
+    suspend fun hasPendingClassSessions(): Boolean
+
     @Query("SELECT COUNT(*) FROM sync_outbox")
     fun observePendingCount(): Flow<Int>
 

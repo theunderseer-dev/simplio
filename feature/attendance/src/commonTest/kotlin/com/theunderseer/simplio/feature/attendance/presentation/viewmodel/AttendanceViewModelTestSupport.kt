@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.presentation.viewmodel
 
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
+import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.StudentGroupRepository
@@ -17,6 +18,7 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStuden
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
+import com.theunderseer.simplio.feature.attendance.fake.FakeClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeClassHistoryRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakePackageTypeRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
@@ -71,6 +73,8 @@ internal fun createViewModel(
     studentRepository: FakeStudentRepository,
     studentPackageRepository: FakeStudentPackageRepository,
     classHistoryRepository: ClassHistoryRepository = FakeClassHistoryRepository(),
+    classAttendanceRepository: ClassAttendanceRepository =
+        FakeClassAttendanceRepository(),
     packageTypes: List<PackageType> = listOf(AttendanceTestData.fourClassPackage),
     packageCatalog: FakePackageTypeRepository = FakePackageTypeRepository(packageTypes),
     createPackageTypeUseCase: CreatePackageTypeUseCase = CreatePackageTypeUseCase(packageCatalog),
@@ -94,6 +98,7 @@ internal fun createViewModel(
         transactionRunner = FakeTransactionRunner(),
     ),
 ): AttendanceViewModel = AttendanceViewModel(
+    classAttendanceRepository = classAttendanceRepository,
     renewStudentPackageUseCase = renewStudentPackageUseCase,
     createStudentGroupUseCase = createStudentGroupUseCase,
     currentInstants = currentInstants,

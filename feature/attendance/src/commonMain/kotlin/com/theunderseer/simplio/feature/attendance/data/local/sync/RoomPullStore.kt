@@ -78,6 +78,7 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         uploads.getBatch()?.let { uploads.deleteBatch(it.batchId) }
         dao.clearOutbox()
         dao.clearRecords()
+        database.classSessionStateDao().clear()
         dao.clearAttendance()
         dao.clearPackages()
         dao.clearStudents()
@@ -93,6 +94,7 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
         dao.insertStudents(rows.students)
         dao.insertPackages(rows.packages)
         dao.insertAttendance(rows.attendance)
+        rows.classSessions.forEach { database.classSessionStateDao().save(it) }
         dao.insertRecords(rows.records)
         reserveImportedIds(rows.records)
     }

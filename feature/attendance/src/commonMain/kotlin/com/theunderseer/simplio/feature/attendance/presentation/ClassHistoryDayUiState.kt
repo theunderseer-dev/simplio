@@ -15,6 +15,7 @@ internal data class ClassHistoryTimeBlockUiState(
     val startsAt: Instant?,
     val endsAt: Instant?,
     val students: List<ClassHistoryStudent>,
+    val sessions: List<ClassHistoryEntry>,
 )
 
 internal fun List<ClassHistoryEntry>.toClassHistoryDays(): List<ClassHistoryDayUiState> = groupBy { it.date }
@@ -33,6 +34,7 @@ internal fun List<ClassHistoryEntry>.toClassHistoryDays(): List<ClassHistoryDayU
             ClassHistoryTimeBlockUiState(
                 key = key,
                 timeLabel = first.timeLabel,
+                sessions = sameTimeEntries,
                 startsAt = first.startsAt,
                 endsAt = first.endsAt,
                 students = sameTimeEntries.flatMap { it.students }.groupBy { it.student.id }.values.map { visits ->

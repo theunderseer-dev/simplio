@@ -32,8 +32,9 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
     private val device = local.documents.associateBy { it.key }
     private val server = cloud.documents.associateBy { it.key }
     private val known = local.records.associateBy { it.entityType to it.cloudId }
-    private val deviceGroups = owners(device)
-    private val serverGroups = owners(server)
+    private val sessionGroups = sessionConflictGroups(device.values.toList(), server.values.toList(), local)
+    private val deviceGroups = owners(device).mapValues { (_, group) -> sessionGroups[group] ?: group }
+    private val serverGroups = owners(server).mapValues { (_, group) -> sessionGroups[group] ?: group }
     private val originalGroups = local.pending.map { checkNotNull(deviceGroups[it.entityType to it.cloudId]) }.toSet()
 
     // A new local student/package may depend on a catalog entry removed by another device.
@@ -44,6 +45,7 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
                 SyncEntityType.STUDENT_PACKAGE -> listOf(
                     SyncEntityType.PACKAGE_TYPE to document.string("packageTypeId"),
                 )
+                SyncEntityType.CLASS_SESSION -> listOf(SyncEntityType.CLASS_SCHEDULE to document.string("scheduleId"))
                 SyncEntityType.STUDENT_GROUP -> document.scheduleIds().orEmpty().map {
                     SyncEntityType.CLASS_SCHEDULE to
                         it
@@ -115,6 +117,8 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
             label(deviceRows, cloudRows),
             conflictDetails(deviceRows, device.values.toList()),
             conflictDetails(cloudRows, server.values.toList()),
+            deviceClasses = classSessionSummaries(deviceRows, device.values.toList()),
+            cloudClasses = classSessionSummaries(cloudRows, server.values.toList()),
             requiresGroupRename = group in nameCollisions && deviceRows.single().type == SyncEntityType.STUDENT_GROUP,
             requiresPackageRename = group in nameCollisions && deviceRows.single().type == SyncEntityType.PACKAGE_TYPE,
             unavailablePackageNames = if (group in nameCollisions) {
@@ -207,6 +211,7 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
         return documents.values.associate { document ->
             val group = when (document.type) {
                 SyncEntityType.CLASS_SCHEDULE -> "schedule:${document.cloudId}"
+                SyncEntityType.CLASS_SESSION -> "class:${document.cloudId}"
                 SyncEntityType.STUDENT_GROUP -> "group:${document.cloudId}"
                 SyncEntityType.PACKAGE_TYPE -> "plan:${document.cloudId}"
                 SyncEntityType.STUDENT -> "student:${document.cloudId}"
@@ -232,6 +237,9 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
 
     private fun label(deviceRows: List<AttendanceCloudDocument>, cloudRows: List<AttendanceCloudDocument>): String {
         val rows = deviceRows + cloudRows
+        rows.firstOrNull { it.type == SyncEntityType.CLASS_SESSION && !it.isDeleted }?.let {
+            return "${kotlinx.datetime.LocalDate.fromEpochDays(it.integer("dateEpochDay"))}"
+        }
         rows.firstOrNull { it.type == SyncEntityType.STUDENT && !it.isDeleted }?.let { return it.string("fullName") }
         rows.firstOrNull {
             !it.isDeleted &&
