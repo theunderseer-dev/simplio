@@ -11,7 +11,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +36,7 @@ import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
 import com.theunderseer.simplio.feature.attendance.presentation.sync.SyncConflictReviewDialog
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.awaitCancellation
@@ -166,10 +166,10 @@ private fun ExistingDataDialog(onUseExisting: () -> Unit, onStartEmpty: () -> Un
             )
         },
         confirmButton = {
-            TextButton(onClick = onUseExisting) { Text("Use existing data") }
+            SimplioTextButton(onClick = onUseExisting) { Text("Use existing data") }
         },
         dismissButton = {
-            TextButton(onClick = onStartEmpty) { Text("Start empty") }
+            SimplioTextButton(onClick = onStartEmpty) { Text("Start empty") }
         },
     )
 }
@@ -190,7 +190,7 @@ private fun LocalDataError(message: String, onRetry: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(message, color = MaterialTheme.colorScheme.error)
-            TextButton(onClick = onRetry) { Text("Retry") }
+            SimplioTextButton(onClick = onRetry) { Text("Retry") }
         }
     }
 }
@@ -254,11 +254,11 @@ private fun SyncNotice(sync: AttendanceSyncCoordinator) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
             if (problem == UploadProblem.CONFLICT) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    TextButton(
+                    SimplioTextButton(
                         onClick = { scope.launch { sync.openReview() } },
                         enabled = review == ConflictReviewState.Closed,
                     ) { Text("Review changes") }
-                    TextButton(onClick = sync::retry, enabled = review == ConflictReviewState.Closed) {
+                    SimplioTextButton(onClick = sync::retry, enabled = review == ConflictReviewState.Closed) {
                         Text("Retry sync")
                     }
                 }
@@ -278,7 +278,7 @@ private fun SyncNotice(sync: AttendanceSyncCoordinator) {
                     UploadProblem.TOO_LARGE,
                 )
             ) {
-                TextButton(onClick = sync::retry) { Text("Retry sync") }
+                SimplioTextButton(onClick = sync::retry) { Text("Retry sync") }
             }
         }
     }

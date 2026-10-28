@@ -1,7 +1,6 @@
 package com.theunderseer.simplio
 
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -26,6 +25,7 @@ import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
+import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
 import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
 import org.koin.core.parameter.parametersOf
@@ -79,7 +79,7 @@ private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplicat
         }
     }
 
-    MaterialTheme {
+    SimplioTheme {
         Surface(modifier = Modifier.fillMaxSize()) {
             if (firebase == null) {
                 DesktopAttendanceContent(

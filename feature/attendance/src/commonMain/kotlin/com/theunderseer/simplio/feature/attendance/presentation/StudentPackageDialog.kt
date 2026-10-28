@@ -1,6 +1,5 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +11,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,7 +24,6 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +51,9 @@ import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.class_add_package
 import com.theunderseer.simplio.feature.attendance.resources.class_student_save_hint
 import com.theunderseer.simplio.feature.attendance.resources.package_valid_until
+import com.theunderseer.simplio.shared.presentation.components.SimplioButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.simplioClickable
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -172,7 +172,9 @@ internal fun StudentPackageDialog(
 
                     Box {
                         OutlinedTextField(
+                            shape = MaterialTheme.shapes.small,
                             enabled = !isSaving,
+                            modifier = Modifier.fillMaxWidth(),
                             value = selectedDate?.toDisplayDate().orEmpty(),
                             supportingText = if (selectedDate == null) {
                                 { Text("No scheduled dates available yet") }
@@ -190,7 +192,7 @@ internal fun StudentPackageDialog(
                             modifier =
                             Modifier
                                 .matchParentSize()
-                                .clickable(enabled = !isSaving && fixedDate == null) {
+                                .simplioClickable(enabled = !isSaving && fixedDate == null) {
                                     showDatePicker = true
                                 }
                                 .semantics {
@@ -206,6 +208,7 @@ internal fun StudentPackageDialog(
                         },
                     ) {
                         OutlinedTextField(
+                            shape = MaterialTheme.shapes.small,
                             enabled = !isSaving,
                             value = selectedPackage?.name.orEmpty(),
                             onValueChange = {},
@@ -234,7 +237,7 @@ internal fun StudentPackageDialog(
                                 )
                             },
                             modifier =
-                            Modifier.testTag("package-purchase-package").menuAnchor(
+                            Modifier.fillMaxWidth().testTag("package-purchase-package").menuAnchor(
                                 type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
                                 enabled = packageTypes.isNotEmpty() && !isSaving,
                             ),
@@ -262,7 +265,7 @@ internal fun StudentPackageDialog(
                     }
 
                     if (onCreatePackage != null) {
-                        TextButton(onClick = onCreatePackage, enabled = !isSaving) {
+                        SimplioTextButton(onClick = onCreatePackage, enabled = !isSaving) {
                             Text(stringResource(Res.string.class_add_package))
                         }
                     }
@@ -351,6 +354,7 @@ internal fun StudentPackageDialog(
                     }
 
                     OutlinedTextField(
+                        shape = MaterialTheme.shapes.small,
                         value = note,
                         enabled = !isSaving,
                         onValueChange = { note = it },
@@ -366,7 +370,7 @@ internal fun StudentPackageDialog(
                 }
             },
             confirmButton = {
-                Button(
+                SimplioButton(
                     enabled =
                     !isSaving &&
                         canSubmit &&
@@ -390,7 +394,7 @@ internal fun StudentPackageDialog(
                 }
             },
             dismissButton = {
-                TextButton(
+                SimplioTextButton(
                     enabled = !isSaving,
                     onClick = onDismiss,
                 ) {

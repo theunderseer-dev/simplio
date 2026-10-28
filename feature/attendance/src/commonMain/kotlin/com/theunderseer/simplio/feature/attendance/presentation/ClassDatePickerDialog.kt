@@ -17,7 +17,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,10 +88,10 @@ internal fun ClassDatePickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.End),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    TextButton(enabled = !isSaving, onClick = onDismiss) {
+                    SimplioTextButton(enabled = !isSaving, onClick = onDismiss) {
                         Text("Cancel")
                     }
-                    TextButton(
+                    SimplioTextButton(
                         enabled = canConfirm && !isSaving,
                         onClick = { if (canConfirm && !isSaving) onConfirm() },
                     ) {

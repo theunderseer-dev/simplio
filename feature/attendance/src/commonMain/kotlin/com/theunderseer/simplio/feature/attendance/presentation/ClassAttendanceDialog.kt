@@ -9,15 +9,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +53,13 @@ import com.theunderseer.simplio.feature.attendance.resources.class_save_failed
 import com.theunderseer.simplio.feature.attendance.resources.class_saving
 import com.theunderseer.simplio.feature.attendance.resources.class_track_attendance
 import com.theunderseer.simplio.feature.attendance.resources.class_unavailable
+import com.theunderseer.simplio.feature.attendance.resources.ic_check
 import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
+import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
+import com.theunderseer.simplio.shared.presentation.components.SimplioFilterChip
+import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioToggleIconButton
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -87,12 +88,12 @@ internal fun ClassAttendanceDialog(
             },
             confirmButton = {
                 if (state is ClassAttendanceUiState.LoadError) {
-                    TextButton(onClick = { onRetry(state.sessionId) }) {
+                    SimplioTextButton(onClick = { onRetry(state.sessionId) }) {
                         Text(stringResource(Res.string.class_retry))
                     }
                 }
             },
-            dismissButton = { TextButton(onClick = onClose) { Text(stringResource(Res.string.class_close)) } },
+            dismissButton = { SimplioTextButton(onClick = onClose) { Text(stringResource(Res.string.class_close)) } },
         )
         return
     }
@@ -112,7 +113,7 @@ internal fun ClassAttendanceDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(sheet.timeLabel, style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = onAddStudent, enabled = !state.isSaving) {
+                SimplioTextButton(onClick = onAddStudent, enabled = !state.isSaving) {
                     Text(stringResource(Res.string.class_add_student))
                 }
                 if (state.hasIndependentChanges) {
@@ -151,18 +152,21 @@ internal fun ClassAttendanceDialog(
                                     }
                                 }
                                 if (row.canRenew) {
-                                    IconButton(
+                                    SimplioIconButton(
+                                        painter = painterResource(Res.drawable.ic_refresh),
+                                        contentDescription = stringResource(
+                                            Res.string.class_renew_student,
+                                            row.student.fullName,
+                                        ),
                                         onClick = { onRenewStudent(id) },
                                         enabled = !state.isSaving,
+                                        tone = SimplioActionTone.Accent,
                                         modifier = Modifier.testTag("class-renew-student-$id"),
-                                    ) {
-                                        Icon(
-                                            painterResource(Res.drawable.ic_refresh),
-                                            stringResource(Res.string.class_renew_student, row.student.fullName),
-                                        )
-                                    }
+                                    )
                                 } else {
-                                    Checkbox(
+                                    SimplioToggleIconButton(
+                                        painter = painterResource(Res.drawable.ic_check),
+                                        contentDescription = description,
                                         checked = count > 0,
                                         enabled = row.canRecord && !state.isSaving,
                                         onCheckedChange = { checked ->
@@ -178,7 +182,7 @@ internal fun ClassAttendanceDialog(
                             if (row.canRecord && row.studentPackage?.packageType?.maxVisitsPerAttendance == 2) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     (1..2).forEach { people ->
-                                        FilterChip(
+                                        SimplioFilterChip(
                                             selected = count == people,
                                             enabled = !state.isSaving && count > 0 && people <= row.maximumVisitCount,
                                             onClick = { onSelect(id, people) },
@@ -216,19 +220,19 @@ internal fun ClassAttendanceDialog(
                         modifier = Modifier.testTag("class-attendance-error"),
                     )
                 }
-                TextButton(
+                SimplioTextButton(
                     onClick = { confirmingCancel = true },
                     enabled = sheet.canCancel && selected.isEmpty() && !state.isSaving,
                 ) { Text(stringResource(Res.string.class_cancel)) }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(selected, false) }, enabled = !state.isSaving) {
+            SimplioTextButton(onClick = { onSave(selected, false) }, enabled = !state.isSaving) {
                 Text(stringResource(if (state.isSaving) Res.string.class_saving else Res.string.class_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = close, enabled = !state.isSaving) {
+            SimplioTextButton(onClick = close, enabled = !state.isSaving) {
                 Text(stringResource(Res.string.class_close))
             }
         },
@@ -239,7 +243,7 @@ internal fun ClassAttendanceDialog(
             title = { Text(stringResource(Res.string.class_cancel_title)) },
             text = { Text(stringResource(Res.string.class_cancel_confirmation)) },
             confirmButton = {
-                TextButton(modifier = Modifier.testTag("confirm-class-cancel"), onClick = {
+                SimplioTextButton(modifier = Modifier.testTag("confirm-class-cancel"), onClick = {
                     confirmingCancel =
                         false
                     onSave(emptyMap(), true)
@@ -248,7 +252,7 @@ internal fun ClassAttendanceDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmingCancel = false }) {
+                SimplioTextButton(onClick = { confirmingCancel = false }) {
                     Text(stringResource(Res.string.class_keep))
                 }
             },
@@ -259,9 +263,9 @@ internal fun ClassAttendanceDialog(
             onDismissRequest = { confirmingDiscard = false },
             title = { Text(stringResource(Res.string.class_discard_title)) },
             text = { Text(stringResource(Res.string.class_discard_confirmation)) },
-            confirmButton = { TextButton(onClick = onClose) { Text(stringResource(Res.string.class_discard)) } },
+            confirmButton = { SimplioTextButton(onClick = onClose) { Text(stringResource(Res.string.class_discard)) } },
             dismissButton = {
-                TextButton(onClick = { confirmingDiscard = false }) {
+                SimplioTextButton(onClick = { confirmingDiscard = false }) {
                     Text(stringResource(Res.string.class_continue))
                 }
             },

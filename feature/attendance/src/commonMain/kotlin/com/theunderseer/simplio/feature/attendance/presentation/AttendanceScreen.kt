@@ -1,8 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,22 +14,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,7 +34,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -49,7 +45,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
@@ -58,11 +53,22 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceChe
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.add_package
+import com.theunderseer.simplio.feature.attendance.resources.attendance_add_group
+import com.theunderseer.simplio.feature.attendance.resources.attendance_add_student
 import com.theunderseer.simplio.feature.attendance.resources.ic_check
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
+import com.theunderseer.simplio.feature.attendance.resources.ic_content_copy
 import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import com.theunderseer.simplio.feature.attendance.resources.package_added
 import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
+import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
+import com.theunderseer.simplio.shared.presentation.components.SimplioButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioOutlinedButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.simplioClickable
+import com.theunderseer.simplio.shared.presentation.components.simplioHoverSurface
+import com.theunderseer.simplio.shared.presentation.theme.SimplioSpacing
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.getString
@@ -476,7 +482,7 @@ fun AttendanceScreen(
                         )
                     },
                     confirmButton = {
-                        Button(
+                        SimplioButton(
                             onClick = {
                                 onDeleteStudent(studentId)
                                 deleteStudentDialog = null
@@ -488,7 +494,7 @@ fun AttendanceScreen(
                         }
                     },
                     dismissButton = {
-                        TextButton(
+                        SimplioTextButton(
                             onClick = {
                                 deleteStudentDialog = null
                             },
@@ -546,9 +552,10 @@ private fun AttendanceContent(
     LazyColumn(
         modifier = modifier.testTag("attendance-list"),
         contentPadding = PaddingValues(
-            start = 12.dp,
-            end = 12.dp,
-            bottom = 12.dp,
+            start = SimplioSpacing.Page,
+            end = SimplioSpacing.Page,
+            top = SimplioSpacing.Medium,
+            bottom = SimplioSpacing.Page,
         ),
     ) {
         if (state.scheduleOverlaps.isNotEmpty()) {
@@ -586,43 +593,27 @@ private fun AttendanceContent(
                     contentType = "student-group-header",
                 ) {
                     Column(
-                        modifier = Modifier.testTag("student-group-${group.id}"),
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp).testTag("student-group-${group.id}"),
                     ) {
                         Row(
                             modifier = Modifier.padding(
-                                top = 8.dp,
-                                bottom = 2.dp,
+                                top = 4.dp,
+                                bottom = 4.dp,
                             ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 text = group.name,
-                                style = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.weight(1f),
                             )
 
-                            Text(
-                                text = "⧉",
-                                modifier = Modifier
-                                    .clickable(
-                                        role = Role.Button,
-                                        onClick = {
-                                            onCopyAttendanceClick(group.id)
-                                        },
-                                    )
-                                    .semantics {
-                                        contentDescription =
-                                            "Copy attendance for ${group.name}"
-                                    }
-                                    .padding(
-                                        horizontal = 8.dp,
-                                        vertical = 2.dp,
-                                    ),
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 16.sp,
+                            SimplioIconButton(
+                                painter = painterResource(Res.drawable.ic_content_copy),
+                                contentDescription = "Copy attendance for ${group.name}",
+                                onClick = { onCopyAttendanceClick(group.id) },
                             )
                         }
-
-                        HorizontalDivider(thickness = 0.5.dp)
                     }
                 }
 
@@ -636,7 +627,11 @@ private fun AttendanceContent(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("student-row-${row.registeredStudent.student.id}"),
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .simplioHoverSurface()
+                            .testTag("student-row-${row.registeredStudent.student.id}")
+                            .padding(horizontal = 12.dp),
                     ) {
                         StudentAttendanceRow(
                             row = row,
@@ -665,10 +660,11 @@ private fun AttendanceContent(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(bottom = 8.dp)
                                 .testTag("student-note-${student.id}")
-                                .clickable(role = Role.Button) { onEditNoteClick(student.id) }
+                                .simplioClickable { onEditNoteClick(student.id) }
                                 .semantics { contentDescription = "Edit note for ${student.fullName}" }
-                                .padding(top = 2.dp, bottom = 8.dp),
+                                .padding(horizontal = 8.dp, vertical = 8.dp),
                         )
 
                         if (index < groupRows.lastIndex) {
@@ -681,19 +677,18 @@ private fun AttendanceContent(
 
         item(key = "add-student", contentType = "add-student") {
             FlowRow(
+                modifier = Modifier.padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(onClick = onAddStudentClick) {
-                    Text("Add Student")
+                SimplioButton(onClick = onAddStudentClick) {
+                    Text(stringResource(Res.string.attendance_add_student))
                 }
-                OutlinedButton(onClick = onAddGroupClick) {
-                    Text("Add Group")
+                SimplioOutlinedButton(onClick = onAddGroupClick) {
+                    Text(stringResource(Res.string.attendance_add_group))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(onClick = onAddPackageClick) {
-                        Text(stringResource(Res.string.add_package))
-                    }
+                    SimplioOutlinedButton(onClick = onAddPackageClick) { Text(stringResource(Res.string.add_package)) }
                     StudentGroupOptions(onManageGroupsClick)
                 }
             }
@@ -724,12 +719,9 @@ private fun StudentAttendanceRow(
         mutableStateOf(false)
     }
 
-    val attendanceInteractionSource = remember {
-        MutableInteractionSource()
-    }
-
-    val isAttendanceHovered by
-        attendanceInteractionSource.collectIsHoveredAsState()
+    val historySource = remember { MutableInteractionSource() }
+    val historyHovered by historySource.collectIsHoveredAsState()
+    val historyFocused by historySource.collectIsFocusedAsState()
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -751,20 +743,19 @@ private fun StudentAttendanceRow(
                     "${studentPackage.packageType.totalClasses}",
                 modifier =
                 Modifier
-                    .hoverable(
-                        interactionSource = attendanceInteractionSource,
-                    )
-                    .clickable {
+                    .testTag("student-package-history-${registeredStudent.student.id}")
+                    .clickable(interactionSource = historySource, indication = null, role = Role.Button) {
                         showPackageHistory = true
-                    }.semantics {
+                    }.padding(horizontal = 8.dp, vertical = 4.dp).semantics {
                         contentDescription =
                             "View package history for ${registeredStudent.student.fullName}"
                     },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.primary,
-                textDecoration =
-                if (isAttendanceHovered) {
+                textDecoration = if (historyHovered ||
+                    historyFocused
+                ) {
                     TextDecoration.Underline
                 } else {
                     TextDecoration.None
@@ -829,34 +820,13 @@ private fun StudentAttendanceRow(
                                 )
                             }
 
-                            Box(
-                                modifier = Modifier.width(32.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "×",
-                                    modifier =
-                                    Modifier
-                                        .clickable(
-                                            role = Role.Button,
-                                            onClick = {
-                                                onRemoveAttendanceClick(date)
-                                            },
-                                        )
-                                        .semantics {
-                                            contentDescription =
-                                                "Remove attendance on ${date.toDisplayDate()} " +
-                                                "for ${registeredStudent.student.fullName}"
-                                        }
-                                        .padding(
-                                            horizontal = 6.dp,
-                                            vertical = 2.dp,
-                                        ),
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontSize = 20.sp,
-                                    lineHeight = 20.sp,
-                                )
-                            }
+                            SimplioIconButton(
+                                painter = painterResource(Res.drawable.ic_close),
+                                contentDescription = "Remove attendance on ${date.toDisplayDate()} " +
+                                    "for ${registeredStudent.student.fullName}",
+                                onClick = { onRemoveAttendanceClick(date) },
+                                tone = SimplioActionTone.Destructive,
+                            )
                         }
                     }
             }
@@ -887,51 +857,30 @@ private fun StudentAttendanceRow(
             overflow = TextOverflow.Ellipsis,
         )
 
-        Icon(
+        SimplioIconButton(
             painter = painterResource(if (row.requiresRenewal) Res.drawable.ic_refresh else Res.drawable.ic_check),
             contentDescription = if (row.requiresRenewal) {
                 "Renew package for ${registeredStudent.student.fullName}"
             } else {
                 "Mark ${registeredStudent.student.fullName} present"
             },
-            modifier =
-            Modifier
-                .size(AttendanceDimensions.ActionColumnWidth)
-                .clickable(
-                    enabled = row.isCheckEnabled,
-                    role = Role.Button,
-                    onClick = onCheckClick,
-                )
-                .semantics {
-                    stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name
-                }
-                .padding(6.dp),
-            tint =
-            if (row.requiresRenewal) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                when (row.checkState) {
-                    AttendanceCheckState.Pending ->
-                        MaterialTheme.colorScheme.onSurfaceVariant
-
-                    AttendanceCheckState.Checked ->
-                        Color(0xFF2E7D32)
-                }
+            onClick = onCheckClick,
+            enabled = row.isCheckEnabled,
+            selected = !row.requiresRenewal && row.checkState == AttendanceCheckState.Checked,
+            tone = when {
+                row.requiresRenewal -> SimplioActionTone.Accent
+                row.checkState == AttendanceCheckState.Checked -> SimplioActionTone.Positive
+                else -> SimplioActionTone.Neutral
+            },
+            modifier = Modifier.semantics {
+                stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name
             },
         )
-
-        Icon(
+        SimplioIconButton(
             painter = painterResource(Res.drawable.ic_close),
             contentDescription = "Delete ${registeredStudent.student.fullName}",
-            modifier =
-            Modifier
-                .size(AttendanceDimensions.ActionColumnWidth)
-                .clickable(
-                    role = Role.Button,
-                    onClick = onDeleteClick,
-                )
-                .padding(6.dp),
-            tint = MaterialTheme.colorScheme.error,
+            onClick = onDeleteClick,
+            tone = SimplioActionTone.Destructive,
         )
     }
 }

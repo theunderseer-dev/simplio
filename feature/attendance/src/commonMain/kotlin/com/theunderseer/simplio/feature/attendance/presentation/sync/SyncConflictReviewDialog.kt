@@ -16,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +48,7 @@ import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
 import com.theunderseer.simplio.feature.attendance.resources.package_name_conflict
 import com.theunderseer.simplio.feature.attendance.resources.package_rename
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.input.ObserveInputFeedback
 import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
@@ -94,7 +94,7 @@ fun SyncConflictReviewDialog(
                     ConflictReviewState.Loading -> CircularProgressIndicator()
                     is ConflictReviewState.Error -> {
                         Text(state.message, color = MaterialTheme.colorScheme.error)
-                        TextButton(onClick = onRetry) { Text("Try again") }
+                        SimplioTextButton(onClick = onRetry) { Text("Try again") }
                     }
                     is ConflictReviewState.Ready -> {
                         LazyColumn(
@@ -239,9 +239,9 @@ fun SyncConflictReviewDialog(
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    TextButton(onClick = onDismiss, enabled = !applying) { Text("Later") }
+                    SimplioTextButton(onClick = onDismiss, enabled = !applying) { Text("Later") }
                     if (ready != null) {
-                        TextButton(
+                        SimplioTextButton(
                             onClick = {
                                 val resolved = choices + ready.review.items.filter { it.requiresRename }
                                     .associate { it.key to ConflictChoice.DEVICE }
