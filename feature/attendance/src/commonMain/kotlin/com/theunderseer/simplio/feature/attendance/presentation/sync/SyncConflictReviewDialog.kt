@@ -43,6 +43,7 @@ import com.theunderseer.simplio.feature.attendance.resources.class_conflict_stat
 import com.theunderseer.simplio.feature.attendance.resources.class_status_cancelled
 import com.theunderseer.simplio.feature.attendance.resources.class_status_held
 import com.theunderseer.simplio.feature.attendance.resources.class_summary_schedule
+import com.theunderseer.simplio.feature.attendance.resources.group_delete_sync_blocked
 import com.theunderseer.simplio.feature.attendance.resources.group_name_conflict
 import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
@@ -119,6 +120,13 @@ fun SyncConflictReviewDialog(
                                         verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         Text(item.label, style = MaterialTheme.typography.titleMedium)
+                                        if (!item.deviceChoiceAllowed || !item.cloudChoiceAllowed) {
+                                            Text(
+                                                stringResource(Res.string.group_delete_sync_blocked),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
                                         if (item.requiresRename) {
                                             Text(
                                                 if (item.requiresPackageRename) {
@@ -198,7 +206,7 @@ fun SyncConflictReviewDialog(
                                                     item.deviceDetails,
                                                     item.deviceClasses,
                                                     choices[item.key] == ConflictChoice.DEVICE,
-                                                    !applying,
+                                                    !applying && item.deviceChoiceAllowed,
                                                     "device-${item.key}",
                                                     Modifier.weight(1f),
                                                 ) {
@@ -209,7 +217,7 @@ fun SyncConflictReviewDialog(
                                                     item.cloudDetails,
                                                     item.cloudClasses,
                                                     choices[item.key] == ConflictChoice.CLOUD,
-                                                    !applying,
+                                                    !applying && item.cloudChoiceAllowed,
                                                     "cloud-${item.key}",
                                                     Modifier.weight(1f),
                                                 ) {
@@ -247,7 +255,11 @@ fun SyncConflictReviewDialog(
                                 renameInputs.values.none { it.rejectedEdit } &&
                                 ready.review.items.all { item ->
                                     if (!item.requiresRename) {
-                                        item.key in choices
+                                        when (choices[item.key]) {
+                                            ConflictChoice.DEVICE -> item.deviceChoiceAllowed
+                                            ConflictChoice.CLOUD -> item.cloudChoiceAllowed
+                                            null -> false
+                                        }
                                     } else {
                                         val name = renames[item.key].orEmpty()
                                         onApplyRenamed != null &&

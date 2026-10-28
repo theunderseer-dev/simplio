@@ -25,6 +25,9 @@ class RoomClassScheduleRepository(private val database: AttendanceDatabase) : Cl
     }
 
     override suspend fun save(schedule: ClassSchedule) = RoomSyncJournal.write(database) { journal ->
+        require(schedule.archivedAt == null || dao.groupSchedules().none { it.scheduleId == schedule.id })
+        val archived = dao.schedules().firstOrNull { it.id == schedule.id }?.archivedAtEpochMillis
+        require(archived == null || schedule.archivedAt?.toEpochMilliseconds() == archived)
         dao.save(schedule.toEntity())
         dao.deleteSlots(schedule.id)
         dao.insertSlots(schedule.slotEntities())
@@ -35,7 +38,7 @@ class RoomClassScheduleRepository(private val database: AttendanceDatabase) : Cl
         require(scheduleIds.isNotEmpty() && scheduleIds.size <= 100)
         RoomSyncJournal.write(database) { journal ->
             require(database.studentGroupDao().getAll().any { it.id == groupId })
-            require(dao.schedules().map { it.id }.containsAll(scheduleIds))
+            require(dao.schedules().filter { it.archivedAtEpochMillis == null }.map { it.id }.containsAll(scheduleIds))
             scheduleIds.forEach { journal.ensureSchedule(it) }
             dao.detachGroup(groupId)
             scheduleIds.sorted().forEach { dao.attach(StudentGroupScheduleEntity(groupId, it)) }

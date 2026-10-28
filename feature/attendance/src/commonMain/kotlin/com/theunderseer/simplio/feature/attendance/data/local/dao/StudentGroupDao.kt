@@ -10,6 +10,9 @@ interface StudentGroupDao {
     @Query("SELECT * FROM student_groups ORDER BY id")
     suspend fun getAll(): List<StudentGroupEntity>
 
+    @Query("DELETE FROM student_groups WHERE id = :groupId")
+    suspend fun delete(groupId: Int)
+
     @Insert
     suspend fun insert(group: StudentGroupEntity): Long
 }

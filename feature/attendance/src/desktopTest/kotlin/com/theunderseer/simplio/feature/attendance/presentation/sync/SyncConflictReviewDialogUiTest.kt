@@ -30,6 +30,26 @@ class SyncConflictReviewDialogUiTest {
     private val review = SyncConflictReview("review-1", listOf(anna, bob), 2)
 
     @Test
+    fun `a group deletion cannot select a version that loses newly registered students`() = runComposeUiTest {
+        val item = anna.copy(deviceChoiceAllowed = false)
+        var submitted: Map<String, ConflictChoice>? = null
+        setContent {
+            MaterialTheme {
+                SyncConflictReviewDialog(ConflictReviewState.Ready(review.copy(items = listOf(item))), {
+                }, {}, { _, choices ->
+                    submitted =
+                        choices
+                })
+            }
+        }
+        onNodeWithTag("device-${item.key}").assertIsNotEnabled()
+        onNodeWithText("New students belong to this group. Keep the version that preserves them.").assertExists()
+        onNodeWithTag("cloud-${item.key}").performClick()
+        onNodeWithText("Apply and sync").assertIsEnabled().performClick()
+        assertEquals(mapOf(item.key to ConflictChoice.CLOUD), submitted)
+    }
+
+    @Test
     fun `each student requires an explicit selection before apply`() = runComposeUiTest {
         var submitted: Map<String, ConflictChoice>? = null
         setContent {

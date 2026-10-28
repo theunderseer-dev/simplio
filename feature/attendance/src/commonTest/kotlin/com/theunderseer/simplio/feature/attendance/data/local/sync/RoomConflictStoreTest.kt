@@ -19,6 +19,7 @@ import kotlinx.serialization.json.put
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -367,14 +368,9 @@ class RoomConflictStoreTest {
                 },
             )
             val review = store.create(snapshot)
-            assertEquals(setOf("Group A", "Bob Lee"), review.items.map { it.label }.toSet())
-            val bad = review.items.associate {
-                it.key to if (it.label == "Bob Lee") {
-                    ConflictChoice.DEVICE
-                } else {
-                    ConflictChoice.CLOUD
-                }
-            }
+            assertEquals(listOf("Group A"), review.items.map { it.label })
+            assertFalse(review.items.single().cloudChoiceAllowed)
+            val bad = mapOf(review.items.single().key to ConflictChoice.CLOUD)
             val before = RoomSyncOutbox(device).getPending()
             assertFailsWith<InvalidConflictChoice> { store.apply(review.id, bad, snapshot.head) }
             assertEquals(before, RoomSyncOutbox(device).getPending())
@@ -382,7 +378,7 @@ class RoomConflictStoreTest {
             store.apply(review.id, review.items.associate { it.key to ConflictChoice.DEVICE }, snapshot.head)
             assertEquals(2, device.studentDao().count())
             assertEquals("Group A", device.studentGroupDao().getAll().single { it.id == 1 }.name)
-            assertEquals(4, device.syncPullDao().pendingCount())
+            assertEquals(5, device.syncPullDao().pendingCount())
         }
     }
 

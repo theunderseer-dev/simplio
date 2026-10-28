@@ -54,5 +54,33 @@ internal fun sessionConflictGroups(
             }
         }
     }
+    // Group deletion and series retirement choose a complete group/student graph in both directions.
+    val rows = device + server
+    val deletedGroups = rows.filter {
+        it.type == SyncEntityType.STUDENT_GROUP && it.isDeleted
+    }.map { it.cloudId }.toSet()
+    val retiredSchedules = rows.filter {
+        it.type == SyncEntityType.CLASS_SCHEDULE && !it.isDeleted && "archivedAtEpochMillis" in it.fields
+    }.map { it.cloudId }.toSet()
+    val groups = rows.filter { it.type == SyncEntityType.STUDENT_GROUP && !it.isDeleted }
+    groups.forEach { group ->
+        val schedules = group.scheduleIds() ?: listOf(DefaultClassSchedule.ID)
+        schedules.filter { it in retiredSchedules }.forEach { join("schedule:$it", "group:${group.cloudId}") }
+    }
+    rows.filter { it.type == SyncEntityType.STUDENT && !it.isDeleted }.forEach { student ->
+        val groupId = student.string("groupId")
+        if (groupId in deletedGroups ||
+            groups.any {
+                it.cloudId == groupId &&
+                    (it.scheduleIds() ?: listOf(DefaultClassSchedule.ID)).any { id -> id in retiredSchedules }
+            }
+        ) {
+            join("group:$groupId", "student:${student.cloudId}")
+        }
+    }
+    rows.filter { it.type == SyncEntityType.CLASS_SESSION && !it.isDeleted }.forEach { decision ->
+        val scheduleId = decision.string("scheduleId")
+        if (scheduleId in retiredSchedules) join("schedule:$scheduleId", "class:${decision.cloudId}")
+    }
     return parents.keys.toList().associateWith(::root)
 }

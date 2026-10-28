@@ -31,15 +31,31 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
         }
         uploadDao.getBatch()?.let { return@run it }
         val syncDao = database.syncDao()
-        val pending = syncDao.getPendingCatalog(MAX_DOCUMENTS).ifEmpty {
-            if (syncDao.hasPendingClassSessions()) {
-                val all = syncDao.getPending(50_001)
-                if (all.size > 50_000) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
-                return@ifEmpty classUploadUnit(database, all)
+        val catalog = syncDao.getPendingCatalog(MAX_DOCUMENTS)
+        val retired = database.classScheduleDao().schedules().filter {
+            it.archivedAtEpochMillis != null
+        }.map { it.id }.toSet()
+        val deletingGroups = catalog.any {
+            it.entityType == SyncEntityType.STUDENT_GROUP &&
+                it.operation == SyncOperation.DELETE ||
+                it.entityType == SyncEntityType.CLASS_SCHEDULE &&
+                it.localId in retired
+        }
+        val pending = if (deletingGroups) {
+            val all = syncDao.getPending(50_001)
+            if (all.size > 50_000) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+            groupDeletionUploadUnit(database, all)
+        } else {
+            catalog.ifEmpty {
+                if (syncDao.hasPendingClassSessions()) {
+                    val all = syncDao.getPending(50_001)
+                    if (all.size > 50_000) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
+                    return@ifEmpty classUploadUnit(database, all)
+                }
+                val key = syncDao.getNextAggregateKey() ?: return@run null
+                check(key.isNotBlank())
+                syncDao.getPendingAggregate(key, MAX_DOCUMENTS + 1)
             }
-            val key = syncDao.getNextAggregateKey() ?: return@run null
-            check(key.isNotBlank())
-            syncDao.getPendingAggregate(key, MAX_DOCUMENTS + 1)
         }
         if (pending.size > MAX_DOCUMENTS) throw UploadPreparationFailure(UploadProblem.TOO_LARGE)
         val selected = pending.map { it.entityType to it.localId }.toSet()

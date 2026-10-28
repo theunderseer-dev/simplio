@@ -27,7 +27,11 @@ import kotlinx.serialization.json.put
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
-class RoomConflictStore(private val database: AttendanceDatabase, private val target: UploadTarget) {
+class RoomConflictStore(
+    private val database: AttendanceDatabase,
+    private val target: UploadTarget,
+    private val clock: kotlin.time.Clock = kotlin.time.Clock.System,
+) {
     private val transactions = RoomTransactionRunner(database)
     private val reviews = database.syncConflictDao()
 
@@ -80,7 +84,7 @@ class RoomConflictStore(private val database: AttendanceDatabase, private val ta
         val plan = ConflictPlan(local, cloud)
         if (choices.keys != plan.conflictingKeys) throw InvalidConflictChoice()
         val merged = try {
-            plan.merge(choices, catalogRenames).copy(head = currentHead)
+            plan.merge(choices, catalogRenames, clock.now()).copy(head = currentHead)
         } catch (error: IllegalArgumentException) {
             throw InvalidConflictChoice()
         }

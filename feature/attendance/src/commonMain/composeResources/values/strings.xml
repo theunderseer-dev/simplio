@@ -73,4 +73,28 @@
     <string name="class_renew_student">Renew package for %1$s</string>
     <string name="class_student_save_hint">Saves immediately. Other attendance selections stay in your draft.</string>
     <string name="class_independent_saved">Student and package changes are saved. Save confirms the remaining attendance.</string>
+    <string name="group_manage">Manage groups</string>
+    <string name="group_options">Group options</string>
+    <string name="group_empty">No groups</string>
+    <string name="group_delete">Delete group</string>
+    <string name="group_delete_title">Delete group “%1$s”?</string>
+    <string name="group_delete_confirmation">This group will be removed.</string>
+    <string name="group_delete_schedule_hint">If no other group uses its schedule, future classes stop. Class history is kept.</string>
+    <string name="group_delete_not_empty">Move or remove the students before deleting this group.</string>
+    <string name="group_delete_missing">This group has already been removed.</string>
+    <string name="group_delete_failed">Could not delete the group. Try again.</string>
+    <plurals name="group_student_count">
+        <item quantity="one">%1$d student</item>
+        <item quantity="other">%1$d students</item>
+    </plurals>
+    <string name="group_delete_action">Delete group %1$s</string>
+    <string name="group_schedule_slot">%1$s %2$s–%3$s · %4$s</string>
+    <string name="weekday_monday">Mon</string>
+    <string name="weekday_tuesday">Tue</string>
+    <string name="weekday_wednesday">Wed</string>
+    <string name="weekday_thursday">Thu</string>
+    <string name="weekday_friday">Fri</string>
+    <string name="weekday_saturday">Sat</string>
+    <string name="weekday_sunday">Sun</string>
+    <string name="group_delete_sync_blocked">New students belong to this group. Keep the version that preserves them.</string>
 </resources>

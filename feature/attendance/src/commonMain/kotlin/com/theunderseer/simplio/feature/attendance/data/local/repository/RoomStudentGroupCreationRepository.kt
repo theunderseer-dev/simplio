@@ -29,9 +29,13 @@ class RoomStudentGroupCreationRepository(private val database: AttendanceDatabas
             }
             val dao = database.classScheduleDao()
             val scheduleId = request.existingScheduleId ?: checkNotNull(request.newSchedule).id
-            val existing = dao.schedules().any { it.id == scheduleId }
+            val existingRow = dao.schedules().firstOrNull { it.id == scheduleId }
+            val existing = existingRow != null
             if (request.newSchedule != null) {
-                if (existing || request.newSchedule.slots.groupBy { it.dayOfWeek }.any { it.value.size > 1 }) {
+                if (existing ||
+                    request.newSchedule.archivedAt != null ||
+                    request.newSchedule.slots.groupBy { it.dayOfWeek }.any { it.value.size > 1 }
+                ) {
                     return@write CreateStudentGroupResult.InvalidSchedule
                 }
                 findScheduleOverlap(request.newSchedule, RoomClassScheduleRepository(database).getAll())?.let {
@@ -41,6 +45,7 @@ class RoomStudentGroupCreationRepository(private val database: AttendanceDatabas
                 dao.insertSlots(request.newSchedule.slotEntities())
                 journal.ensureSchedule(scheduleId)
             } else if (!existing ||
+                existingRow.archivedAtEpochMillis != null ||
                 dao.slots().filter { it.scheduleId == scheduleId }
                     .groupBy { it.dayOfWeek }.any { it.value.size > 1 }
             ) {

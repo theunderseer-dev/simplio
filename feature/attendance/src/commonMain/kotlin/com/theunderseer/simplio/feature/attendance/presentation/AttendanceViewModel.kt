@@ -15,6 +15,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
@@ -26,6 +27,7 @@ import com.theunderseer.simplio.feature.attendance.domain.transaction.Transactio
 import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreatePackageTypeUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.CreateStudentGroupUseCase
+import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentGroupUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.GetClassHistoryUseCase
@@ -76,6 +78,7 @@ class AttendanceViewModel(
     private val updateStudentNoteUseCase: UpdateStudentNoteUseCase,
     private val classAttendanceRepository: ClassAttendanceRepository,
     private val classStudentActions: ClassStudentActionsUseCase,
+    private val deleteStudentGroupUseCase: DeleteStudentGroupUseCase,
     private val currentDates: Flow<LocalDate>,
     private val transactionRunner: TransactionRunner,
     private val localChanges: Flow<Unit>,
@@ -83,6 +86,7 @@ class AttendanceViewModel(
     private val classScheduleRepository: ClassScheduleRepository? = null,
     currentInstants: Flow<Instant?> = flowOf(null),
 ) : ViewModel() {
+    private val groupDeletionState = MutableStateFlow<DeleteStudentGroupUiState>(DeleteStudentGroupUiState.Idle)
     private val classAttendanceState = MutableStateFlow<ClassAttendanceUiState>(ClassAttendanceUiState.Closed)
     private var classAttendanceJob: Job? = null
 
@@ -186,6 +190,8 @@ class AttendanceViewModel(
             } else {
                 state
             }
+        }.combine(groupDeletionState) { state, deletion ->
+            if (state is AttendanceUiState.Content) state.copy(deleteStudentGroupState = deletion) else state
         }.combine(classAttendanceState) { state, attendance ->
             if (state is AttendanceUiState.Content) state.copy(classAttendanceState = attendance) else state
         }.stateIn(
@@ -231,6 +237,39 @@ class AttendanceViewModel(
             currentDates
                 .distinctUntilChangedBy { it }
                 .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
+    }
+
+    fun deleteStudentGroup(groupId: Int) {
+        if (groupDeletionState.value is DeleteStudentGroupUiState.Saving) return
+        groupDeletionState.value = DeleteStudentGroupUiState.Saving(groupId)
+        viewModelScope.launch {
+            val result = try {
+                deleteStudentGroupUseCase(groupId)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                groupDeletionState.value = DeleteStudentGroupUiState.Error(groupId, null)
+                return@launch
+            }
+            groupDeletionState.value = if (result == DeleteStudentGroupResult.DELETED) {
+                DeleteStudentGroupUiState.Deleted(groupId)
+            } else {
+                DeleteStudentGroupUiState.Error(groupId, result)
+            }
+            // Deletion is already committed; refresh failures must never invite a duplicate mutation.
+            try {
+                refreshAttendance()
+                loadClassHistory()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) { }
+        }
+    }
+
+    fun clearDeleteStudentGroupState() {
+        if (groupDeletionState.value !is DeleteStudentGroupUiState.Saving) {
+            groupDeletionState.value = DeleteStudentGroupUiState.Idle
         }
     }
 
@@ -870,7 +909,7 @@ class AttendanceViewModel(
                     attendance = getAttendanceUseCase(),
                     packageTypes = getPackageTypesUseCase(),
                     studentGroups = groups,
-                    classSchedules = schedules,
+                    classSchedules = schedules.filter { it.archivedAt == null },
                     groupSchedules = byGroup,
                     scheduleOverlaps = findScheduleOverlaps(schedules),
                 )

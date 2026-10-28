@@ -13,6 +13,7 @@ data class ClassSchedule(
     val slots: List<WeeklyClassSlot>,
     val startsOn: LocalDate? = null,
     val endsOn: LocalDate? = null,
+    val archivedAt: kotlin.time.Instant? = null,
 ) {
     init {
         requireScheduleId(id)

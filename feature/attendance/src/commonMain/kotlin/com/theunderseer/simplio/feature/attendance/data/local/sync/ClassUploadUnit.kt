@@ -6,11 +6,13 @@ import com.theunderseer.simplio.feature.attendance.data.local.database.Attendanc
 internal suspend fun classUploadUnit(
     database: AttendanceDatabase,
     pending: List<PendingSyncChange>,
+    initial: Set<Pair<SyncEntityType, String>>? = null,
 ): List<PendingSyncChange> {
-    val first = pending.first { it.entityType == SyncEntityType.CLASS_SESSION }
-    val selected = mutableSetOf(first.entityType to first.localId)
+    val selected = initial?.toMutableSet() ?: pending.first { it.entityType == SyncEntityType.CLASS_SESSION }
+        .let { mutableSetOf(it.entityType to it.localId) }
     val decisions = database.classSessionStateDao().getAll().associateBy { it.sessionId }
     val packages = database.syncPullDao().packages().associateBy { it.id }
+    val links = database.classScheduleDao().groupSchedules()
     val students = database.studentDao().getAll().associateBy { it.id }
     var changed: Boolean
     do {
@@ -51,9 +53,11 @@ internal suspend fun classUploadUnit(
                 }
                 SyncEntityType.STUDENT_PACKAGE -> packages[change.localId.toInt()]?.let {
                     selected += SyncEntityType.STUDENT to it.studentId.toString()
+                    selected += SyncEntityType.PACKAGE_TYPE to it.packageTypeId.toString()
                 }
                 SyncEntityType.STUDENT -> {
                     val id = change.localId.toInt()
+                    students[id]?.let { selected += SyncEntityType.STUDENT_GROUP to it.groupId.toString() }
                     if (id !in students) {
                         pending.filter { it.aggregateKey == change.aggregateKey }.forEach {
                             selected += it.entityType to it.localId
@@ -63,6 +67,14 @@ internal suspend fun classUploadUnit(
                     packages.values.filter { it.studentId == id }.forEach {
                         selected += SyncEntityType.STUDENT_PACKAGE to it.id.toString()
                     }
+                }
+                SyncEntityType.STUDENT_GROUP ->
+                    links
+                        .filter { it.groupId.toString() == change.localId }.forEach {
+                            selected += SyncEntityType.CLASS_SCHEDULE to it.scheduleId
+                        }
+                SyncEntityType.CLASS_SESSION -> decisions[change.localId]?.let {
+                    selected += SyncEntityType.CLASS_SCHEDULE to it.scheduleId
                 }
                 else -> Unit
             }

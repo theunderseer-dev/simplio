@@ -32,6 +32,7 @@ sealed interface AttendanceUiState {
         val scheduleOverlaps: List<ScheduleOverlap> = emptyList(),
         val createPackageTypeState: CreatePackageTypeUiState = CreatePackageTypeUiState.Idle,
         val classAttendanceState: ClassAttendanceUiState = ClassAttendanceUiState.Closed,
+        val deleteStudentGroupState: DeleteStudentGroupUiState = DeleteStudentGroupUiState.Idle,
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState

@@ -3,14 +3,20 @@ package com.theunderseer.simplio.feature.attendance.domain.schedule
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
+import kotlinx.datetime.toLocalDateTime
 
 fun List<ClassSchedule>.isScheduledClassDate(date: LocalDate): Boolean = any {
     it.sessionsBetween(date, date).isNotEmpty()
 }
 
 fun List<ClassSchedule>.latestClassDate(today: LocalDate): LocalDate? = mapNotNull { schedule ->
-    val upper = minOf(today, schedule.endsOn ?: today)
+    val upper = minOf(
+        today,
+        schedule.endsOn ?: today,
+        schedule.archivedAt?.toLocalDateTime(TimeZone.of(schedule.timeZoneId))?.date ?: today,
+    )
     (0..13).map { upper.minus(DatePeriod(days = it)) }
         .firstOrNull { listOf(schedule).isScheduledClassDate(it) }
 }.maxOrNull()

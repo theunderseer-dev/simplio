@@ -79,3 +79,5 @@ for migration, synchronization and compatibility details.
 
 All editable forms follow [Input validation](../architecture/input-validation.md), including numeric filtering,
 name lengths, 24-hour schedule time, time-zone checks, paste rejection and sign-in input. Notes remain free text.
+
+Group options beside Add Group provides deletion of empty groups and retirement of unshared schedules; see [group management](group-management.md).
