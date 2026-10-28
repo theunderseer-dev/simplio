@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidStudentName
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
+import com.theunderseer.simplio.shared.presentation.components.SimplioFilterChip
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
 import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
 import com.theunderseer.simplio.shared.validation.InputPolicy
@@ -90,10 +90,11 @@ fun StudentRegistrationDialog(
 
                 FlowRow(
                     modifier = Modifier.padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     studentGroups.forEach { group ->
-                        FilterChip(
+                        SimplioFilterChip(
                             enabled = !isSaving,
                             selected = selectedGroupId == group.id,
                             onClick = {

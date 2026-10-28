@@ -9,16 +9,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -49,6 +45,10 @@ import com.theunderseer.simplio.feature.attendance.resources.schedule_time_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_time_invalid
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_invalid
+import com.theunderseer.simplio.shared.presentation.components.SimplioButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioFilterChip
+import com.theunderseer.simplio.shared.presentation.components.SimplioOutlinedButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
 import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
@@ -164,14 +164,14 @@ internal fun StudentGroupCreationDialog(
                 )
                 Text("Weekly schedule", style = MaterialTheme.typography.titleSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
+                    SimplioFilterChip(
                         selected = !newSchedule,
                         onClick = { newSchedule = false },
                         enabled =
                         !saving && eligible.isNotEmpty(),
                         label = { Text("Use existing") },
                     )
-                    FilterChip(
+                    SimplioFilterChip(
                         selected = newSchedule,
                         onClick = { newSchedule = true },
                         enabled = !saving,
@@ -180,7 +180,7 @@ internal fun StudentGroupCreationDialog(
                 }
                 if (!newSchedule) {
                     Column {
-                        OutlinedButton(onClick = { expanded = true }, enabled = !saving) {
+                        SimplioOutlinedButton(onClick = { expanded = true }, enabled = !saving) {
                             Text(selected?.name ?: "Choose schedule")
                         }
                         DropdownMenu(
@@ -214,7 +214,7 @@ internal fun StudentGroupCreationDialog(
                 } else {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         DayOfWeek.entries.forEach { day ->
-                            FilterChip(
+                            SimplioFilterChip(
                                 selected = day in days,
                                 enabled = !saving,
                                 onClick = { days = if (day in days) days - day else days + day },
@@ -260,7 +260,7 @@ internal fun StudentGroupCreationDialog(
                             )
                         },
                     )
-                    TextButton(
+                    SimplioTextButton(
                         onClick = { chooseDate = "start" },
                         enabled = !saving,
                         modifier = Modifier.testTag("group-start-date"),
@@ -273,7 +273,9 @@ internal fun StudentGroupCreationDialog(
                         )
                         Text("End date")
                         endDate?.let {
-                            TextButton(onClick = { chooseDate = "end" }, enabled = !saving) { Text(it.toString()) }
+                            SimplioTextButton(onClick = {
+                                chooseDate = "end"
+                            }, enabled = !saving) { Text(it.toString()) }
                         }
                     }
                     if (endDate?.let { it < startDate } == true) {
@@ -297,11 +299,11 @@ internal fun StudentGroupCreationDialog(
             }
         },
         confirmButton = {
-            Button(enabled = canSave, onClick = {
+            SimplioButton(enabled = canSave, onClick = {
                 if (canSave) onCreate(CreateStudentGroupRequest(name, if (newSchedule) null else selectedId, draft))
             }) { Text(if (saving) "Saving..." else "Create") }
         },
-        dismissButton = { TextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
+        dismissButton = { SimplioTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
     )
     chooseDate?.let { field ->
         val initial = if (field == "start") startDate else endDate ?: startDate
@@ -351,13 +353,13 @@ internal fun StudentGroupCreationDialog(
             },
             text = { TimePicker(picker) },
             confirmButton = {
-                TextButton(onClick = {
+                SimplioTextButton(onClick = {
                     val value = LocalTime(picker.hour, picker.minute).toString()
                     if (field == "start") startInput.replaceText(value) else endInput.replaceText(value)
                     chooseTime = null
                 }) { Text("OK") }
             },
-            dismissButton = { TextButton(onClick = { chooseTime = null }) { Text("Cancel") } },
+            dismissButton = { SimplioTextButton(onClick = { chooseTime = null }) { Text("Cancel") } },
         )
     }
 }
@@ -395,6 +397,6 @@ private fun ScheduleTimeField(
                 ),
             )
         },
-        trailingIcon = { TextButton(onClick = onChoose, enabled = enabled) { Text("Pick") } },
+        trailingIcon = { SimplioTextButton(onClick = onChoose, enabled = enabled) { Text("Pick") } },
     )
 }

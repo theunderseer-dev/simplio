@@ -2,6 +2,7 @@ package com.theunderseer.simplio.shared.presentation.input
 
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,8 +26,10 @@ fun ValidatedOutlinedTextField(
     supportingText: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    rejectedEditSupportingText: (@Composable () -> Unit)? = null,
 ) {
     OutlinedTextField(
+        shape = MaterialTheme.shapes.small,
         state = input.textFieldState,
         inputTransformation = input.transformation,
         lineLimits = TextFieldLineLimits.SingleLine,
@@ -37,7 +40,7 @@ fun ValidatedOutlinedTextField(
         trailingIcon = trailingIcon,
         keyboardOptions = keyboardOptions,
         supportingText = if (input.rejectedEdit) {
-            { Text(inputRejectionMessage(input.policy)) }
+            rejectedEditSupportingText ?: { Text(inputRejectionMessage(input.policy)) }
         } else {
             supportingText
         },

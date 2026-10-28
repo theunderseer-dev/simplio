@@ -97,4 +97,9 @@
     <string name="weekday_saturday">Sat</string>
     <string name="weekday_sunday">Sun</string>
     <string name="group_delete_sync_blocked">New students belong to this group. Keep the version that preserves them.</string>
+    <string name="attendance_add_student">Add Student</string>
+    <string name="attendance_add_group">Add Group</string>
+    <string name="attendance_class_history">Class History</string>
+    <string name="package_numeric_maximum">Maximum allowed value: %1$s.</string>
+    <string name="group_scroll_hint">Scroll to see all groups.</string>
 </resources>

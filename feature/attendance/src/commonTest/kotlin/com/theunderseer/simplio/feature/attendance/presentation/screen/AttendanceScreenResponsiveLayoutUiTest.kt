@@ -90,8 +90,10 @@ class AttendanceScreenResponsiveLayoutUiTest {
             val historyBounds = onNodeWithTag("class-history-entry-${date.toEpochDays()}")
                 .fetchSemanticsNode().boundsInRoot
 
-            assertTrue(abs(firstBounds.first().left - rowBounds.left) <= 1f)
-            assertTrue(abs(firstBounds.last().right - rowBounds.right) <= 1f)
+            val leadingInset = firstBounds.first().left - rowBounds.left
+            val trailingInset = rowBounds.right - firstBounds.last().right
+            assertTrue(leadingInset >= 0f && trailingInset >= 0f, "Cells must remain inside the row surface")
+            assertTrue(abs(leadingInset - trailingInset) <= 1f, "Row content must have balanced horizontal insets")
             assertTrue(abs(rowBounds.left - historyBounds.left) <= 1f)
             assertTrue(abs(rowBounds.right - historyBounds.right) <= 1f)
             for ((first, second) in firstBounds.zip(secondBounds)) {

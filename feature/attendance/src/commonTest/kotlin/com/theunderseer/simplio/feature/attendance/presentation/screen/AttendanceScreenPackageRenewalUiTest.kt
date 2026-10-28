@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.presentation.screen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
@@ -168,13 +170,16 @@ class AttendanceScreenPackageRenewalUiTest {
             AttendanceScreenForTest(testPackageRenewalState(student), onRenewStudentPackage = callback::onRenew)
         }
         onNodeWithContentDescription("Renew package for Anna Smith").performClick()
-        onNodeWithContentDescription("Purchase date").performClick()
+        onNodeWithContentDescription("Purchase date").performScrollTo().assertIsDisplayed().performClick()
         onNodeWithText("Friday, October 16, 2026", substring = true).performClick()
         onNodeWithText("OK").performClick()
-        onNodeWithTag("package-purchase-package").performClick()
-        onNodeWithText("5-class package").performClick()
-        onNodeWithTag("registration-note").performScrollTo().performTextReplacement("")
-        onNodeWithText("Renew").performClick()
+        // Invoke the dropdown anchor rather than the read-only text field's pointer selection handler.
+        onNodeWithTag("package-purchase-package").performScrollTo().assertIsDisplayed()
+            .performSemanticsAction(SemanticsActions.OnClick) { it() }
+        onNodeWithText("5-class package").assertIsDisplayed().performClick()
+        onNodeWithTag("package-purchase-package").assertTextContains("5-class package")
+        onNodeWithTag("registration-note").performScrollTo().assertIsDisplayed().performTextReplacement("")
+        onNodeWithText("Renew").assertIsEnabled().performClick()
         val submission = assertNotNull(callback.submission)
         assertEquals(AttendanceTestData.fiveClassPackage, submission.packageType)
         assertEquals(AttendanceTestData.fifthClassDate, submission.purchasedOn)

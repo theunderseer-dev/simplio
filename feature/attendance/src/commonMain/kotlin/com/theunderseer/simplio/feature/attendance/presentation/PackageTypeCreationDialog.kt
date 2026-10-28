@@ -8,14 +8,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +22,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
@@ -47,12 +44,15 @@ import com.theunderseer.simplio.feature.attendance.resources.package_invalid_val
 import com.theunderseer.simplio.feature.attendance.resources.package_invalid_visits
 import com.theunderseer.simplio.feature.attendance.resources.package_name
 import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
+import com.theunderseer.simplio.feature.attendance.resources.package_numeric_maximum
 import com.theunderseer.simplio.feature.attendance.resources.package_price
 import com.theunderseer.simplio.feature.attendance.resources.package_save_failed
 import com.theunderseer.simplio.feature.attendance.resources.package_saving
 import com.theunderseer.simplio.feature.attendance.resources.package_two_hint
 import com.theunderseer.simplio.feature.attendance.resources.package_validity
 import com.theunderseer.simplio.feature.attendance.resources.package_validity_hint
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.simplioToggleable
 import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
 import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
@@ -174,6 +174,7 @@ internal fun PackageTypeCreationDialog(
                         (weeks.isNotEmpty() && (validity == null || validity !in 1..(Int.MAX_VALUE / 7))) ||
                             remoteReason == PackageTypeValidation.VALIDITY,
                         Res.string.package_invalid_validity,
+                        maximum = Int.MAX_VALUE / 7,
                     )
                     Text(
                         stringResource(Res.string.package_validity_hint),
@@ -198,7 +199,7 @@ internal fun PackageTypeCreationDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            SimplioTextButton(
                 onClick = { request?.let(onConfirm) },
                 enabled = !saving &&
                     !duplicateName &&
@@ -213,7 +214,9 @@ internal fun PackageTypeCreationDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving) { Text(stringResource(Res.string.package_cancel)) }
+            SimplioTextButton(onClick = onDismiss, enabled = !saving) {
+                Text(stringResource(Res.string.package_cancel))
+            }
         },
     )
 }
@@ -226,14 +229,27 @@ private fun PackageNumberField(
     saving: Boolean,
     invalid: Boolean,
     error: StringResource,
+    maximum: Int = Int.MAX_VALUE,
 ) {
+    val exceedsMaximum = input.text.toLongOrNull()?.let { it > maximum } == true
+    val errorText = if (exceedsMaximum) {
+        stringResource(Res.string.package_numeric_maximum, maximum.toString())
+    } else {
+        stringResource(error)
+    }
     ValidatedOutlinedTextField(
         input = input,
         label = { Text(stringResource(label)) },
         enabled = !saving,
         isError = invalid,
         supportingText = if (invalid) {
-            { Text(stringResource(error)) }
+            { Text(errorText) }
+        } else {
+            null
+        },
+        // A rejected eleventh digit must not hide the range error in the current value.
+        rejectedEditSupportingText = if (exceedsMaximum) {
+            { Text(errorText) }
         } else {
             null
         },
@@ -252,7 +268,8 @@ private fun PackageOption(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(tag)
-            .toggleable(checked, enabled = enabled, role = Role.Checkbox, onValueChange = onChange),
+            .simplioToggleable(checked, enabled = enabled, onValueChange = onChange)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = checked, enabled = enabled, onCheckedChange = null)

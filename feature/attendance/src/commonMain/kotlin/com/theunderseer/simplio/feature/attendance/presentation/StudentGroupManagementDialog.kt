@@ -1,22 +1,26 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.resources.Res
@@ -44,6 +50,7 @@ import com.theunderseer.simplio.feature.attendance.resources.group_empty
 import com.theunderseer.simplio.feature.attendance.resources.group_manage
 import com.theunderseer.simplio.feature.attendance.resources.group_options
 import com.theunderseer.simplio.feature.attendance.resources.group_schedule_slot
+import com.theunderseer.simplio.feature.attendance.resources.group_scroll_hint
 import com.theunderseer.simplio.feature.attendance.resources.group_student_count
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
 import com.theunderseer.simplio.feature.attendance.resources.ic_more_vert
@@ -55,6 +62,11 @@ import com.theunderseer.simplio.feature.attendance.resources.weekday_sunday
 import com.theunderseer.simplio.feature.attendance.resources.weekday_thursday
 import com.theunderseer.simplio.feature.attendance.resources.weekday_tuesday
 import com.theunderseer.simplio.feature.attendance.resources.weekday_wednesday
+import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
+import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.SimplioVerticalScrollbar
+import com.theunderseer.simplio.shared.presentation.theme.SimplioSpacing
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -63,9 +75,11 @@ import org.jetbrains.compose.resources.stringResource
 internal fun StudentGroupOptions(onManage: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     androidx.compose.foundation.layout.Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(painterResource(Res.drawable.ic_more_vert), stringResource(Res.string.group_options))
-        }
+        SimplioIconButton(
+            painterResource(Res.drawable.ic_more_vert),
+            stringResource(Res.string.group_options),
+            onClick = { expanded = true },
+        )
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.group_manage)) },
@@ -86,6 +100,8 @@ internal fun StudentGroupManagementDialog(
     onClose: () -> Unit,
 ) {
     var requestedId by remember { mutableStateOf<Int?>(null) }
+    val groupsListState = rememberLazyListState()
+    val scrollable = groupsListState.canScrollBackward || groupsListState.canScrollForward
     val deletion = state.deleteStudentGroupState
     val saving = deletion is DeleteStudentGroupUiState.Saving
     LaunchedEffect(deletion) {
@@ -131,7 +147,7 @@ internal fun StudentGroupManagementDialog(
                 }
             },
             confirmButton = {
-                TextButton(
+                SimplioTextButton(
                     onClick = { onDelete(group.id) },
                     enabled = !saving && !notEmpty,
                     modifier = Modifier.testTag("confirm-group-delete"),
@@ -140,7 +156,7 @@ internal fun StudentGroupManagementDialog(
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
+                SimplioTextButton(onClick = {
                     requestedId = null
                     onClear()
                 }, enabled = !saving) {
@@ -155,79 +171,131 @@ internal fun StudentGroupManagementDialog(
             title = { Text(stringResource(Res.string.group_manage)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    LazyColumn(
-                        Modifier.fillMaxWidth().heightIn(max = 420.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        if (state.studentGroups.isEmpty()) item { Text(stringResource(Res.string.group_empty)) }
-                        items(state.studentGroups, key = { it.id }) { item ->
-                            val count = counts[item.id] ?: 0
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(item.name)
-                                    Text(
-                                        pluralStringResource(Res.plurals.group_student_count, count, count),
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                    val schedules =
-                                        state.groupSchedules[item.id]
-                                            ?: state.classSchedules.filter { it.id == DefaultClassSchedule.ID }
-                                    schedules.forEach { schedule ->
-                                        schedule.slots.forEach { slot ->
-                                            val weekday = listOf(
-                                                Res.string.weekday_monday,
-                                                Res.string.weekday_tuesday,
-                                                Res.string.weekday_wednesday,
-                                                Res.string.weekday_thursday,
-                                                Res.string.weekday_friday,
-                                                Res.string.weekday_saturday,
-                                                Res.string.weekday_sunday,
-                                            )[slot.dayOfWeek.ordinal]
-                                            Text(
-                                                stringResource(
-                                                    Res.string.group_schedule_slot,
-                                                    stringResource(weekday),
-                                                    slot.startsAt.toString(),
-                                                    slot.endsAt.toString(),
-                                                    schedule.timeZoneId,
-                                                ),
-                                                style = MaterialTheme.typography.bodySmall,
-                                            )
-                                        }
-                                    }
-                                    if (count >
-                                        0
-                                    ) {
-                                        Text(
-                                            stringResource(Res.string.group_delete_not_empty),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    }
-                                }
-                                IconButton(
-                                    onClick = {
+                    Box(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp).testTag("manage-groups-list"),
+                            state = groupsListState,
+                            contentPadding = PaddingValues(top = 4.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            if (state.studentGroups.isEmpty()) item { Text(stringResource(Res.string.group_empty)) }
+                            items(state.studentGroups, key = { it.id }) { item ->
+                                StudentGroupManagementItem(
+                                    group = item,
+                                    count = counts[item.id] ?: 0,
+                                    schedules = state.groupSchedules[item.id]
+                                        ?: state.classSchedules.filter { it.id == DefaultClassSchedule.ID },
+                                    saving = saving,
+                                    onRequestDelete = {
                                         onClear()
                                         requestedId = item.id
                                     },
-                                    enabled = !saving && count == 0,
-                                    modifier = Modifier.testTag("delete-group-${item.id}"),
-                                ) {
-                                    Icon(
-                                        painterResource(Res.drawable.ic_close),
-                                        stringResource(Res.string.group_delete_action, item.name),
-                                    )
-                                }
+                                )
                             }
-                            HorizontalDivider()
                         }
+                        if (scrollable) {
+                            Box(Modifier.matchParentSize()) {
+                                SimplioVerticalScrollbar(
+                                    groupsListState,
+                                    Modifier.align(Alignment.CenterEnd).fillMaxHeight()
+                                        .testTag("manage-groups-scrollbar"),
+                                )
+                            }
+                        }
+                    }
+                    if (scrollable) {
+                        Text(
+                            stringResource(Res.string.group_scroll_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("manage-groups-scroll-hint"),
+                        )
                     }
                     errorText?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             },
             confirmButton = {
-                TextButton(onClick = onClose, enabled = !saving) { Text(stringResource(Res.string.class_close)) }
+                SimplioTextButton(onClick = onClose, enabled = !saving) { Text(stringResource(Res.string.class_close)) }
             },
         )
+    }
+}
+
+@Composable
+private fun StudentGroupManagementItem(
+    group: StudentGroup,
+    count: Int,
+    schedules: List<ClassSchedule>,
+    saving: Boolean,
+    onRequestDelete: () -> Unit,
+) {
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth().testTag("manage-group-${group.id}"),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            modifier = Modifier.padding(SimplioSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(group.name, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        pluralStringResource(Res.plurals.group_student_count, count, count),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                SimplioIconButton(
+                    painterResource(Res.drawable.ic_close),
+                    stringResource(Res.string.group_delete_action, group.name),
+                    onClick = onRequestDelete,
+                    enabled = !saving && count == 0,
+                    tone = SimplioActionTone.Destructive,
+                    modifier = Modifier.testTag("delete-group-${group.id}"),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                schedules.forEach { schedule ->
+                    schedule.slots.forEach { slot ->
+                        val weekday = listOf(
+                            Res.string.weekday_monday,
+                            Res.string.weekday_tuesday,
+                            Res.string.weekday_wednesday,
+                            Res.string.weekday_thursday,
+                            Res.string.weekday_friday,
+                            Res.string.weekday_saturday,
+                            Res.string.weekday_sunday,
+                        )[slot.dayOfWeek.ordinal]
+                        Text(
+                            stringResource(
+                                Res.string.group_schedule_slot,
+                                stringResource(weekday),
+                                slot.startsAt.toString(),
+                                slot.endsAt.toString(),
+                                schedule.timeZoneId,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if (count > 0) {
+                Text(
+                    stringResource(Res.string.group_delete_not_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
     }
 }

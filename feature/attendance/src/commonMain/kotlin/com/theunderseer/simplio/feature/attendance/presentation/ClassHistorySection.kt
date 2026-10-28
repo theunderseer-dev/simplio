@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStud
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.attendance_class_history
 import com.theunderseer.simplio.feature.attendance.resources.class_status_cancelled
 import com.theunderseer.simplio.feature.attendance.resources.class_status_held
 import com.theunderseer.simplio.feature.attendance.resources.class_status_no_attendance
@@ -35,6 +37,8 @@ import com.theunderseer.simplio.feature.attendance.resources.class_status_schedu
 import com.theunderseer.simplio.feature.attendance.resources.class_status_unrecorded
 import com.theunderseer.simplio.feature.attendance.resources.class_track_attendance
 import com.theunderseer.simplio.feature.attendance.resources.class_track_schedule
+import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.theme.SimplioSpacing
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
@@ -79,8 +83,8 @@ internal fun LazyListScope.classHistoryItems(
             HorizontalDivider()
 
             Text(
-                text = "Class History",
-                style = MaterialTheme.typography.titleSmall,
+                text = stringResource(Res.string.attendance_class_history),
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -112,7 +116,7 @@ internal fun LazyListScope.classHistoryItems(
                         color = MaterialTheme.colorScheme.error,
                     )
 
-                    TextButton(onClick = onRetry) {
+                    SimplioTextButton(onClick = onRetry) {
                         Text("Retry")
                     }
                 }
@@ -167,12 +171,15 @@ private fun ClassHistoryDayCard(
     onTrackAttendance: (String) -> Unit,
 ) {
     OutlinedCard(
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = MaterialTheme.shapes.large,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("class-history-entry-${day.date.toEpochDays()}"),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(SimplioSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Row(
@@ -195,9 +202,15 @@ private fun ClassHistoryDayCard(
                 key(block.key) {
                     HorizontalDivider()
                     val timeLabel = block.timeLabel ?: if (day.blocks.size > 1) "Time not recorded" else null
-                    timeLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                    timeLabel?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     block.sessions.filter { it.canTrackAttendance }.forEach { entry ->
-                        TextButton(
+                        SimplioTextButton(
                             onClick = { entry.sessionId?.let(onTrackAttendance) },
                             modifier = Modifier.testTag("track-class-${entry.key}"),
                         ) {
@@ -320,7 +333,7 @@ private fun ClassHistoryPagination(
                 )
             }
 
-            TextButton(
+            SimplioTextButton(
                 onClick = if (errorMessage == null) {
                     onLoadNextPage
                 } else {
