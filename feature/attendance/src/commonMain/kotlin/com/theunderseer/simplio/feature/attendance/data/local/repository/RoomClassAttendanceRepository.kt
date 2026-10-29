@@ -12,7 +12,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceR
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceSheet
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
+import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionById
 import kotlin.time.Clock
 
 class RoomClassAttendanceRepository(private val database: AttendanceDatabase, private val clock: Clock) :
@@ -67,9 +67,10 @@ class RoomClassAttendanceRepository(private val database: AttendanceDatabase, pr
         if (database.classSessionStateDao().get(sessionId) != null) fail(ClassAttendanceProblem.UNAVAILABLE)
         val now = clock.now()
         val schedule = RoomClassScheduleRepository(database).getAll()
-            .firstOrNull { it.latestStartedClass(now)?.id == sessionId }
+            .firstOrNull { it.archivedAt == null && it.id == sessionId.substringBefore(':') }
             ?: fail(ClassAttendanceProblem.UNAVAILABLE)
-        val session = checkNotNull(schedule.latestStartedClass(now))
+        val session = schedule.sessionById(sessionId)?.takeIf { it.startsAt <= now }
+            ?: fail(ClassAttendanceProblem.UNAVAILABLE)
         val groups = database.classScheduleDao().groupSchedules().filter { it.scheduleId == schedule.id }
             .map { it.groupId }.toSet()
         if (groups.isEmpty()) fail(ClassAttendanceProblem.UNAVAILABLE)

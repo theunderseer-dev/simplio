@@ -11,7 +11,6 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestClock
 import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.seedClassAttendanceStudents
-import com.theunderseer.simplio.feature.attendance.fixtures.testClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.withSyncDatabases
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -193,21 +192,96 @@ class ClassAttendanceRepositoryTest {
     }
 
     @Test
-    fun `tracking expires exactly at next class start and is independent of other schedules`() = runTest {
+    fun `historical tracking survives later classes including an open draft`() = runTest {
         withSyncDatabases { database, _ ->
-            database.seedClassAttendanceStudents()
+            val students = database.seedClassAttendanceStudents()
             val clock = ClassAttendanceTestClock(ClassAttendanceTestData.nextSession.startsAt - 1.seconds)
             val repository = RoomClassAttendanceRepository(database, clock)
             val sheet = repository.load(ClassAttendanceTestData.session.id)
             clock.instant = ClassAttendanceTestData.nextSession.startsAt
-            assertFailsWith<ClassAttendanceFailure> { repository.save(sheet, emptyMap(), false) }
+            assertEquals(sheet, repository.load(sheet.session.id))
             assertNotNull(repository.load(ClassAttendanceTestData.nextSession.id))
             assertEquals(
                 ClassAttendanceTestData.nextSession,
                 DefaultClassSchedule.schedule.latestStartedClass(clock.now()),
             )
-            val other = testClassSchedule(id = "another-series")
-            assertNotNull(other.latestStartedClass(clock.now()))
+            clock.instant = ClassAttendanceTestData.historicalReviewInstant
+            assertEquals(sheet, repository.load(sheet.session.id))
+            repository.save(sheet, mapOf(students[0].student.id to 1, students[1].student.id to 2), false)
+            assertEquals("HELD", database.classSessionStateDao().get(sheet.session.id)?.status)
+            assertEquals(1, database.attendanceDao().getForPackage(students[0].studentPackage.id).single().visitCount)
+            assertEquals(2, database.attendanceDao().getForPackage(students[1].studentPackage.id).single().visitCount)
+        }
+    }
+
+    @Test
+    fun `all unrecorded history pages remain trackable and historical decisions preserve packages`() = runTest {
+        withSyncDatabases { database, _ ->
+            database.seedClassAttendanceStudents()
+            val clock = ClassAttendanceTestClock(ClassAttendanceTestData.historicalReviewInstant)
+            val repository = RoomClassAttendanceRepository(database, clock)
+            val history = GetClassHistoryUseCase(RoomClassHistoryRepository(database.attendanceDao(), database))
+            val before = database.syncPullDao().packages()
+            var beforeDate: kotlinx.datetime.LocalDate? = null
+            var foundOldClass = false
+            var pages = 0
+            do {
+                val page = history(ClassAttendanceTestData.historicalReviewDate, beforeDate, clock.now())
+                assertTrue(page.entries.isNotEmpty())
+                assertTrue(page.entries.all { it.students.isEmpty() && it.canTrackAttendance })
+                foundOldClass = foundOldClass || page.entries.any { it.sessionId == ClassAttendanceTestData.session.id }
+                pages++
+                beforeDate = page.nextBeforeDate
+            } while (beforeDate != null)
+            assertTrue(foundOldClass)
+            assertTrue(pages > 1)
+            assertTrue(database.classSessionStateDao().getAll().isEmpty())
+            assertEquals(before, database.syncPullDao().packages())
+
+            val sheet = repository.load(ClassAttendanceTestData.session.id)
+            repository.save(sheet, emptyMap(), true)
+            val previous = repository.load(ClassAttendanceTestData.previousSession.id)
+            repository.save(previous, emptyMap(), false)
+            assertEquals(before, database.syncPullDao().packages())
+            assertTrue(database.attendanceDao().getAll().isEmpty())
+            val decided = history(
+                ClassAttendanceTestData.historicalReviewDate,
+                ClassAttendanceTestData.nextSession.date,
+                clock.now(),
+            ).entries
+            assertFalse(decided.single { it.sessionId == sheet.session.id }.canTrackAttendance)
+            assertFalse(decided.single { it.sessionId == previous.session.id }.canTrackAttendance)
+            assertEquals("CANCELLED", database.classSessionStateDao().get(sheet.session.id)?.status)
+            assertEquals("HELD", database.classSessionStateDao().get(previous.session.id)?.status)
+            assertFailsWith<ClassAttendanceFailure> { repository.load(sheet.session.id) }
+        }
+    }
+
+    @Test
+    fun `historical attendance uses the package from that date even after a newer purchase`() = runTest {
+        withSyncDatabases { database, _ ->
+            val student = database.seedClassAttendanceStudents().first()
+            val packages = RoomStudentPackageRepository(database)
+            packages.recordAttendance(student.studentPackage.id, AttendanceTestData.firstClassDate, 1)
+            val newer = packages.create(
+                student.student.id,
+                student.studentPackage.packageType,
+                ClassAttendanceTestData.historicalReviewDate,
+                null,
+            )
+            val repository = RoomClassAttendanceRepository(
+                database,
+                ClassAttendanceTestClock(ClassAttendanceTestData.historicalReviewInstant),
+            )
+            val sheet = repository.load(ClassAttendanceTestData.session.id)
+            val row = sheet.rows.single { it.student.id == student.student.id }
+            assertEquals(student.studentPackage.id, row.studentPackage?.id)
+            assertTrue(row.canRecord)
+            assertFalse(row.canRenew)
+            repository.save(sheet, mapOf(student.student.id to 1), false)
+            assertEquals(2, database.attendanceDao().getForPackage(student.studentPackage.id).size)
+            assertTrue(database.attendanceDao().getForPackage(newer.id).isEmpty())
+            assertEquals(newer, packages.getLatestPackageForStudent(student.student.id))
         }
     }
 

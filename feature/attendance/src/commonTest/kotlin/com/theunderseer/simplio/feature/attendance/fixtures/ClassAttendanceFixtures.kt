@@ -13,10 +13,17 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetwe
 import com.theunderseer.simplio.feature.attendance.domain.usecase.ClassStudentActionsUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RegisterStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 internal object ClassAttendanceTestData {
+    val previousSession = DefaultClassSchedule.schedule.sessionsBetween(
+        AttendanceTestData.firstClassDate,
+        AttendanceTestData.firstClassDate,
+    ).single()
     val date = AttendanceTestData.secondClassDate
     val session = DefaultClassSchedule.schedule.sessionsBetween(date, date).single()
     val nextSession = DefaultClassSchedule.schedule.sessionsBetween(
@@ -25,6 +32,12 @@ internal object ClassAttendanceTestData {
     ).single()
     val timeLabel = "09:00–10:15 · Asia/Bangkok"
     val companionName = "Bob + 1"
+
+    // Seventeen weeks later, on the same scheduled weekday.
+    val historicalReviewInstant = session.endsAt + 119.days
+    val historicalReviewDate = historicalReviewInstant.toLocalDateTime(
+        TimeZone.of(DefaultClassSchedule.schedule.timeZoneId),
+    ).date
 }
 
 internal class ClassAttendanceTestClock(var instant: Instant = ClassAttendanceTestData.session.endsAt) : Clock {

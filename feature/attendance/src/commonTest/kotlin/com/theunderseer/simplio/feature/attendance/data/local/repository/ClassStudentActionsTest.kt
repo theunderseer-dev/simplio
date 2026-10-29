@@ -67,6 +67,30 @@ class ClassStudentActionsTest {
     }
 
     @Test
+    fun `student registration stays available for a historical unrecorded class`() = runTest {
+        withSyncDatabases { db, _ ->
+            val student = db.seedClassAttendanceStudents().first()
+            val clock = ClassAttendanceTestClock(ClassAttendanceTestData.historicalReviewInstant)
+            val repository = RoomClassAttendanceRepository(db, clock)
+            val sheet = repository.load(ClassAttendanceTestData.session.id)
+            val updated = db.classStudentActions(clock).register(
+                sheet,
+                ClassAttendanceTestData.companionName,
+                student.student.groupId,
+                student.studentPackage.packageType,
+                1,
+                true,
+                "",
+            )
+            val added = updated.rows.single { it.student.id !in sheet.rows.map { row -> row.student.id } }
+            assertEquals(sheet.session.date, added.studentPackage?.purchasedOn)
+            assertEquals(sheet.session.date, added.studentPackage?.startedOn)
+            assertEquals(1, added.recordedVisitCount)
+            assertNull(db.classSessionStateDao().get(sheet.session.id))
+        }
+    }
+
+    @Test
     fun `unrelated group is rejected without student package or outbox changes`() = runTest {
         withSyncDatabases { db, _ ->
             val student = db.seedClassAttendanceStudents().first()
@@ -159,7 +183,7 @@ class ClassStudentActionsTest {
     }
 
     @Test
-    fun `external attendance and expired class window reject registration atomically`() = runTest {
+    fun `external attendance rejects registration atomically even after later classes`() = runTest {
         withSyncDatabases { db, _ ->
             val student = db.seedClassAttendanceStudents().first()
             val clock = ClassAttendanceTestClock()
@@ -182,17 +206,20 @@ class ClassStudentActionsTest {
                 }.problem,
             )
             clock.instant = ClassAttendanceTestData.nextSession.startsAt
-            assertFailsWith<ClassAttendanceFailure> {
-                db.classStudentActions(clock).register(
-                    sheet,
-                    ClassAttendanceTestData.companionName,
-                    student.student.groupId,
-                    student.studentPackage.packageType,
-                    1,
-                    false,
-                    "",
-                )
-            }
+            assertEquals(
+                ClassAttendanceProblem.STALE,
+                assertFailsWith<ClassAttendanceFailure> {
+                    db.classStudentActions(clock).register(
+                        sheet,
+                        ClassAttendanceTestData.companionName,
+                        student.student.groupId,
+                        student.studentPackage.packageType,
+                        1,
+                        false,
+                        "",
+                    )
+                }.problem,
+            )
             assertEquals(2, db.studentDao().getAll().size)
             assertEquals(pending, db.syncDao().getPending(100))
         }

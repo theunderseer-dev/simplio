@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.feature.attendance.domain.schedule
 
 import com.theunderseer.simplio.feature.attendance.domain.model.WeeklyClassSlot
+import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassSchedule
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
@@ -11,10 +12,34 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.hours
 
 class ClassSessionCalculatorTest {
+    @Test
+    fun `session identity resolves its original day without a recent history window`() {
+        val schedule = DefaultClassSchedule.schedule
+        val session = ClassAttendanceTestData.previousSession
+        assertEquals(session, schedule.sessionById(session.id))
+        assertEquals(session, schedule.copy(endsOn = session.date).sessionById(session.id))
+        assertNull(schedule.copy(startsOn = ClassAttendanceTestData.date).sessionById(session.id))
+    }
+
+    @Test
+    fun `session lookup rejects malformed nonexistent and noncanonical identities`() {
+        val schedule = DefaultClassSchedule.schedule
+        val session = ClassAttendanceTestData.session
+        val epochDay = session.date.toEpochDays()
+        assertNull(schedule.sessionById("missing:${session.slotId}:$epochDay"))
+        assertNull(schedule.sessionById("${schedule.id}:missing:$epochDay"))
+        assertNull(schedule.sessionById("${schedule.id}:${session.slotId}:${epochDay + 1}"))
+        assertNull(schedule.sessionById("${session.id}:extra"))
+        assertNull(schedule.sessionById("${schedule.id}:${session.slotId}:invalid"))
+        assertNull(schedule.sessionById("${schedule.id}:${session.slotId}:${Long.MAX_VALUE}"))
+        assertNull(schedule.sessionById("${schedule.id}:${session.slotId}:0$epochDay"))
+    }
+
     @Test
     fun `legacy series contains one shared occurrence for each Monday and Friday`() {
         val sessions = DefaultClassSchedule.schedule.sessionsBetween(LocalDate(2026, 10, 1), LocalDate(2026, 10, 12))
