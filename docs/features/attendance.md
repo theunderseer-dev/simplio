@@ -10,7 +10,7 @@
 - new weekly schedules or explicitly shared existing schedules;
 - group-specific registration, renewal and attendance calendars;
 - history shows one card per day, merges matching time intervals visually and loads five complete dates at a time;
-- track and finalize the latest started class per schedule, with a draft roster and Duo attendance counts;
+- track and finalize any past unrecorded class of an active schedule, with a draft roster and Duo attendance counts;
 - explicitly cancel a class without saved attendance; see [class attendance rules](class-attendance.md);
 - offline group-name collisions are resolved by renaming the local group without merging students;
 

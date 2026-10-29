@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.theunderseer.simplio.feature.attendance.data.local.entity.StudentPackageEntity
 
 @Dao
@@ -15,6 +16,9 @@ interface StudentPackageDao {
 
     @Insert
     suspend fun insert(studentPackage: StudentPackageEntity): Long
+
+    @Update
+    suspend fun update(studentPackage: StudentPackageEntity)
 
     @Query(
         """

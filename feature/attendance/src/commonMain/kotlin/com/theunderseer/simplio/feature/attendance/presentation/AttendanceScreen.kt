@@ -3,7 +3,6 @@ package com.theunderseer.simplio.feature.attendance.presentation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +65,7 @@ import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioOutlinedButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
+import com.theunderseer.simplio.shared.presentation.components.collectIsKeyboardFocusedAsState
 import com.theunderseer.simplio.shared.presentation.components.simplioClickable
 import com.theunderseer.simplio.shared.presentation.components.simplioHoverSurface
 import com.theunderseer.simplio.shared.presentation.theme.SimplioSpacing
@@ -597,8 +597,8 @@ private fun AttendanceContent(
                     ) {
                         Row(
                             modifier = Modifier.padding(
-                                top = 4.dp,
-                                bottom = 4.dp,
+                                top = 8.dp,
+                                bottom = 10.dp,
                             ),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -721,7 +721,7 @@ private fun StudentAttendanceRow(
 
     val historySource = remember { MutableInteractionSource() }
     val historyHovered by historySource.collectIsHoveredAsState()
-    val historyFocused by historySource.collectIsFocusedAsState()
+    val historyFocused by historySource.collectIsKeyboardFocusedAsState()
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),

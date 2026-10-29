@@ -12,7 +12,9 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceR
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceSheet
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
+import com.theunderseer.simplio.feature.attendance.domain.schedule.isEligibleForCancellationOn
+import com.theunderseer.simplio.feature.attendance.domain.schedule.nextValidityDate
+import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionById
 import kotlin.time.Clock
 
 class RoomClassAttendanceRepository(private val database: AttendanceDatabase, private val clock: Clock) :
@@ -36,7 +38,22 @@ class RoomClassAttendanceRepository(private val database: AttendanceDatabase, pr
                 }
             }
             val day = current.session.date.toEpochDays()
-            if (!cancel) {
+            if (cancel) {
+                val schedule = RoomClassScheduleRepository(database).getAll()
+                    .single { it.id == current.session.scheduleId }
+                current.rows.forEach { row ->
+                    val pack = row.studentPackage ?: return@forEach
+                    if (!pack.isEligibleForCancellationOn(current.session.date)) return@forEach
+                    if (current.session.id in pack.validityExtensions) return@forEach
+                    val expiration = checkNotNull(pack.expiresOn)
+                    val days = (schedule.nextValidityDate(expiration).toEpochDays() - expiration.toEpochDays()).toInt()
+                    val entity = checkNotNull(database.studentPackageDao().getById(pack.id))
+                    database.studentPackageDao().update(
+                        entity.copy(validityExtensions = entity.validityExtensions + (current.session.id to days)),
+                    )
+                    journal.upsertPackage(pack.id)
+                }
+            } else {
                 current.rows.forEach { row ->
                     val visits = visitsByStudent[row.student.id] ?: 0
                     if (visits == row.recordedVisitCount) return@forEach
@@ -49,6 +66,7 @@ class RoomClassAttendanceRepository(private val database: AttendanceDatabase, pr
                         journal.upsertAttendance(pack.id, day)
                     }
                     database.studentPackageDao().updateStartedOnFromAttendance(pack.id)
+                    database.realignPackageValidity(pack.id, pack.startedOn?.toEpochDays(), journal)
                 }
             }
             database.classSessionStateDao().save(
@@ -67,9 +85,10 @@ class RoomClassAttendanceRepository(private val database: AttendanceDatabase, pr
         if (database.classSessionStateDao().get(sessionId) != null) fail(ClassAttendanceProblem.UNAVAILABLE)
         val now = clock.now()
         val schedule = RoomClassScheduleRepository(database).getAll()
-            .firstOrNull { it.latestStartedClass(now)?.id == sessionId }
+            .firstOrNull { it.archivedAt == null && it.id == sessionId.substringBefore(':') }
             ?: fail(ClassAttendanceProblem.UNAVAILABLE)
-        val session = checkNotNull(schedule.latestStartedClass(now))
+        val session = schedule.sessionById(sessionId)?.takeIf { it.startsAt <= now }
+            ?: fail(ClassAttendanceProblem.UNAVAILABLE)
         val groups = database.classScheduleDao().groupSchedules().filter { it.scheduleId == schedule.id }
             .map { it.groupId }.toSet()
         if (groups.isEmpty()) fail(ClassAttendanceProblem.UNAVAILABLE)

@@ -7,7 +7,6 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassHistoryStud
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSessionStatus
 import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
-import com.theunderseer.simplio.feature.attendance.domain.schedule.latestStartedClass
 import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
@@ -82,8 +81,9 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
                         decisions[session.id]?.let { ClassSessionStatus.valueOf(it.status) }
                             ?: ClassSessionStatus.UNRECORDED,
                         currentInstant != null &&
-                            schedule.latestStartedClass(currentInstant)?.id == session.id &&
-                            session.id !in decisions,
+                            schedule.archivedAt == null &&
+                            session.id !in decisions &&
+                            students.isEmpty(),
                         schedule.name,
                     )
                 }

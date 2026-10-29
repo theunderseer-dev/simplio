@@ -10,6 +10,19 @@ import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 
+/** Resolve only the encoded day, keeping schedule bounds and canonical session identity. */
+fun ClassSchedule.sessionById(sessionId: String): ClassSession? {
+    val parts = sessionId.split(':')
+    if (parts.size != 3 || parts[0] != id) return null
+    val epochDay = parts[2].toLongOrNull() ?: return null
+    val date = try {
+        LocalDate.fromEpochDays(epochDay)
+    } catch (_: IllegalArgumentException) {
+        return null
+    }
+    return sessionsBetween(date, date).singleOrNull { it.id == sessionId }
+}
+
 /** Bounded projection, never an unbounded table of future events. Dates belong to the schedule's time zone. */
 fun ClassSchedule.sessionsBetween(from: LocalDate, through: LocalDate): List<ClassSession> {
     require(from <= through)

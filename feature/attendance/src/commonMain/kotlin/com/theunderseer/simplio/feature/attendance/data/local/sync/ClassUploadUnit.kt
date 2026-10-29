@@ -54,6 +54,7 @@ internal suspend fun classUploadUnit(
                 SyncEntityType.STUDENT_PACKAGE -> packages[change.localId.toInt()]?.let {
                     selected += SyncEntityType.STUDENT to it.studentId.toString()
                     selected += SyncEntityType.PACKAGE_TYPE to it.packageTypeId.toString()
+                    it.validityExtensions.keys.forEach { id -> selected += SyncEntityType.CLASS_SESSION to id }
                 }
                 SyncEntityType.STUDENT -> {
                     val id = change.localId.toInt()
@@ -75,6 +76,9 @@ internal suspend fun classUploadUnit(
                         }
                 SyncEntityType.CLASS_SESSION -> decisions[change.localId]?.let {
                     selected += SyncEntityType.CLASS_SCHEDULE to it.scheduleId
+                    packages.values.filter { pack -> it.sessionId in pack.validityExtensions }.forEach { pack ->
+                        selected += SyncEntityType.STUDENT_PACKAGE to pack.id.toString()
+                    }
                 }
                 else -> Unit
             }

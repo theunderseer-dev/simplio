@@ -5,6 +5,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.TypeConverters
+import com.theunderseer.simplio.feature.attendance.data.local.mapper.PackageValidityExtensionsConverter
 
 @Entity(
     tableName = "student_packages",
@@ -41,4 +43,8 @@ data class StudentPackageEntity(
 
     @ColumnInfo(defaultValue = "1")
     val maxVisitsPerAttendance: Int = 1,
+
+    @ColumnInfo(defaultValue = "'{}'")
+    @TypeConverters(PackageValidityExtensionsConverter::class)
+    val validityExtensions: Map<String, Int> = emptyMap(),
 )

@@ -14,7 +14,12 @@ data class StudentPackage(
         PackageAttendanceHistory(
             visitsByDate = emptyMap(),
         ),
+    val validityExtensions: Map<String, Int> = emptyMap(),
 ) {
+    val validityExtensionDays: Int
+        get() = validityExtensions.values.sumOf { it.toLong() }.also {
+            require(validityExtensions.values.all { days -> days > 0 } && it <= Int.MAX_VALUE)
+        }.toInt()
     val attendanceDates: Set<LocalDate>
         get() = attendanceHistory.visitsByDate.keys
 
@@ -26,7 +31,7 @@ data class StudentPackage(
 
     val expiresOn: LocalDate?
         get() = packageType.validityWeeks?.let { weeks ->
-            startedOn?.plus(DatePeriod(days = weeks * 7))
+            startedOn?.plus(DatePeriod(days = weeks * 7))?.plus(DatePeriod(days = validityExtensionDays))
         }
 
     val isCompleted: Boolean

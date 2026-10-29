@@ -72,7 +72,7 @@ class ClassAttendanceSyncTest {
         for (deviceCancels in listOf(true, false)) {
             for (choice in listOf(ConflictChoice.CLOUD, ConflictChoice.DEVICE)) {
                 withSyncDatabases { source, device ->
-                    source.seedClassAttendanceStudents()
+                    source.seedClassAttendanceStudents(activated = true)
                     val cloud = FakeAttendanceCloud()
                     cloud.uploadPending(source)
                     RoomPullStore(device, testUploadTarget).apply(cloud.snapshot())
@@ -94,10 +94,16 @@ class ClassAttendanceSyncTest {
                     val cancellationWins = if (choice == ConflictChoice.DEVICE) deviceCancels else !deviceCancels
                     if (cancellationWins) {
                         assertEquals("CANCELLED", state?.status)
-                        assertEquals(0, visits)
+                        assertEquals(3, visits)
+                        assertTrue(
+                            device.syncPullDao().packages().all {
+                                it.validityExtensions == mapOf(ClassAttendanceTestData.session.id to 3)
+                            },
+                        )
                     } else {
                         assertFalse(state?.status == "CANCELLED")
-                        assertEquals(1, visits)
+                        assertEquals(4, visits)
+                        assertTrue(device.syncPullDao().packages().all { it.validityExtensions.isEmpty() })
                     }
                     cloud.uploadPending(device)
                     assertEquals(0, device.syncPullDao().pendingCount())

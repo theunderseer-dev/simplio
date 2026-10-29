@@ -8,7 +8,7 @@ import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
 
-/** Each schedule keeps its own tracking window, including multiple slots on the same date. */
+/** Latest occurrence for Check/date selection and history refresh, not a historical tracking limit. */
 fun ClassSchedule.latestStartedClass(now: Instant): ClassSession? {
     if (archivedAt != null) return null
     val upper = minOf(
