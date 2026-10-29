@@ -83,7 +83,8 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
                             ?: ClassSessionStatus.UNRECORDED,
                         currentInstant != null &&
                             schedule.latestStartedClass(currentInstant)?.id == session.id &&
-                            session.id !in decisions,
+                            session.id !in decisions &&
+                            students.isEmpty(),
                         schedule.name,
                     )
                 }

@@ -25,6 +25,42 @@ import kotlin.time.Duration.Companion.seconds
 
 class ClassAttendanceRepositoryTest {
     @Test
+    fun `individual attendance hides history tracking until the last visit is removed`() = runTest {
+        withSyncDatabases { database, _ ->
+            val students = database.seedClassAttendanceStudents()
+            val clock = ClassAttendanceTestClock()
+            val packages = RoomStudentPackageRepository(database)
+            val history = GetClassHistoryUseCase(RoomClassHistoryRepository(database.attendanceDao(), database))
+            val session = ClassAttendanceTestData.session
+
+            suspend fun currentClass() = history(session.date, currentInstant = clock.now())
+                .entries.single { it.sessionId == session.id }
+
+            assertTrue(currentClass().canTrackAttendance)
+
+            students.zip(listOf(1, 2)).forEach { (registered, visitCount) ->
+                packages.recordAttendance(registered.studentPackage.id, session.date, visitCount)
+
+                val recorded = currentClass()
+                assertEquals(
+                    visitCount,
+                    recorded.students.single { it.student.id == registered.student.id }.visitCount,
+                )
+                assertFalse(recorded.canTrackAttendance)
+                assertNull(database.classSessionStateDao().get(session.id))
+            }
+
+            packages.removeAttendance(students.first().studentPackage.id, session.date)
+            assertEquals(students.last().student.id, currentClass().students.single().student.id)
+            assertFalse(currentClass().canTrackAttendance)
+
+            packages.removeAttendance(students.last().studentPackage.id, session.date)
+            assertTrue(currentClass().students.isEmpty())
+            assertTrue(currentClass().canTrackAttendance)
+        }
+    }
+
+    @Test
     fun `shared groups save standard and duo visits once with a persisted held decision`() = runTest {
         withSyncDatabases { database, _ ->
             val students = database.seedClassAttendanceStudents()
