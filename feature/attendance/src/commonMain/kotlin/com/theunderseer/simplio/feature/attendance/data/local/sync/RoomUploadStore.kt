@@ -200,6 +200,39 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                         put("price", FirestoreUploadProtocol.integer(row.price))
                         put("maxVisitsPerAttendance", FirestoreUploadProtocol.integer(row.maxVisitsPerAttendance))
                         put("purchasedOnEpochDay", FirestoreUploadProtocol.integer(row.purchasedOnEpochDay))
+                        if (row.validityExtensions.isNotEmpty()) {
+                            row.validityExtensions.keys.forEach { id ->
+                                val record =
+                                    checkNotNull(database.syncDao().getRecord(SyncEntityType.CLASS_SESSION, id))
+                                check(
+                                    !record.isDeleted &&
+                                        (
+                                            record.acknowledgedRevision > 0 ||
+                                                SyncEntityType.CLASS_SESSION to id in selected
+                                            ),
+                                )
+                            }
+                            put(
+                                "validityExtensions",
+                                buildJsonObject {
+                                    put(
+                                        "mapValue",
+                                        buildJsonObject {
+                                            put(
+                                                "fields",
+                                                buildJsonObject {
+                                                    row.validityExtensions.toList().sortedBy {
+                                                        it.first
+                                                    }.forEach { (id, days) ->
+                                                        put(id, FirestoreUploadProtocol.integer(days))
+                                                    }
+                                                },
+                                            )
+                                        },
+                                    )
+                                },
+                            )
+                        }
                     }
                 }
                 SyncEntityType.ATTENDANCE -> {
@@ -221,7 +254,9 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             put(
                 "schemaVersion",
                 FirestoreUploadProtocol.integer(
-                    if ("validityWeeks" in businessFields &&
+                    if ("validityExtensions" in businessFields) {
+                        4
+                    } else if ("validityWeeks" in businessFields &&
                         businessFields["validityWeeks"] ==
                         FirestoreUploadProtocol.nullableInteger(null)
                     ) {

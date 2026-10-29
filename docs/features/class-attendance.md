@@ -30,7 +30,7 @@
 | HELD | Present | Student attendance list |
 | CANCELLED | None | Class cancelled |
 
-Cancel class is available only when no saved attendance exists and the draft selects nobody. Confirmation saves CANCELLED without changing any package. Unchecking previously saved visits does not enable cancellation in the same draft.
+Cancel class is available only when no saved attendance exists and the draft selects nobody. Confirmation saves CANCELLED and extends eligible finite packages by one recurring class date, atomically with the outbox; see [cancellation validity](cancelled-class-validity.md). Unchecking previously saved visits does not enable cancellation in the same draft.
 
 Cancelled sessions reject ordinary student checks and registration/renewal that includes first attendance. Buying a package without attendance remains allowed. Existing individual attendance correction remains available for held sessions; class-level editing, reopening and rescheduling are deferred.
 
@@ -38,9 +38,9 @@ Cancelled sessions reject ordinary student checks and registration/renewal that 
 
 - Room schema 14 adds class_session_states; migration 13→14 preserves existing tables and queued/frozen work. Historical schema JSON files are unchanged.
 - Firestore protocol 5 adds users/{uid}/classSessions/{sessionId}, with scheduleId, dateEpochDay and status, plus the existing schema/mutation metadata. Session IDs are stable across devices.
-- All devices sharing an account must upgrade before using this feature. The current protocol is 6 (including group deletion); older readers reject newer heads rather than silently losing class decisions. Previously frozen protocol 1–5 uploads retain their original body and receipt recovery.
+- All devices sharing an account must upgrade before using this feature. The current protocol is 7 (including cancellation validity); older readers reject newer heads rather than silently losing class decisions. Previously frozen protocol 1–6 uploads retain their original body and receipt recovery.
 - A date's pending class decisions and attendance changes are selected as one upload unit, with required new student/purchase parents. Unrelated queued dates can be sent in subsequent batches. Student deletion dependencies expand the unit when necessary.
-- The existing limit of 400 business documents and 8 MiB per atomic upload remains. An oversized indivisible unit pauses with TOO_LARGE; the uploader never splits a decision from its attendance. Chunked class finalization is outside this MVP.
+- The existing limit of 400 business documents and 8 MiB per atomic upload remains. An oversized indivisible unit pauses with TOO_LARGE; the uploader never splits a decision from its attendance or package validity grants. Chunked class finalization is outside this MVP.
 - Full snapshot import validates session identity, schedule reference, status and absence of attendance for cancelled sessions before replacing local data. Pull never creates echo uploads.
 - A pending or remotely changed class decision links affected student versions into one conflict choice. Cancellation versus attendance is not resolved by blind last-write-wins. Both versions stay in the existing persisted conflict review until the teacher chooses.
 - Existing account isolation, head preconditions, mutation IDs and durable outbox/receipt recovery remain in use.
@@ -48,7 +48,7 @@ Cancelled sessions reject ordinary student checks and registration/renewal that 
 ## Deferred
 
 - Reopen/edit a finalized or cancelled class.
-- Reschedule a class, notify students, or automatically extend finite package validity after cancellation. Cancellation only prevents credit deduction.
+- Reschedule a class or notify students. Cancellation validity compensation is implemented separately from credit consumption.
 - More than one attendance per student on the same local date, and changes to historical group membership.
 
 ## Student actions while tracking
@@ -65,5 +65,5 @@ Cancelled sessions reject ordinary student checks and registration/renewal that 
 
 - Opening an old class resolves its stable schedule/slot/date identity and projects only that day. It does not scan or persist an unbounded schedule.
 - A historical class still uses the purchase applicable to its date. A later purchase is not charged for an earlier class; package validity, remaining credits, duplicate attendance checks, and stale-snapshot protection remain in force.
-- This change does not extend package validity, add credits, infer cancellations, or reopen finalized classes. Automatic cancellation compensation is a separate task.
+- Opening or ignoring an unrecorded class never changes packages. Only explicit cancellation grants validity compensation; purchased credits remain unchanged and finalized classes cannot be reopened.
 - The absence of a review-age cutoff is a product rule. Android's [data-layer guidance](https://developer.android.com/topic/architecture/data-layer) informs repository validation and testability; it does not prescribe a review period for this application.

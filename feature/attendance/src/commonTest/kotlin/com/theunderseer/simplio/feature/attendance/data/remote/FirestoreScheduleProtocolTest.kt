@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.data.remote
 
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomUploadStore
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadSnapshot
+import com.theunderseer.simplio.feature.attendance.fixtures.TEST_UPLOAD_PROTOCOL_VERSION
 import com.theunderseer.simplio.feature.attendance.fixtures.seedSyncDefaults
 import com.theunderseer.simplio.feature.attendance.fixtures.testSyncDatabase
 import com.theunderseer.simplio.feature.attendance.fixtures.testUploadTarget
@@ -38,8 +39,8 @@ class FirestoreScheduleProtocolTest {
     private val headers = headersOf("Content-Type", "application/json")
 
     @Test
-    fun `head accepts versions one through six and rejects unknown protocol before reading data`() = runTest {
-        listOf(1, 2, 3, 4, 5, 6, 7).forEach { protocol ->
+    fun `head accepts supported versions and rejects unknown protocol before reading data`() = runTest {
+        (1..(TEST_UPLOAD_PROTOCOL_VERSION + 1)).forEach { protocol ->
             withClient(
                 MockEngine {
                     respond(
@@ -72,7 +73,7 @@ class FirestoreScheduleProtocolTest {
                 },
             ) { client ->
                 val remote = FirestoreAttendancePullRemote(client)
-                if (protocol <= 6) {
+                if (protocol <= TEST_UPLOAD_PROTOCOL_VERSION) {
                     assertEquals(version, remote.readHead().updateTime)
                 } else {
                     assertEquals(

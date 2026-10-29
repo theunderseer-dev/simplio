@@ -88,7 +88,7 @@ class ClassAttendanceRepositoryTest {
     }
 
     @Test
-    fun `cancel changes no packages and blocks individual check and renewal attendance`() = runTest {
+    fun `cancel preserves unactivated packages and blocks individual check and renewal attendance`() = runTest {
         withSyncDatabases { database, _ ->
             val students = database.seedClassAttendanceStudents()
             val repository = RoomClassAttendanceRepository(database, ClassAttendanceTestClock())

@@ -100,6 +100,11 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
         if (existing == null) ensureStudent(id) else change(existing, deleted = false)
     }
 
+    suspend fun upsertPackage(id: Int) {
+        val existing = dao.getRecord(SyncEntityType.STUDENT_PACKAGE, id.toString())
+        if (existing == null) ensurePackage(id) else change(existing, deleted = false)
+    }
+
     suspend fun upsertAttendance(packageId: Int, epochDay: Long) {
         val existing = dao.getRecord(SyncEntityType.ATTENDANCE, attendanceLocalId(packageId, epochDay))
         if (existing == null) ensureAttendance(packageId, epochDay) else change(existing, deleted = false)

@@ -158,6 +158,7 @@ internal fun testStudentPackage(
     purchasedOn: LocalDate = startedOn ?: AttendanceTestData.registrationDate,
     visitsByDate: Map<LocalDate, Int> =
         startedOn?.let { mapOf(it to 1) } ?: emptyMap(),
+    validityExtensions: Map<String, Int> = emptyMap(),
 ): StudentPackage = StudentPackage(
     id = id,
     studentId = studentId,
@@ -167,6 +168,7 @@ internal fun testStudentPackage(
     attendanceHistory = PackageAttendanceHistory(
         visitsByDate = visitsByDate,
     ),
+    validityExtensions = validityExtensions,
 )
 
 internal fun testStudentPackageEntity(
@@ -176,6 +178,7 @@ internal fun testStudentPackageEntity(
     id: Int = 0,
     purchasedOnEpochDay: Long =
         startedOnEpochDay ?: AttendanceTestData.registrationDate.toEpochDays(),
+    validityExtensions: Map<String, Int> = emptyMap(),
 ): StudentPackageEntity = StudentPackageEntity(
     id = id,
     studentId = studentId,
@@ -187,6 +190,7 @@ internal fun testStudentPackageEntity(
     purchasedOnEpochDay = purchasedOnEpochDay,
     startedOnEpochDay = startedOnEpochDay,
     maxVisitsPerAttendance = packageType.maxVisitsPerAttendance,
+    validityExtensions = validityExtensions,
 )
 
 internal fun testAttendanceContentUiState(

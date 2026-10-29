@@ -38,6 +38,11 @@ internal fun sessionConflictGroups(
             .associateBy { it.cloudId }
         val groups = documents.filter { it.type == SyncEntityType.STUDENT_GROUP && !it.isDeleted }
             .associateBy { it.cloudId }
+        packages.values.forEach { pack ->
+            decisions.filter { it.cloudId in pack.validityExtensions() }.forEach { decision ->
+                join("class:${decision.cloudId}", "student:${pack.string("studentId")}")
+            }
+        }
         documents.filter { it.type == SyncEntityType.ATTENDANCE && !it.isDeleted }.forEach { attendance ->
             val student = packages[attendance.string("packageId")]?.string("studentId") ?: return@forEach
             decisions.forEach { decision ->

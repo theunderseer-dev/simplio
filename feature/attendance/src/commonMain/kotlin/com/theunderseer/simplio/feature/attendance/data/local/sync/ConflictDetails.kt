@@ -36,6 +36,7 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
         result +=
             "Valid until: ${pack.validityWeeks()?.let { weeks ->
                 activation?.plus(DatePeriod(days = weeks * 7))
+                    ?.plus(DatePeriod(days = pack.validityExtensions().values.sum()))
             } ?: "—"}"
         result += "Attendance: " + visits.joinToString { visit ->
             "${LocalDate.fromEpochDays(visit.integer("attendedOnEpochDay"))} × ${visit.integer("visitCount")}"

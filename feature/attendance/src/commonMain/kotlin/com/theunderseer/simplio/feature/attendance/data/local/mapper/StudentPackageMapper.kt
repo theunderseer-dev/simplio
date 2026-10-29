@@ -23,6 +23,7 @@ fun StudentPackageEntity.toDomain(attendance: List<AttendanceEntity>): StudentPa
     startedOn = startedOnEpochDay?.let {
         LocalDate.fromEpochDays(it)
     },
+    validityExtensions = validityExtensions,
     attendanceHistory =
     PackageAttendanceHistory(
         visitsByDate =

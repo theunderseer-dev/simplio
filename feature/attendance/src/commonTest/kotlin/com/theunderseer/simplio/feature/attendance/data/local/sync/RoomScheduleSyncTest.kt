@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
 import com.theunderseer.simplio.feature.attendance.fake.FakeAttendanceCloud
+import com.theunderseer.simplio.feature.attendance.fixtures.TEST_UPLOAD_PROTOCOL_VERSION
 import com.theunderseer.simplio.feature.attendance.fixtures.seedSyncDefaults
 import com.theunderseer.simplio.feature.attendance.fixtures.testClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.testUploadTarget
@@ -37,7 +38,7 @@ class RoomScheduleSyncTest {
             val store = RoomUploadStore(source)
             val batch = assertNotNull(store.prepare(testUploadTarget))
             val upload = store.snapshot(batch)
-            assertEquals(6, upload.protocolVersion)
+            assertEquals(TEST_UPLOAD_PROTOCOL_VERSION, upload.protocolVersion)
             assertEquals(SyncEntityType.CLASS_SCHEDULE, upload.documents.first().change.entityType)
             cloud.uploadPending(source)
             target.seedSyncDefaults()

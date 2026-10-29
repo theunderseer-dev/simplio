@@ -90,7 +90,8 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
             if (attendanceDao.getForPackage(packageId).any { it.attendedOnEpochDay == epochDay }) {
                 return@write
             }
-            val studentId = checkNotNull(studentPackageDao.getById(packageId)).studentId
+            val previous = checkNotNull(studentPackageDao.getById(packageId))
+            val studentId = previous.studentId
             require(attendedOn !in getAttendanceDatesForStudent(studentId)) {
                 "Attendance already recorded for this date"
             }
@@ -106,6 +107,7 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
                 ),
             )
             studentPackageDao.activateIfNeeded(packageId, epochDay)
+            database.realignPackageValidity(packageId, previous.startedOnEpochDay, journal)
             journal.upsertAttendance(packageId, epochDay)
         }
     }
@@ -116,9 +118,11 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
             if (attendanceDao.getForPackage(packageId).none { it.attendedOnEpochDay == epochDay }) {
                 return@write
             }
+            val previous = checkNotNull(studentPackageDao.getById(packageId))
             journal.deleteAttendance(packageId, epochDay)
             attendanceDao.deleteForPackageOnDate(packageId, epochDay)
             studentPackageDao.updateStartedOnFromAttendance(packageId)
+            database.realignPackageValidity(packageId, previous.startedOnEpochDay, journal)
         }
     }
 

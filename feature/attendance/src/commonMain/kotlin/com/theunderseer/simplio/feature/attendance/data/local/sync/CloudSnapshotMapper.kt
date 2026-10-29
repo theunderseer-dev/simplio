@@ -40,8 +40,10 @@ internal fun mapCloudSnapshot(
         requireCloudId(document.cloudId)
         require(Instant.parse(document.updateTime) <= readTime)
         val version = document.number("schemaVersion")
-        require(version in 1L..3L)
+        require(version in 1L..4L)
         require(version != 3L || document.type in setOf(SyncEntityType.PACKAGE_TYPE, SyncEntityType.STUDENT_PACKAGE))
+        require(version != 4L || document.type == SyncEntityType.STUDENT_PACKAGE)
+        require("validityExtensions" !in document.fields || version == 4L)
         require(document.type != SyncEntityType.CLASS_SCHEDULE || version == 2L)
         require("scheduleIds" !in document.fields || document.type == SyncEntityType.STUDENT_GROUP && version == 2L)
         require(
@@ -130,6 +132,7 @@ internal fun mapCloudSnapshot(
             packageName = it.nonBlank("packageName"), totalClasses = it.int("totalClasses"),
             validityWeeks = it.validityWeeks(), price = it.int("price"),
             purchasedOnEpochDay = purchased, maxVisitsPerAttendance = it.int("maxVisitsPerAttendance"),
+            validityExtensions = it.validityExtensions(),
         )
     }
     val attendance = documents.live(SyncEntityType.ATTENDANCE).map {
@@ -180,6 +183,12 @@ internal fun mapCloudSnapshot(
         ClassSessionStateEntity(document.cloudId, scheduleId, day, status)
     }
     val attendanceKeys = attendance.map { it.packageId to it.attendedOnEpochDay }
+    packages.forEach { pack ->
+        pack.validityExtensions.keys.forEach { sessionId ->
+            val decision = checkNotNull(classSessions.singleOrNull { it.sessionId == sessionId })
+            require(decision.status == "CANCELLED" && decision.dateEpochDay >= pack.purchasedOnEpochDay)
+        }
+    }
     require(attendanceKeys.distinct().size == attendance.size)
     val restoredPackages = packages.map { pack ->
         val visits = attendance.filter { it.packageId == pack.id }
@@ -191,7 +200,10 @@ internal fun mapCloudSnapshot(
         require(visits.sumOf { it.visitCount.toLong() } <= pack.totalClasses)
         val start = visits.minOfOrNull { it.attendedOnEpochDay }
         pack.validityWeeks?.let { weeks ->
-            start?.let { LocalDate.fromEpochDays(it).plus(DatePeriod(days = weeks * 7)) }
+            start?.let {
+                LocalDate.fromEpochDays(it).plus(DatePeriod(days = weeks * 7))
+                    .plus(DatePeriod(days = pack.validityExtensions.values.sum()))
+            }
         }
         pack.copy(startedOnEpochDay = start)
     }

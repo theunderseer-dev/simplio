@@ -7,6 +7,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStu
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceRow
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceSheet
+import com.theunderseer.simplio.feature.attendance.domain.model.InitialAttendance
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.sessionsBetween
@@ -68,6 +69,7 @@ internal fun testClassAttendanceSheet(recordedVisitCount: Int = 0, duo: Boolean 
 internal suspend fun AttendanceDatabase.seedClassAttendanceStudents(
     standardCapacity: Int = AttendanceTestData.fourClassPackage.totalClasses,
     duoCapacity: Int = AttendanceTestData.duoSpecialPackage.totalClasses,
+    activated: Boolean = false,
 ): List<RegisteredStudent> {
     seedSyncDefaults()
     val repository = RoomStudentRepository(this)
@@ -82,7 +84,15 @@ internal suspend fun AttendanceDatabase.seedClassAttendanceStudents(
             id = packageTypeDao().getAll().single { it.name == type.name }.id,
             totalClasses = if (index == 0) standardCapacity else duoCapacity,
         )
-        RegisteredStudent(student, packages.create(student.id, stored, AttendanceTestData.firstClassDate, null))
+        val initial = if (activated) {
+            InitialAttendance(
+                AttendanceTestData.firstClassDate,
+                stored.maxVisitsPerAttendance,
+            )
+        } else {
+            null
+        }
+        RegisteredStudent(student, packages.create(student.id, stored, AttendanceTestData.firstClassDate, initial))
     }
 }
 
