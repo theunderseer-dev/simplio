@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.selection.toggleable
@@ -66,7 +65,7 @@ fun Modifier.simplioToggleable(
 @Composable
 private fun Modifier.controlFeedback(source: MutableInteractionSource, enabled: Boolean, shape: Shape): Modifier {
     val hovered by source.collectIsHoveredAsState()
-    val focused by source.collectIsFocusedAsState()
+    val focused by source.collectIsKeyboardFocusedAsState()
     val pressed by source.collectIsPressedAsState()
     val alpha by animateFloatAsState(
         when {

@@ -54,6 +54,22 @@ the available sans-serif font. No Apple font is bundled.
   corners. Keep form scrolling available at small window sizes and larger text settings.
 - Material pickers, menus, selection controls, and dialogs inherit the same theme roles.
 
+## Focus visibility
+
+Shared action controls and package-history links show focus styling only when
+`LocalInputModeManager.current.inputMode == InputMode.Keyboard` and the control has focus.
+`collectIsKeyboardFocusedAsState` centralizes that visual policy. Compose owns input-mode
+switching, focus restoration, Tab/Shift+Tab traversal, and activation; controls do not call
+`clearFocus`, disable focusability, or replace keyboard-accessible clicks with pointer-only handlers.
+
+After a mouse click and pointer exit, action controls return to their normal appearance even
+when focus stays on the last activated control. Hover and press feedback remain transient.
+Selected chips and recorded attendance retain their selection styling. Editable text fields
+keep their native focus/caret feedback, including when entered with the mouse.
+
+`SimplioFocusUiTest` covers mouse focus without residual styling, forward/reverse keyboard
+navigation, returning from keyboard to mouse input, and dialog focus restoration in both themes.
+
 ## Motion
 
 Feedback colors use an interruptible 140 ms Compose tween. Clicks are not delayed. Shared actions
@@ -88,6 +104,8 @@ pass on macOS. Contrast tests and rendered smoke tests do not constitute a full 
 - [Material Design 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3)
 - [Custom design systems and Material wrappers](https://developer.android.com/develop/ui/compose/designsystems/custom)
 - [Interaction sources and user feedback](https://developer.android.com/develop/ui/compose/touch-input/user-interactions/handling-interactions)
+- [Focus navigation in Compose](https://developer.android.com/develop/ui/compose/touch-input/focus/focus-traversal)
+- [W3C focus-visible technique (web UX reference)](https://www.w3.org/WAI/WCAG22/Techniques/css/C45)
 - [Accessibility defaults and target sizes](https://developer.android.com/develop/ui/compose/accessibility/api-defaults)
 - [Compose animation](https://developer.android.com/develop/ui/compose/animation/quick-guide)
 - [Apple HIG: Color](https://developer.apple.com/design/human-interface-guidelines/color)
