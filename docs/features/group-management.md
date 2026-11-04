@@ -41,3 +41,13 @@ If the other device added a new student, the version that would remove that stud
 The teacher can keep the version preserving the student or postpone review. Deleting a group never implicitly authorizes deleting newly
 added students or their packages. Explicit student deletions already made by the teacher retain the existing conflict behavior.
 Legacy groups with an implicit default schedule are handled in both conflict directions without losing that schedule on restoration.
+
+## Schedule terminology in the UI
+
+Add Schedule and Manage Schedules work with named student assignments. Each entry
+can define class times or reuse an existing set of class times. Shared class times
+retain a single session identity, while the stored student groups remain distinct.
+Registration requires an assignment before offering dates. Schedule starts on marks
+the beginning of the class series, independently of package activation. Class
+History shows the schedule at the class level and labels student rows only when
+more than one roster is represented.

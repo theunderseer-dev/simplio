@@ -21,6 +21,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.model.isValidStudentName
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.registration_schedule
 import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
 import com.theunderseer.simplio.shared.presentation.components.SimplioFilterChip
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
@@ -87,7 +88,7 @@ fun StudentRegistrationDialog(
             Column(
                 modifier = Modifier.padding(vertical = 12.dp),
             ) {
-                Text("Group")
+                Text(stringResource(Res.string.registration_schedule))
 
                 FlowRow(
                     modifier = Modifier.padding(top = 8.dp),

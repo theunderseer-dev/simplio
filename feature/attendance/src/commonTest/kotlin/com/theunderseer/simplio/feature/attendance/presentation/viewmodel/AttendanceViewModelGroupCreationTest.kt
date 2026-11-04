@@ -78,14 +78,14 @@ class AttendanceViewModelGroupCreationTest {
         advanceUntilIdle()
         viewModel.createStudentGroup(request)
         advanceUntilIdle()
-        assertIs<CreateStudentGroupUiState.Error>(
+        assertIs<CreateStudentGroupUiState.SaveFailed>(
             assertIs<AttendanceUiState.Content>(viewModel.uiState.value).createStudentGroupState,
         )
         viewModel.createStudentGroup(request)
         advanceUntilIdle()
         assertEquals(2, calls)
         assertEquals(
-            CreateStudentGroupUiState.Error("A group with this name already exists"),
+            CreateStudentGroupUiState.DuplicateName,
             assertIs<AttendanceUiState.Content>(viewModel.uiState.value).createStudentGroupState,
         )
     }

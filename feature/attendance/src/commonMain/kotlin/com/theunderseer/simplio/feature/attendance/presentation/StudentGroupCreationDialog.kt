@@ -38,11 +38,22 @@ import com.theunderseer.simplio.feature.attendance.domain.model.normalizedGroupN
 import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
 import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleOverlap
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.attendance_add_group
 import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_add_existing
+import com.theunderseer.simplio.feature.attendance.resources.schedule_choose_existing
 import com.theunderseer.simplio.feature.attendance.resources.schedule_dates_invalid
 import com.theunderseer.simplio.feature.attendance.resources.schedule_end_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_duplicate_name
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_invalid_name
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_name
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_save_failed
+import com.theunderseer.simplio.feature.attendance.resources.schedule_set_new
+import com.theunderseer.simplio.feature.attendance.resources.schedule_shared_hint
+import com.theunderseer.simplio.feature.attendance.resources.schedule_starts_on
 import com.theunderseer.simplio.feature.attendance.resources.schedule_time_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_time_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_weekly
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_invalid
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
@@ -139,7 +150,7 @@ internal fun StudentGroupCreationDialog(
         onDismissRequest = { if (!saving) onDismiss() },
         title = {
             Column {
-                Text("Add Group")
+                Text(stringResource(Res.string.attendance_add_group))
                 if (scroll.canScrollForward) Text("Scroll for more", style = MaterialTheme.typography.bodySmall)
             }
         },
@@ -152,36 +163,39 @@ internal fun StudentGroupCreationDialog(
                     input = nameInput,
                     enabled = !saving,
                     modifier = Modifier.fillMaxWidth().testTag("group-name"),
-                    label = { Text("Group name") },
+                    label = { Text(stringResource(Res.string.schedule_entry_name)) },
                     isError = duplicate || invalidName,
                     supportingText = {
                         if (duplicate) {
-                            Text("A group with this name already exists")
+                            Text(stringResource(Res.string.schedule_entry_duplicate_name))
                         } else if (invalidName) {
                             Text(stringResource(Res.string.group_name_invalid))
                         }
                     },
                 )
-                Text("Weekly schedule", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    stringResource(Res.string.schedule_weekly),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     SimplioFilterChip(
                         selected = !newSchedule,
                         onClick = { newSchedule = false },
                         enabled =
                         !saving && eligible.isNotEmpty(),
-                        label = { Text("Use existing") },
+                        label = { Text(stringResource(Res.string.schedule_add_existing)) },
                     )
                     SimplioFilterChip(
                         selected = newSchedule,
                         onClick = { newSchedule = true },
                         enabled = !saving,
-                        label = { Text("New schedule") },
+                        label = { Text(stringResource(Res.string.schedule_set_new)) },
                     )
                 }
                 if (!newSchedule) {
                     Column {
                         SimplioOutlinedButton(onClick = { expanded = true }, enabled = !saving) {
-                            Text(selected?.name ?: "Choose schedule")
+                            Text(selected?.name ?: stringResource(Res.string.schedule_choose_existing))
                         }
                         DropdownMenu(
                             expanded = expanded,
@@ -207,7 +221,7 @@ internal fun StudentGroupCreationDialog(
                         )
                         Text(schedule.timeZoneId, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            "Groups using this schedule attend the same classes.",
+                            stringResource(Res.string.schedule_shared_hint),
                             style = MaterialTheme.typography.bodySmall,
                         )
                     }
@@ -264,7 +278,7 @@ internal fun StudentGroupCreationDialog(
                         onClick = { chooseDate = "start" },
                         enabled = !saving,
                         modifier = Modifier.testTag("group-start-date"),
-                    ) { Text("Starts on: $startDate") }
+                    ) { Text(stringResource(Res.string.schedule_starts_on, startDate.toString())) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(
                             checked = endDate != null,
@@ -293,9 +307,14 @@ internal fun StudentGroupCreationDialog(
                         )
                     }
                 }
-                (state as? CreateStudentGroupUiState.Error)?.let {
-                    Text(it.message, color = MaterialTheme.colorScheme.error)
+                val saveError = when (state) {
+                    CreateStudentGroupUiState.DuplicateName -> stringResource(Res.string.schedule_entry_duplicate_name)
+                    CreateStudentGroupUiState.InvalidName -> stringResource(Res.string.schedule_entry_invalid_name)
+                    CreateStudentGroupUiState.SaveFailed -> stringResource(Res.string.schedule_entry_save_failed)
+                    is CreateStudentGroupUiState.Error -> state.message
+                    else -> null
                 }
+                saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         },
         confirmButton = {

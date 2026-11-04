@@ -201,6 +201,13 @@ private fun ClassHistoryDayCard(
             day.blocks.forEach { block ->
                 key(block.key) {
                     HorizontalDivider()
+                    val scheduleNames = block.sessions.mapNotNull { it.scheduleName }.distinct()
+                    if (scheduleNames.isNotEmpty()) {
+                        Text(
+                            scheduleNames.joinToString(" · "),
+                            style = MaterialTheme.typography.titleSmall,
+                        )
+                    }
                     val timeLabel = block.timeLabel ?: if (day.blocks.size > 1) "Time not recorded" else null
                     timeLabel?.let {
                         Text(
@@ -263,9 +270,13 @@ private fun ClassHistoryDayCard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     } else {
+                        val showRosterLabels = block.students.map { it.student.groupId }.distinct().size > 1
                         block.students.forEach { attendance ->
                             key(attendance.student.id) {
-                                ClassHistoryStudentRow(attendance, groupNames)
+                                ClassHistoryStudentRow(
+                                    attendance,
+                                    groupNames[attendance.student.groupId].takeIf { showRosterLabels },
+                                )
                             }
                         }
                     }
@@ -276,7 +287,7 @@ private fun ClassHistoryDayCard(
 }
 
 @Composable
-private fun ClassHistoryStudentRow(attendance: ClassHistoryStudent, groupNames: Map<Int, String>) {
+private fun ClassHistoryStudentRow(attendance: ClassHistoryStudent, rosterLabel: String?) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -286,9 +297,9 @@ private fun ClassHistoryStudentRow(attendance: ClassHistoryStudent, groupNames: 
                 text = attendance.student.fullName,
                 style = MaterialTheme.typography.bodyMedium,
             )
-            groupNames[attendance.student.groupId]?.let { groupName ->
+            rosterLabel?.let {
                 Text(
-                    text = groupName,
+                    text = it,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

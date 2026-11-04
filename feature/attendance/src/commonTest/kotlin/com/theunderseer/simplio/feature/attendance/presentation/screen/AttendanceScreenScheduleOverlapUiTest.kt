@@ -37,6 +37,6 @@ class AttendanceScreenScheduleOverlapUiTest {
         onNodeWithText("Overlapping schedules need review. Both schedules are saved.").assertIsDisplayed()
         onNodeWithText("Morning / Private").assertIsDisplayed()
         onNodeWithText("Add Student").assertIsEnabled()
-        onNodeWithText("Add Group").assertIsEnabled()
+        onNodeWithText("Add Schedule").assertIsEnabled()
     }
 }

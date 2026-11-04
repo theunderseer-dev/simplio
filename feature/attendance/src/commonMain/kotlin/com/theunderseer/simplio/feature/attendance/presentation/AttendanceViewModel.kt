@@ -482,11 +482,10 @@ class AttendanceViewModel(
                     }
                     CreateStudentGroupResult.DuplicateName -> {
                         refreshAttendance()
-                        groupCreationState.value =
-                            CreateStudentGroupUiState.Error("A group with this name already exists")
+                        groupCreationState.value = CreateStudentGroupUiState.DuplicateName
                     }
                     CreateStudentGroupResult.InvalidName ->
-                        groupCreationState.value = CreateStudentGroupUiState.Error("Enter a valid group name")
+                        groupCreationState.value = CreateStudentGroupUiState.InvalidName
                     CreateStudentGroupResult.InvalidSchedule ->
                         groupCreationState.value = CreateStudentGroupUiState.Error("Choose a valid weekly schedule")
                     is CreateStudentGroupResult.ScheduleOverlap -> {
@@ -501,7 +500,7 @@ class AttendanceViewModel(
                 groupCreationState.value = CreateStudentGroupUiState.Idle
                 throw error
             } catch (error: Exception) {
-                groupCreationState.value = CreateStudentGroupUiState.Error("Couldn't save the group. Try again.")
+                groupCreationState.value = CreateStudentGroupUiState.SaveFailed
             }
         }
     }

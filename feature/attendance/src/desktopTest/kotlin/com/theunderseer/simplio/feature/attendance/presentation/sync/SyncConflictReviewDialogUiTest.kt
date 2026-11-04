@@ -43,7 +43,8 @@ class SyncConflictReviewDialogUiTest {
             }
         }
         onNodeWithTag("device-${item.key}").assertIsNotEnabled()
-        onNodeWithText("New students belong to this group. Keep the version that preserves them.").assertExists()
+        onNodeWithText("New students are assigned to this schedule. Keep the version that preserves them.")
+            .assertExists()
         onNodeWithTag("cloud-${item.key}").performClick()
         onNodeWithText("Apply and sync").assertIsEnabled().performClick()
         assertEquals(mapOf(item.key to ConflictChoice.CLOUD), submitted)
@@ -143,8 +144,8 @@ class SyncConflictReviewDialogUiTest {
         val item = SyncConflictItem(
             "group:new",
             "Private",
-            listOf("Group: Private"),
-            listOf("Group: PRIVATE"),
+            listOf("Schedule entry: Private"),
+            listOf("Schedule entry: PRIVATE"),
             requiresGroupRename = true,
             unavailableGroupNames = listOf("Private"),
         )

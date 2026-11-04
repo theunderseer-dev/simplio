@@ -18,7 +18,7 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
         val group = all.firstOrNull {
             it.type == SyncEntityType.STUDENT_GROUP && it.cloudId == student.string("groupId")
         }
-        result += "Group: ${group?.takeIf { !it.isDeleted }?.string("name") ?: "Deleted group"}"
+        result += "Schedule entry: ${group?.takeIf { !it.isDeleted }?.string("name") ?: "Deleted schedule entry"}"
         result += "Note: ${student.string("note").ifBlank { "—" }}"
     }
     live.filter { it.type == SyncEntityType.STUDENT_PACKAGE }.sortedWith(
@@ -43,7 +43,7 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
         }.ifBlank { "None" }
     }
     live.filter { it.type == SyncEntityType.STUDENT_GROUP }.forEach { group ->
-        result += "Group: ${group.string("name")}"
+        result += "Schedule entry: ${group.string("name")}"
         (group.scheduleIds() ?: listOf(DefaultClassSchedule.ID)).forEach { id ->
             val schedule = all.firstOrNull { it.type == SyncEntityType.CLASS_SCHEDULE && it.cloudId == id }
                 ?.takeUnless { it.isDeleted }?.toSchedule()

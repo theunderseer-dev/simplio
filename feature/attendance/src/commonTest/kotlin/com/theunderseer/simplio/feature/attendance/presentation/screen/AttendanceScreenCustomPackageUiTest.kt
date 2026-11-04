@@ -15,7 +15,7 @@ class AttendanceScreenCustomPackageUiTest {
     fun `add package opens creation without changing existing students`() = runComposeUiTest {
         val state = testStudentAttendanceUiState()
         setContent { AttendanceScreenForTest(state = state) }
-        onNodeWithText("Add Group").assertIsDisplayed()
+        onNodeWithText("Add Schedule").assertIsDisplayed()
         onNodeWithText("Add Package").assertIsDisplayed().performClick()
         onNodeWithText("Create package").assertIsDisplayed()
         onNodeWithText("Cancel").performClick()

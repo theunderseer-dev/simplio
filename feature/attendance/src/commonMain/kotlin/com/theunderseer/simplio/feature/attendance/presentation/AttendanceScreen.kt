@@ -60,6 +60,7 @@ import com.theunderseer.simplio.feature.attendance.resources.ic_content_copy
 import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import com.theunderseer.simplio.feature.attendance.resources.package_added
 import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_added
 import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
@@ -161,7 +162,7 @@ fun AttendanceScreen(
             LaunchedEffect(groupState) {
                 if (groupState is CreateStudentGroupUiState.Success) {
                     showGroupDialog = false
-                    snackbarHostState.showSnackbar("Group added: ${groupState.name}")
+                    snackbarHostState.showSnackbar(getString(Res.string.schedule_entry_added, groupState.name))
                     onClearCreateStudentGroupState()
                 }
             }
