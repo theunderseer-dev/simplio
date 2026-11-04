@@ -61,20 +61,20 @@ class StudentRegistrationDialogUiTest {
     }
 
     @Test
-    fun `displays initial registration date`() = runComposeUiTest {
-        // When
+    fun `registration date is disabled until a schedule is selected`() = runComposeUiTest {
         setContent {
-            StudentRegistrationDialogForTest(
-                initialDate = AttendanceTestData.secondClassDate,
-            )
+            StudentRegistrationDialogForTest(initialDate = AttendanceTestData.secondClassDate)
         }
 
-        // Then
-        onNodeWithText("Registration date")
-            .assertIsDisplayed()
+        onNodeWithContentDescription("Registration date").assertIsNotEnabled()
+        onNodeWithText("Select a schedule first").assertIsDisplayed()
+        onNodeWithText("Oct 5").assertDoesNotExist()
 
-        onNodeWithText("Oct 5")
-            .assertIsDisplayed()
+        onNodeWithText("Group A").performClick()
+
+        onNodeWithContentDescription("Registration date").assertIsEnabled()
+        onNodeWithText("Select a schedule first").assertDoesNotExist()
+        onNodeWithText("Oct 5").assertIsDisplayed()
     }
 
     @Test
@@ -154,6 +154,8 @@ class StudentRegistrationDialogUiTest {
         }
 
         // When
+        onNodeWithText("Group A").performClick()
+
         onNodeWithContentDescription("Registration date")
             .performClick()
 
@@ -170,6 +172,8 @@ class StudentRegistrationDialogUiTest {
         }
 
         // When
+        onNodeWithText("Group A").performClick()
+
         onNodeWithContentDescription("Registration date")
             .performClick()
 

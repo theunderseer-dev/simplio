@@ -67,6 +67,7 @@ fun StudentRegistrationDialog(
         canSubmit =
         isValidStudentName(fullName) && !nameInput.rejectedEdit && studentGroups.any { it.id == selectedGroupId },
         schedules = groupSchedules[selectedGroupId],
+        dateSelectionAvailable = studentGroups.any { it.id == selectedGroupId },
         studentFields = {
             ValidatedOutlinedTextField(
                 enabled = !isSaving,

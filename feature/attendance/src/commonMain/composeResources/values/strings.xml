@@ -102,4 +102,5 @@
     <string name="attendance_class_history">Class History</string>
     <string name="package_numeric_maximum">Maximum allowed value: %1$s.</string>
     <string name="group_scroll_hint">Scroll to see all groups.</string>
+    <string name="registration_select_schedule_first">Select a schedule first</string>
 </resources>

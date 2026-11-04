@@ -41,7 +41,11 @@ class StudentRegistrationGroupScheduleUiTest {
             )
         }
         onNodeWithTag("registration-full-name").performTextInput("Anna")
+        onNodeWithText("Group A").performClick()
+        onNodeWithText("Oct 5").assertIsDisplayed()
         onNodeWithText(group.name).performClick()
+        onNodeWithText("Oct 8").assertIsDisplayed()
+        onNodeWithText("Oct 5").assertDoesNotExist()
         onNodeWithText("Register").performClick()
         val submitted = assertNotNull(callback.submission)
         assertEquals(group.id, submitted.groupId)
