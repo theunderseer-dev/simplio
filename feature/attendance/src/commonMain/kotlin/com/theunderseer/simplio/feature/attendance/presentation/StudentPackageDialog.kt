@@ -51,6 +51,7 @@ import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.class_add_package
 import com.theunderseer.simplio.feature.attendance.resources.class_student_save_hint
 import com.theunderseer.simplio.feature.attendance.resources.package_valid_until
+import com.theunderseer.simplio.feature.attendance.resources.registration_select_schedule_first
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.components.simplioClickable
@@ -80,6 +81,7 @@ internal fun StudentPackageDialog(
     errorMessage: String? = null,
     canSubmit: Boolean = true,
     schedules: List<ClassSchedule>? = null,
+    dateSelectionAvailable: Boolean = true,
     fixedDate: LocalDate? = null,
     visible: Boolean = true,
     preferredPackageTypeId: Int? = null,
@@ -121,14 +123,20 @@ internal fun StudentPackageDialog(
         mutableStateOf(false)
     }
 
-    var selectedDate by remember(initialDate, earliestDate, schedules, fixedDate) {
-        mutableStateOf(fixedDate ?: initialPackagePurchaseDate(initialDate, earliestDate, schedules))
+    var selectedDate by remember(initialDate, earliestDate, schedules, fixedDate, dateSelectionAvailable) {
+        mutableStateOf(
+            fixedDate ?: if (dateSelectionAvailable) {
+                initialPackagePurchaseDate(initialDate, earliestDate, schedules)
+            } else {
+                null
+            },
+        )
     }
 
     val attendanceAlreadyRecorded = selectedDate?.let { it in recordedAttendanceDates } == true
     val recordFirstAttendance = wantsFirstAttendance && !attendanceAlreadyRecorded
 
-    var showDatePicker by remember {
+    var showDatePicker by remember(schedules, fixedDate, dateSelectionAvailable) {
         mutableStateOf(false)
     }
 
@@ -173,10 +181,14 @@ internal fun StudentPackageDialog(
                     Box {
                         OutlinedTextField(
                             shape = MaterialTheme.shapes.small,
-                            enabled = !isSaving,
+                            enabled = !isSaving && (dateSelectionAvailable || fixedDate != null),
                             modifier = Modifier.fillMaxWidth(),
-                            value = selectedDate?.toDisplayDate().orEmpty(),
-                            supportingText = if (selectedDate == null) {
+                            value = selectedDate?.toDisplayDate() ?: if (!dateSelectionAvailable) {
+                                stringResource(Res.string.registration_select_schedule_first)
+                            } else {
+                                ""
+                            },
+                            supportingText = if (selectedDate == null && dateSelectionAvailable) {
                                 { Text("No scheduled dates available yet") }
                             } else {
                                 null
@@ -192,7 +204,7 @@ internal fun StudentPackageDialog(
                             modifier =
                             Modifier
                                 .matchParentSize()
-                                .simplioClickable(enabled = !isSaving && fixedDate == null) {
+                                .simplioClickable(enabled = !isSaving && dateSelectionAvailable && fixedDate == null) {
                                     showDatePicker = true
                                 }
                                 .semantics {
@@ -404,7 +416,7 @@ internal fun StudentPackageDialog(
         )
     }
 
-    if (visible && showDatePicker && fixedDate == null) {
+    if (visible && showDatePicker && dateSelectionAvailable && fixedDate == null) {
         val selectableDates =
             remember(initialDate, earliestDate, schedules) {
                 object : SelectableDates {

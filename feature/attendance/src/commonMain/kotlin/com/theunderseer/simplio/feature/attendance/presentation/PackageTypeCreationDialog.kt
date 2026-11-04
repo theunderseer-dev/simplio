@@ -78,7 +78,7 @@ internal fun PackageTypeCreationDialog(
     val weeks = weeksInput.text
     var noExpiration by remember { mutableStateOf(false) }
     var allowTwo by remember { mutableStateOf(false) }
-    val saving = state == CreatePackageTypeUiState.Saving
+    val saving = state == CreatePackageTypeUiState.Saving || state is CreatePackageTypeUiState.Success
     val count = classes.toIntOrNull()
     val amount = price.toIntOrNull()
     val validity = weeks.toIntOrNull()
@@ -87,7 +87,9 @@ internal fun PackageTypeCreationDialog(
     } else {
         null
     }
-    val duplicate = name.isNotBlank() &&
+    // The saved package can reach the catalog before this dialog is dismissed.
+    val duplicate = !saving &&
+        name.isNotBlank() &&
         packageTypes.any {
             normalizedPackageName(it.name) == normalizedPackageName(name)
         }

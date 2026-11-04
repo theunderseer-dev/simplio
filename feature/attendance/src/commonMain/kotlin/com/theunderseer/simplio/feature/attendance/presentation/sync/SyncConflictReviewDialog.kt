@@ -48,6 +48,8 @@ import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.package_duplicate_name
 import com.theunderseer.simplio.feature.attendance.resources.package_name_conflict
 import com.theunderseer.simplio.feature.attendance.resources.package_rename
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_duplicate_name
+import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_rename
 import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.input.ObserveInputFeedback
 import com.theunderseer.simplio.shared.presentation.input.ValidatedInputState
@@ -160,7 +162,7 @@ fun SyncConflictReviewDialog(
                                                                 Res.string.package_rename,
                                                             )
                                                         } else {
-                                                            "New group name"
+                                                            stringResource(Res.string.schedule_entry_rename)
                                                         },
                                                     )
                                                 },
@@ -182,7 +184,7 @@ fun SyncConflictReviewDialog(
                                                             if (item.requiresPackageRename) {
                                                                 stringResource(Res.string.package_duplicate_name)
                                                             } else {
-                                                                "A group with this name already exists"
+                                                                stringResource(Res.string.schedule_entry_duplicate_name)
                                                             },
                                                         )
                                                     } else if (value.isNotEmpty() &&

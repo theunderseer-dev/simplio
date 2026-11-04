@@ -31,7 +31,7 @@ class AttendanceScreenGroupCreationUiTest {
             )
         }
         onNodeWithText("Add Student").assertIsDisplayed()
-        onNodeWithText("Add Group").performClick()
+        onNodeWithText("Add Schedule").performClick()
         onNodeWithTag("group-name").performTextInput("Private")
         onNodeWithText("Create").performClick()
         assertEquals("Private", assertNotNull(request).name)

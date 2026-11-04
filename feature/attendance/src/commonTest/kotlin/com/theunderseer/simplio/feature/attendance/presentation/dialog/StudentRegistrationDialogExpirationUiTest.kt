@@ -22,6 +22,8 @@ class StudentRegistrationDialogExpirationUiTest {
             )
         }
 
+        onNodeWithText("Group A").performClick()
+
         // Then
         onNodeWithText("Record first attendance").performScrollTo().assertIsOn()
         onNodeWithText("Valid until Oct 30, 2026")
@@ -42,6 +44,8 @@ class StudentRegistrationDialogExpirationUiTest {
                 ),
             )
         }
+
+        onNodeWithText("Group A").performClick()
 
         // When
         onNodeWithText("Package").performScrollTo().performClick()
@@ -69,6 +73,7 @@ class StudentRegistrationDialogExpirationUiTest {
             )
         }
 
+        onNodeWithText("Group A").performClick()
         onNodeWithText("Valid until Nov 2, 2026").performScrollTo().assertIsDisplayed()
 
         // When

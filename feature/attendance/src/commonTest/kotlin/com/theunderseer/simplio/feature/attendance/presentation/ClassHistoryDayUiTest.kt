@@ -56,6 +56,32 @@ class ClassHistoryDayUiTest {
     }
 
     @Test
+    fun `single roster shows the class schedule without repeating the student's roster`() = runComposeUiTest {
+        val student = ClassHistoryStudent(AttendanceTestData.student, 1)
+        val scheduleName = "Morning practice"
+        val entry = testClassHistoryEntry(
+            date,
+            listOf(student),
+            sessionId = "morning",
+            timeLabel = morningLabel,
+            startsAt = morning,
+            endsAt = morningEnd,
+        ).copy(scheduleName = scheduleName)
+        setContent {
+            ClassHistorySection(
+                ClassHistoryUiState.Content(listOf(entry), null),
+                AttendanceTestData.studentGroups,
+                onLoadNextPage = {},
+                onRetry = {},
+                onTrackAttendance = {},
+            )
+        }
+        onAllNodesWithText(scheduleName).assertCountEquals(1)
+        onNodeWithText(student.student.fullName).assertIsDisplayed()
+        onNodeWithText("Group A").assertDoesNotExist()
+    }
+
+    @Test
     fun `evening and morning appear under one unchanged date title with evening first`() = runComposeUiTest {
         val eveningLabel = "18:00–19:00 · Asia/Bangkok"
         val entries = listOf(

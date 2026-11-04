@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.feature.attendance.presentation.dialog
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testCreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.presentation.CreatePackageTypeUiState
@@ -47,6 +49,33 @@ class PackageTypeCreationDialogUiTest {
         onNodeWithTag("create-package-allow-two").performClick()
         onNodeWithTag("create-package-confirm").assertIsEnabled().performClick()
         assertEquals(testCreatePackageTypeRequest().copy(validityWeeks = 6, maxVisitsPerAttendance = 2), submitted)
+    }
+
+    @Test
+    fun `saved template appearing before dismissal does not show a duplicate error`() = runComposeUiTest {
+        val type = AttendanceTestData.privateEightClassPackage
+        val catalog = mutableStateOf(emptyList<PackageType>())
+        val state = mutableStateOf<CreatePackageTypeUiState>(CreatePackageTypeUiState.Idle)
+        setContent {
+            PackageTypeCreationDialog(
+                packageTypes = catalog.value,
+                state = state.value,
+                onConfirm = { state.value = CreatePackageTypeUiState.Saving },
+                onDismiss = {},
+                onClearError = {},
+            )
+        }
+        enterPackageFields()
+        onNodeWithTag("create-package-no-expiration").performClick()
+        onNodeWithTag("create-package-confirm").performClick()
+        runOnIdle { catalog.value = listOf(type) }
+        onNodeWithText("A package with this name already exists.").assertDoesNotExist()
+        onNodeWithTag("create-package-confirm").assertIsNotEnabled()
+        runOnIdle { state.value = CreatePackageTypeUiState.Success(type.name) }
+        onNodeWithText("A package with this name already exists.").assertDoesNotExist()
+        onNodeWithTag("create-package-confirm").assertIsNotEnabled()
+        runOnIdle { state.value = CreatePackageTypeUiState.DuplicateName }
+        onNodeWithText("A package with this name already exists.").assertIsDisplayed()
     }
 
     @Test

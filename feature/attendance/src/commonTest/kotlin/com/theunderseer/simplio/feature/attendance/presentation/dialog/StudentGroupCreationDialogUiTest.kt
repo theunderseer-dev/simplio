@@ -35,7 +35,7 @@ class StudentGroupCreationDialogUiTest {
         }
         onNodeWithText("Create").assertIsNotEnabled()
         onNodeWithTag("group-name").performTextInput(" group   a ")
-        onNodeWithText("A group with this name already exists").assertIsDisplayed()
+        onNodeWithText("A schedule with this name already exists").assertIsDisplayed()
         onNodeWithText("Create").assertIsNotEnabled()
     }
 
@@ -87,7 +87,7 @@ class StudentGroupCreationDialogUiTest {
             )
         }
         onNodeWithTag("group-name").performTextInput("Private")
-        onNodeWithText("New schedule").performClick()
+        onNodeWithText("Set new schedule").performClick()
         onNodeWithTag("group-day-MONDAY").performClick()
         onNodeWithTag("group-day-FRIDAY").performClick()
         onNodeWithTag("group-day-TUESDAY").assertIsDisplayed().performClick()

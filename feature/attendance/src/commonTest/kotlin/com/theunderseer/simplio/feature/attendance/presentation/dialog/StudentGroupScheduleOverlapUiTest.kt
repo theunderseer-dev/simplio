@@ -37,7 +37,7 @@ class StudentGroupScheduleOverlapUiTest {
             )
         }
         onNodeWithTag("group-name").performTextInput("Private")
-        onNodeWithText("New schedule").performClick()
+        onNodeWithText("Set new schedule").performClick()
         onNodeWithTag("group-time-zone").performScrollTo().performTextReplacement("Asia/Bangkok")
         waitUntil(timeoutMillis = 5000) {
             onAllNodesWithTag("schedule-overlap-error").fetchSemanticsNodes().isNotEmpty()
@@ -68,12 +68,12 @@ class StudentGroupScheduleOverlapUiTest {
             )
         }
         onNodeWithTag("group-name").performTextInput("Shared")
-        onNodeWithText("New schedule").performClick()
+        onNodeWithText("Set new schedule").performClick()
         onNodeWithTag("group-time-zone").performScrollTo().performTextReplacement("Asia/Bangkok")
         waitUntil(timeoutMillis = 5000) {
             onAllNodesWithTag("schedule-overlap-error").fetchSemanticsNodes().isNotEmpty()
         }
-        onNodeWithText("Use existing").performScrollTo().performClick()
+        onNodeWithText("Use existing schedule").performScrollTo().performClick()
         onNodeWithText("Create").assertIsEnabled().performClick()
         assertEquals(DefaultClassSchedule.ID, assertNotNull(submitted).existingScheduleId)
         assertEquals(null, assertNotNull(submitted).newSchedule)

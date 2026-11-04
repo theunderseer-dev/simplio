@@ -60,11 +60,11 @@ class SilverAppearanceUiTest {
                 assertTrue(check.width >= 48 && check.height >= 48)
                 assertTrue(kotlin.math.abs(check.center.y - delete.center.y) < 1f)
                 val pack = onNodeWithText("Add Package").fetchSemanticsNode().boundsInRoot
-                val more = onNodeWithContentDescription("Group options").fetchSemanticsNode().boundsInRoot
+                val more = onNodeWithContentDescription("Schedule options").fetchSemanticsNode().boundsInRoot
                 assertTrue(more.left >= pack.right)
                 export("main-${if (dark) "dark" else "light"}")
-                onNodeWithContentDescription("Group options").performClick()
-                onNodeWithText("Manage groups").assertIsDisplayed()
+                onNodeWithContentDescription("Schedule options").performClick()
+                onNodeWithText("Manage Schedules").assertIsDisplayed()
             }
         }
     }
@@ -82,7 +82,7 @@ class SilverAppearanceUiTest {
                 }
                 val card = onNodeWithTag("manage-group-${group.id}").fetchSemanticsNode().boundsInRoot
                 val title = onNodeWithText(group.name).fetchSemanticsNode().boundsInRoot
-                val warning = onNodeWithText("Move or remove the students before deleting this group.")
+                val warning = onNodeWithText("Move or remove the students before deleting this schedule.")
                     .fetchSemanticsNode().boundsInRoot
                 assertTrue(title.left - card.left >= 12f)
                 assertTrue(title.top - card.top >= 12f)

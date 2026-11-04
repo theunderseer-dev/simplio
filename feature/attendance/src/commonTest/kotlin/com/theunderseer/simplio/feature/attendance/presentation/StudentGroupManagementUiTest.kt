@@ -28,7 +28,7 @@ class StudentGroupManagementUiTest {
         val occupied = AttendanceTestData.studentGroups.first().id
         val empty = AttendanceTestData.studentGroups.last().id
         onNodeWithTag("delete-group-$occupied").assertIsNotEnabled()
-        onNodeWithText("Move or remove the students before deleting this group.").assertExists()
+        onNodeWithText("Move or remove the students before deleting this schedule.").assertExists()
         onNodeWithTag("delete-group-$empty").assertIsEnabled().performClick()
         assertEquals(null, removed)
         onNodeWithText("Cancel").performClick()
@@ -53,14 +53,14 @@ class StudentGroupManagementUiTest {
         onNodeWithTag("delete-group-$empty").performClick()
         onNodeWithTag("confirm-group-delete").performClick()
         onNodeWithTag("confirm-group-delete").assertIsNotEnabled()
-        onNodeWithText("Move or remove the students before deleting this group.").assertExists()
+        onNodeWithText("Move or remove the students before deleting this schedule.").assertExists()
     }
 
     @Test
     fun `group options on the main screen open management without changing registration`() = runComposeUiTest {
         setContent { AttendanceScreenForTest(testStudentAttendanceUiState()) }
-        onNodeWithContentDescription("Group options").performClick()
-        onNodeWithText("Manage groups").performClick()
+        onNodeWithContentDescription("Schedule options").performClick()
+        onNodeWithText("Manage Schedules").performClick()
         onNodeWithTag("manage-groups-dialog").assertExists()
         onNodeWithText("Close").performClick()
         onNodeWithText("Add Student").assertExists()
