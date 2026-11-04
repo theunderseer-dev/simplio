@@ -40,7 +40,6 @@ import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPa
 import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.class_cancelled_error
-import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -119,6 +118,8 @@ class AttendanceViewModel(
 
     private val packageCreationState = MutableStateFlow<CreatePackageTypeUiState>(CreatePackageTypeUiState.Idle)
 
+    private val registrationState = MutableStateFlow<RegisterStudentUiState>(RegisterStudentUiState.Idle)
+
     private val groupCreationState = MutableStateFlow<CreateStudentGroupUiState>(CreateStudentGroupUiState.Idle)
 
     private var classHistoryJob: Job? = null
@@ -170,6 +171,8 @@ class AttendanceViewModel(
             if (state is AttendanceUiState.Content) state.copy(createStudentGroupState = creation) else state
         }.combine(packageCreationState) { state, creation ->
             if (state is AttendanceUiState.Content) state.copy(createPackageTypeState = creation) else state
+        }.combine(registrationState) { state, registration ->
+            if (state is AttendanceUiState.Content) state.copy(registerStudentState = registration) else state
         }.combine(currentInstant) { state, now ->
             if (state is AttendanceUiState.Content && now != null) {
                 val dates = state.studentGroups.associate { group ->
@@ -520,8 +523,10 @@ class AttendanceViewModel(
         recordFirstAttendance: Boolean = true,
         note: String = "",
     ) {
+        if (registrationState.value == RegisterStudentUiState.Saving) return
+        registrationState.value = RegisterStudentUiState.Saving
         viewModelScope.launch {
-            try {
+            val registered = try {
                 registerStudentUseCase(
                     fullName = fullName,
                     groupId = groupId,
@@ -531,22 +536,33 @@ class AttendanceViewModel(
                     recordFirstAttendance = recordFirstAttendance,
                     note = note,
                 )
+            } catch (error: CancellationException) {
+                registrationState.value = RegisterStudentUiState.Idle
+                throw error
+            } catch (error: Exception) {
+                registrationState.value = when (error) {
+                    is InvalidStudentName -> RegisterStudentUiState.Error.INVALID_NAME
+                    is ClassAttendanceFailure -> RegisterStudentUiState.Error.CLASS_CANCELLED
+                    else -> RegisterStudentUiState.Error.SAVE_FAILED
+                }
+                return@launch
+            }
 
+            try {
                 refreshAttendance()
                 loadClassHistory()
-            } catch (exception: CancellationException) {
-                throw exception
-            } catch (exception: Exception) {
-                attendanceData.value = AttendanceDataState.Error(
-                    message = if (exception is InvalidStudentName) {
-                        getString(Res.string.student_name_invalid)
-                    } else if (exception is ClassAttendanceFailure) {
-                        getString(Res.string.class_cancelled_error)
-                    } else {
-                        exception.message ?: "Failed to register student"
-                    },
-                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // Registration already committed. Room observers or the next refresh update the list.
             }
+            registrationState.value = RegisterStudentUiState.Success(registered.student.fullName)
+        }
+    }
+
+    fun clearRegisterStudentState() {
+        if (registrationState.value != RegisterStudentUiState.Saving) {
+            registrationState.value = RegisterStudentUiState.Idle
         }
     }
 

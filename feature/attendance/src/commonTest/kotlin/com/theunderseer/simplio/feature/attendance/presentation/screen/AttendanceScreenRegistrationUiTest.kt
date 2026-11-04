@@ -1,7 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.presentation.screen
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -18,6 +20,7 @@ import com.theunderseer.simplio.feature.attendance.fixtures.StudentRegistrationT
 import com.theunderseer.simplio.feature.attendance.fixtures.testAttendanceContentUiState
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
+import com.theunderseer.simplio.feature.attendance.presentation.RegisterStudentUiState
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -55,6 +58,51 @@ class AttendanceScreenRegistrationUiTest {
 
         onNodeWithText("Register")
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun `registration keeps the form open until saved and confirms after clearing success`() = runComposeUiTest {
+        val state = mutableStateOf(emptyAttendanceState())
+        val studentName = AttendanceTestData.student.fullName
+        val confirmation = onNodeWithText("Student registered: $studentName")
+        setContent {
+            AttendanceScreenForTest(
+                state = state.value,
+                onRegisterStudent = { _, _, _, _, _, _, _ ->
+                    state.value = state.value.copy(registerStudentState = RegisterStudentUiState.Saving)
+                },
+                onClearRegisterStudentState = {
+                    state.value = state.value.copy(registerStudentState = RegisterStudentUiState.Idle)
+                },
+            )
+        }
+
+        onNodeWithText("Add Student").performClick()
+        onNodeWithText("Group A").performClick()
+        onNodeWithTag("registration-full-name").performTextInput(studentName)
+        onNodeWithText("Register").performClick()
+
+        onNodeWithText("Saving...").assertIsNotEnabled()
+        confirmation.assertDoesNotExist()
+
+        runOnIdle {
+            state.value = state.value.copy(registerStudentState = RegisterStudentUiState.Error.SAVE_FAILED)
+        }
+        onNodeWithText("Could not register the student. Try again.").performScrollTo().assertIsDisplayed()
+        onNodeWithTag("registration-full-name").assertExists()
+        confirmation.assertDoesNotExist()
+
+        onNodeWithText("Register").performClick()
+        runOnIdle {
+            state.value = state.value.copy(registerStudentState = RegisterStudentUiState.Success(studentName))
+        }
+
+        waitUntil(timeoutMillis = 5_000) {
+            state.value.registerStudentState == RegisterStudentUiState.Idle &&
+                runCatching { confirmation.assertIsDisplayed() }.isSuccess
+        }
+        onNodeWithTag("registration-full-name").assertDoesNotExist()
+        confirmation.assertIsDisplayed()
     }
 
     @Test

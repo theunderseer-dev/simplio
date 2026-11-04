@@ -40,7 +40,6 @@ import com.theunderseer.simplio.feature.attendance.domain.schedule.findScheduleO
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.attendance_add_group
 import com.theunderseer.simplio.feature.attendance.resources.group_name_invalid
-import com.theunderseer.simplio.feature.attendance.resources.schedule_add_existing
 import com.theunderseer.simplio.feature.attendance.resources.schedule_choose_existing
 import com.theunderseer.simplio.feature.attendance.resources.schedule_dates_invalid
 import com.theunderseer.simplio.feature.attendance.resources.schedule_end_invalid
@@ -53,6 +52,7 @@ import com.theunderseer.simplio.feature.attendance.resources.schedule_shared_hin
 import com.theunderseer.simplio.feature.attendance.resources.schedule_starts_on
 import com.theunderseer.simplio.feature.attendance.resources.schedule_time_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_time_invalid
+import com.theunderseer.simplio.feature.attendance.resources.schedule_use_existing
 import com.theunderseer.simplio.feature.attendance.resources.schedule_weekly
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_hint
 import com.theunderseer.simplio.feature.attendance.resources.schedule_zone_invalid
@@ -183,7 +183,7 @@ internal fun StudentGroupCreationDialog(
                         onClick = { newSchedule = false },
                         enabled =
                         !saving && eligible.isNotEmpty(),
-                        label = { Text(stringResource(Res.string.schedule_add_existing)) },
+                        label = { Text(stringResource(Res.string.schedule_use_existing)) },
                     )
                     SimplioFilterChip(
                         selected = newSchedule,

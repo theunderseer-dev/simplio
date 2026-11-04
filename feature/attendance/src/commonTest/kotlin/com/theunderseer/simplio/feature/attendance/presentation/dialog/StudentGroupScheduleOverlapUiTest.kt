@@ -73,7 +73,7 @@ class StudentGroupScheduleOverlapUiTest {
         waitUntil(timeoutMillis = 5000) {
             onAllNodesWithTag("schedule-overlap-error").fetchSemanticsNodes().isNotEmpty()
         }
-        onNodeWithText("Add existing schedule").performScrollTo().performClick()
+        onNodeWithText("Use existing schedule").performScrollTo().performClick()
         onNodeWithText("Create").assertIsEnabled().performClick()
         assertEquals(DefaultClassSchedule.ID, assertNotNull(submitted).existingScheduleId)
         assertEquals(null, assertNotNull(submitted).newSchedule)

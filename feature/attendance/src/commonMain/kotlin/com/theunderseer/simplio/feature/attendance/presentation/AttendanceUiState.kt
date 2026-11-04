@@ -33,9 +33,18 @@ sealed interface AttendanceUiState {
         val createPackageTypeState: CreatePackageTypeUiState = CreatePackageTypeUiState.Idle,
         val classAttendanceState: ClassAttendanceUiState = ClassAttendanceUiState.Closed,
         val deleteStudentGroupState: DeleteStudentGroupUiState = DeleteStudentGroupUiState.Idle,
+        val registerStudentState: RegisterStudentUiState = RegisterStudentUiState.Idle,
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState
+}
+
+sealed interface RegisterStudentUiState {
+    data object Idle : RegisterStudentUiState
+    data object Saving : RegisterStudentUiState
+    data class Success(val name: String) : RegisterStudentUiState
+
+    enum class Error : RegisterStudentUiState { INVALID_NAME, CLASS_CANCELLED, SAVE_FAILED }
 }
 
 data class StudentAttendanceUiState(

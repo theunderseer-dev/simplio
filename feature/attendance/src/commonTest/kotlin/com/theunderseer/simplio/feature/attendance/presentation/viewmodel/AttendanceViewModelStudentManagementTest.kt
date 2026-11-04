@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.r
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.secondClassDate
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData.student
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
+import com.theunderseer.simplio.feature.attendance.presentation.RegisterStudentUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlin.test.Test
@@ -57,6 +58,7 @@ class AttendanceViewModelStudentManagementTest {
             state.attendance.entries.size,
         )
 
+        assertEquals(RegisterStudentUiState.Success(student.fullName), state.registerStudentState)
         val registeredStudent = state.attendance.entries.single()
 
         assertEquals(

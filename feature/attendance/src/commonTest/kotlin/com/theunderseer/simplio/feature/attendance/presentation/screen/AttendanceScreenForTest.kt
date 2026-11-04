@@ -13,6 +13,7 @@ import kotlinx.datetime.LocalDate
 internal fun AttendanceScreenForTest(
     state: AttendanceUiState,
     onRegisterStudent: (String, Int, PackageType, LocalDate, Int, Boolean, String) -> Unit = { _, _, _, _, _, _, _ -> },
+    onClearRegisterStudentState: () -> Unit = {},
     onDeleteStudent: (Int) -> Unit = {},
     onCopyAttendance: (String) -> Unit = {},
     onMarkStudentPresent: (Int, LocalDate, Int) -> Unit = { _, _, _ -> },
@@ -54,6 +55,7 @@ internal fun AttendanceScreenForTest(
         onCreatePackageType = onCreatePackageType,
         onClearCreatePackageTypeState = onClearCreatePackageTypeState,
         onRegisterStudent = onRegisterStudent,
+        onClearRegisterStudentState = onClearRegisterStudentState,
         onRenewStudentPackage = onRenewStudentPackage,
         onClearRenewStudentPackageState = onClearRenewStudentPackageState,
         onDeleteStudent = onDeleteStudent,

@@ -24,6 +24,8 @@
     <string name="package_rename">New package name</string>
     <string name="package_name_conflict">Another package uses this name. Rename this device’s package to keep both.</string>
     <string name="group_name_conflict">Another schedule entry uses this name. Rename the entry on this device to keep both.</string>
+    <string name="student_registered">Student registered: %1$s</string>
+    <string name="student_registration_failed">Could not register the student. Try again.</string>
     <string name="student_name_invalid">Enter a name of 1–200 characters on one line.</string>
     <string name="group_name_invalid">Enter a name of 1–80 characters on one line.</string>
     <string name="schedule_time_invalid">Use HH:mm between 00:00 and 23:59.</string>
@@ -110,7 +112,7 @@
     <string name="schedule_entry_added">Schedule added: %1$s</string>
     <string name="schedule_entry_rename">New schedule name</string>
     <string name="schedule_weekly">Weekly schedule</string>
-    <string name="schedule_add_existing">Add existing schedule</string>
+    <string name="schedule_use_existing">Use existing schedule</string>
     <string name="schedule_set_new">Set new schedule</string>
     <string name="schedule_choose_existing">Choose a schedule</string>
     <string name="schedule_shared_hint">Students on the same weekly schedule attend the same classes.</string>
