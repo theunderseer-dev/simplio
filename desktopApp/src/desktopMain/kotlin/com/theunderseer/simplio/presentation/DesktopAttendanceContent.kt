@@ -29,12 +29,15 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.theunderseer.simplio.database.AccountDatabaseSelection
 import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.DesktopAttendanceSession
+import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
 import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
 import com.theunderseer.simplio.feature.attendance.presentation.sync.SyncConflictReviewDialog
+import com.theunderseer.simplio.notifications.DesktopAttendanceReminders
+import com.theunderseer.simplio.notifications.reminderAccount
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import kotlinx.coroutines.CancellationException
@@ -52,6 +55,7 @@ internal fun DesktopAttendanceContent(
     databases: DesktopDatabaseManager,
     onCopyAttendance: (String) -> Unit,
     uploadClient: FirestoreRestClient? = null,
+    reminders: DesktopAttendanceReminders? = null,
 ) {
     require(uploadClient == null || uploadClient.userId == userId)
     var choice by remember(userId) { mutableStateOf<LegacyDataChoice?>(null) }
@@ -80,7 +84,13 @@ internal fun DesktopAttendanceContent(
             onStartEmpty = { choice = LegacyDataChoice.Empty },
         )
 
-        is DatabaseSelectionState.Ready -> AttendanceSessionContent(current.path, onCopyAttendance, uploadClient)
+        is DatabaseSelectionState.Ready -> AttendanceSessionContent(
+            current.path,
+            onCopyAttendance,
+            uploadClient,
+            reminders,
+            userId,
+        )
 
         is DatabaseSelectionState.Failed -> LocalDataError(current.message, onRetry = { attempt++ })
     }
@@ -112,6 +122,8 @@ private fun AttendanceSessionContent(
     path: Path,
     onCopyAttendance: (String) -> Unit,
     uploadClient: FirestoreRestClient?,
+    reminders: DesktopAttendanceReminders?,
+    userId: String?,
 ) {
     var attempt by remember(path) { mutableIntStateOf(0) }
     var state by remember(path) { mutableStateOf<AttendanceSessionState>(AttendanceSessionState.Loading) }
@@ -143,10 +155,27 @@ private fun AttendanceSessionContent(
 
         is AttendanceSessionState.Ready -> KoinIsolatedContext(context = current.session.application) {
             CompositionLocalProvider(LocalViewModelStoreOwner provides current.session) {
+                val account = remember(userId) { reminderAccount(userId) }
+                val pending = if (reminders == null) {
+                    null
+                } else {
+                    val activation by reminders.activation.collectAsState()
+                    activation?.takeIf { it.identity.account == account }
+                }
+                if (reminders != null) {
+                    LaunchedEffect(current.session, reminders, account) {
+                        reminders.runForAccount(account, current.session.application.koin.get<AttendanceDatabase>())
+                    }
+                }
                 Column(modifier = Modifier.fillMaxSize()) {
                     current.session.sync?.let { SyncNotice(it) }
+                    if (reminders != null) AttendanceReminderControls(reminders, account)
                     Box(modifier = Modifier.weight(1f)) {
-                        AttendanceRoute(onCopyAttendance = onCopyAttendance)
+                        AttendanceRoute(
+                            onCopyAttendance = onCopyAttendance,
+                            reminderSessionId = pending?.identity?.sessionId,
+                            onReminderHandled = { if (pending != null) reminders?.acknowledge(pending) },
+                        )
                     }
                 }
             }

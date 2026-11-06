@@ -1,0 +1,8 @@
+<resources>
+    <string name="attendance_reminders">Attendance reminders</string>
+    <string name="attendance_reminder_title">Track attendance</string>
+    <string name="attendance_reminder_body">%1$s · %2$s</string>
+    <string name="attendance_reminders_permission">Allow Simplio notifications in macOS System Settings.</string>
+    <string name="attendance_reminders_failed">Could not update attendance reminders. Try again.</string>
+    <string name="attendance_reminders_retry">Retry</string>
+</resources>

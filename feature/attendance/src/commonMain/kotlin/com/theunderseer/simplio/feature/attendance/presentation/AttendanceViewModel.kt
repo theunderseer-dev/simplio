@@ -276,18 +276,39 @@ class AttendanceViewModel(
         }
     }
 
-    fun openClassAttendance(sessionId: String) {
+    fun openClassAttendance(sessionId: String) = openClassAttendance(sessionId, reminderOpenedAt = null)
+
+    fun openClassAttendanceFromReminder(sessionId: String, openedAt: Instant) {
+        if (classAttendanceState.value == ClassAttendanceUiState.Closed) openClassAttendance(sessionId, openedAt)
+    }
+
+    private fun openClassAttendance(sessionId: String, reminderOpenedAt: Instant?) {
         val current = classAttendanceState.value as? ClassAttendanceUiState.Content
         if (current?.isSaving == true || current?.studentAction != null) return
         classAttendanceJob?.cancel()
         classAttendanceState.value = ClassAttendanceUiState.Loading
         classAttendanceJob = viewModelScope.launch {
             try {
-                classAttendanceState.value = ClassAttendanceUiState.Content(classAttendanceRepository.load(sessionId))
+                val sheet = classAttendanceRepository.load(sessionId)
+                val unavailableFromReminder = reminderOpenedAt != null &&
+                    (
+                        sheet.session.endsAt > reminderOpenedAt ||
+                            !sheet.canCancel ||
+                            sheet.rows.none { it.studentPackage != null }
+                        )
+                classAttendanceState.value = if (unavailableFromReminder) {
+                    ClassAttendanceUiState.ReminderUnavailable
+                } else {
+                    ClassAttendanceUiState.Content(sheet)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                classAttendanceState.value = ClassAttendanceUiState.LoadError(sessionId)
+                classAttendanceState.value = if (reminderOpenedAt != null) {
+                    ClassAttendanceUiState.ReminderUnavailable
+                } else {
+                    ClassAttendanceUiState.LoadError(sessionId)
+                }
             }
         }
     }

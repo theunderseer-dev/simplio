@@ -6,6 +6,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.ClassAttendanceS
 sealed interface ClassAttendanceUiState {
     data object Closed : ClassAttendanceUiState
     data object Loading : ClassAttendanceUiState
+    data object ReminderUnavailable : ClassAttendanceUiState
     data class LoadError(val sessionId: String) : ClassAttendanceUiState
     data class Content(
         val sheet: ClassAttendanceSheet,

@@ -4,13 +4,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.time.Clock
 
 @Composable
-fun AttendanceRoute(onCopyAttendance: (String) -> Unit, viewModel: AttendanceViewModel = koinViewModel()) {
+fun AttendanceRoute(
+    onCopyAttendance: (String) -> Unit,
+    viewModel: AttendanceViewModel = koinViewModel(),
+    reminderSessionId: String? = null,
+    onReminderHandled: () -> Unit = {},
+) {
     val state by viewModel.uiState.collectAsState()
 
     AttendanceScreen(
         state = state,
+        reminderSessionId = reminderSessionId,
+        onOpenReminder = { sessionId ->
+            viewModel.openClassAttendanceFromReminder(sessionId, Clock.System.now())
+            onReminderHandled()
+        },
         classAttendanceCallbacks = ClassAttendanceCallbacks(
             viewModel::openClassAttendance, viewModel::closeClassAttendance, viewModel::saveClassAttendance,
             viewModel::selectClassAttendance, viewModel::addStudentToClass, viewModel::renewStudentInClass,
