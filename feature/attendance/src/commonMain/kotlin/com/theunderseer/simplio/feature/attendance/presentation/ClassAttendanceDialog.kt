@@ -46,6 +46,7 @@ import com.theunderseer.simplio.feature.attendance.resources.class_no_students
 import com.theunderseer.simplio.feature.attendance.resources.class_package_progress
 import com.theunderseer.simplio.feature.attendance.resources.class_package_required
 import com.theunderseer.simplio.feature.attendance.resources.class_people_count
+import com.theunderseer.simplio.feature.attendance.resources.class_reminder_unavailable
 import com.theunderseer.simplio.feature.attendance.resources.class_renew_student
 import com.theunderseer.simplio.feature.attendance.resources.class_retry
 import com.theunderseer.simplio.feature.attendance.resources.class_save
@@ -80,10 +81,11 @@ internal fun ClassAttendanceDialog(
             onDismissRequest = onClose,
             title = { Text(stringResource(Res.string.class_track_attendance)) },
             text = {
-                if (state is ClassAttendanceUiState.LoadError) {
-                    Text(stringResource(Res.string.class_unavailable))
-                } else {
-                    CircularProgressIndicator()
+                when (state) {
+                    is ClassAttendanceUiState.LoadError -> Text(stringResource(Res.string.class_unavailable))
+                    ClassAttendanceUiState.ReminderUnavailable ->
+                        Text(stringResource(Res.string.class_reminder_unavailable))
+                    else -> CircularProgressIndicator()
                 }
             },
             confirmButton = {

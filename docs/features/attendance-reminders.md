@@ -1,66 +1,90 @@
 # Attendance reminders
 
-A class becomes due at its scheduled **end** in the schedule's time zone.
-For a class ending at 10:15 in Bangkok, the reminder becomes due at that
-instant, wherever the Mac is. Show **Track attendance** with the schedule
-name and the class day and date. Do not include student names in the notification.
+Simplio asks macOS to show **Track attendance** when an eligible class ends.
+The notification shows the schedule name and class date in the schedule's
+time zone. For example, a Bangkok class ending at 10:15 becomes due at that
+instant wherever the Mac is. Student names and account IDs are not included.
 
 ## Local eligibility
 
-- Project class occurrences from Room using the existing schedule calculator.
-  Keep the canonical session ID, so groups sharing a class produce one reminder
-  and two independent classes on the same date stay distinct.
-- Use one bounded snapshot for upcoming classes and missed classes. The
-  snapshot window is exclusive at the lower end and inclusive at the upper
-  end, with a maximum span of 31 days. This is a query bound; it does not change
-  which classes can be tracked in Class History.
-- Include active schedules with a linked group that has at least one package
-  purchased by the class date. This avoids reminders for empty seeded groups
-  and for dates before anyone was registered.
-- Suppress a class when the teacher already recorded attendance or marked it
-  held or cancelled. Match legacy attendance with the same group rule as
-  Class History. Respect the existing schedule bounds and DST rules.
-- No extra database table or cloud changes are needed for this read. It is
-  scoped to the Room database for the active account and works offline.
+- Room projects class occurrences from each weekly schedule. Groups sharing
+  a schedule produce one reminder for each class. Independent classes on the
+  same date retain separate IDs and each uses its own end time.
+- Active schedules need a linked group with at least one package purchased
+  by the class date. Empty seeded groups and dates before the first
+  registration do not produce reminders.
+- A class with recorded attendance, a held decision, or a cancellation is
+  ineligible. Legacy attendance uses the same group matching as Class History.
+- The read is bounded to a maximum span of 31 days and requires no database
+  migration. Room is the source for this read, including while offline.
 
-## macOS delivery follow-up
+## macOS delivery
 
-Keep eligibility in `feature/attendance` and implement the adapter in
-`desktopApp`. Use Apple's [local notifications][local] from the packaged
-Simplio application. Ask for permission when the teacher enables reminders.
-Schedule individual requests for a rolling window, initially 14 days ahead,
-rather than repeating alerts for every weekday indefinitely. The OS delivers
-queued requests even when the app is not running. Refresh the queue on
-launch, resume, and local changes to the affected tables, including synced
-changes applied to Room. This does not require a permanent process or login item.
+In the packaged macOS app, turn on **Attendance reminders** above the
+attendance screen. The app requests macOS permission on first use. If alerts
+are blocked, the app shows where to change the permission. The setting is
+local to this Mac and to the active Simplio account.
 
-On wake or launch, reconcile due reminders in a recent catch-up window,
-initially 14 days and no earlier than when reminders were enabled. Deliver
-each still eligible missed class separately. Reconcile pending and delivered
-requests by account and session ID; store acknowledgements on this Mac so
-restart or repeated wake does not repost a known delivered reminder. Verify
-dismissal and sleep behavior on macOS before relying on those signals for
-deduplication. When the app was closed and could not observe an edit on
-another device, a queued reminder may be stale: recheck local eligibility
-before opening the class. If the Mac was off, do not promise an alert at its
-original time, or on unlock if Simplio has no queued request and is not running.
+The app places individual local requests in Apple's
+[notification center][local] up to 14 days ahead, keeping at most 48 upcoming
+requests at a time. macOS can deliver requests already queued even when
+Simplio is quit or the network is unavailable. The rolling queue is updated
+when the app starts, becomes active, wakes, or sees changes in Room. A
+normal quit leaves requests in the system. Turning reminders off, losing an
+active account, or switching accounts removes its requests.
 
-The notification click should open the existing class tracking UI, including
-from a cold launch, once the correct account database is ready. Revalidate the
-session by ID without depending on the visible history page. If it is already
-tracked, cancelled, or no longer available, open Class History and explain why.
-Clear the previous account's requests when explicitly signing out or switching
-accounts. Keep cancellation inside the existing confirmation flow; consider
-adding a shortcut after the main click flow is proven.
+On resume or launch, the app checks the last 14 days starting no earlier than
+when reminders were enabled. Eligible missed classes are delivered separately.
+A short grace period lets macOS deliver a pending request at wake before
+Simplio retries it. Visible deliveries and delivery callbacks are recorded
+locally to avoid duplicate reminders across restarts. A request dismissed
+while Simplio was quit can only be deduplicated if macOS reports the delivery
+or the dismissal. Focus and other system settings can affect presentation.
+If the Mac was off and Simplio is not running after login, the catch-up check
+waits until the next app launch. There is no login item or resident process.
 
-iPhone mirroring is documented for iPhone-to-Mac notifications. The iPhone
-follow-up needs its own client or a separate delivery channel; it is outside
-this change. Firestore sync remains independent and currently runs while
-the attendance session in the app is active.
+Opening a notification restores the window and opens the existing attendance
+dialog for its exact class once the matching account is ready. If sign-in is
+required, it waits for sign-in. An existing dialog or draft is left intact
+until it is closed. A class that has since been tracked, cancelled, or become
+unavailable opens a message instead. If the app was quit while another
+device changed attendance, an already queued alert may appear before the
+change is synchronized to this Mac.
 
-Before enabling delivery, verify permission granted and denied, foreground and
-fully quit, offline operation, screen lock and sleep across two due classes,
-cold and warm notification clicks, and cancellation or attendance while a
-request is pending. Test a packaged `.app`, not just the Gradle run task.
+The native adapter is in `desktopApp`. iPhone delivery and a notification
+action for cancelling a class are separate features. Firestore sync continues
+to run only while the relevant app session is active.
+
+## macOS verification
+
+Build on macOS 13 or later with a JDK and the Xcode command-line tools. Run the generated
+`.app` from Finder; a plain Gradle run is not a test of bundle identity or
+Notification Center activation.
+
+```bash
+./gradlew :desktopApp:desktopTest --tests '*ClassNotificationPlanTest' \\
+  :feature:attendance:desktopTest \\
+  --tests '*RoomClassAttendanceReminderSourceTest' \\
+  --tests '*AttendanceViewModelClassAttendanceTest' \\
+  :desktopApp:ktlintCheck :feature:attendance:ktlintCheck \\
+  :desktopApp:createDistributable
+```
+
+1. Open the app under `desktopApp/build/compose/binaries/main/app/`. Sign in
+   and turn on **Attendance reminders**. Allow notifications in macOS.
+2. Use a test schedule with registered students and two classes ending at
+   different upcoming times. Confirm the first alert uses the first class
+   date and opens that exact class. Check that entering attendance before
+   the other class ends removes its pending alert.
+3. Schedule another upcoming class and quit Simplio with **Cmd+Q**. Disable
+   network access after scheduling. Verify macOS shows the queued alert,
+   then restore the network if the existing sign-in flow requires it. Click
+   the alert and confirm the correct class opens after sign-in.
+4. Repeat across sleep with multiple untracked classes. Verify separate
+   reminders, and verify that a restart or reopening the window does not
+   repost known deliveries. Test denied permissions, turning reminders off,
+   and clicking a stale alert after a class was already tracked.
+5. With an attendance draft or another edit dialog open, click an alert.
+   Check that the existing work remains and the target opens after closing it.
 
 [local]: https://developer.apple.com/documentation/usernotifications/scheduling-a-notification-locally-from-your-app

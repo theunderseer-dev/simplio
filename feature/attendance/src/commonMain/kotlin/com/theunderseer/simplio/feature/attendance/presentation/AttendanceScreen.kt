@@ -104,6 +104,8 @@ fun AttendanceScreen(
     onClearDeleteStudentGroupState: () -> Unit,
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
     onClearCreateStudentGroupState: () -> Unit = {},
+    reminderSessionId: String? = null,
+    onOpenReminder: (String) -> Unit = {},
 ) {
     var showPackageDialog by remember { mutableStateOf(false) }
     var showManageGroups by remember { mutableStateOf(false) }
@@ -134,6 +136,19 @@ fun AttendanceScreen(
 
     when (state) {
         is AttendanceUiState.Content -> {
+            val canOpenReminder = state.classAttendanceState == ClassAttendanceUiState.Closed &&
+                !showPackageDialog &&
+                !showManageGroups &&
+                !showGroupDialog &&
+                !showRegistrationDialog &&
+                deleteStudentDialog == null &&
+                attendanceDatePickerStudentId == null &&
+                attendanceRemovalRequest == null &&
+                renewalStudent == null &&
+                noteStudentId == null
+            LaunchedEffect(reminderSessionId, canOpenReminder) {
+                if (reminderSessionId != null && canOpenReminder) onOpenReminder(reminderSessionId)
+            }
             ClassAttendanceWorkflow(
                 state,
                 classAttendanceCallbacks,

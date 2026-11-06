@@ -36,6 +36,7 @@
     <string name="schedule_dates_invalid">End date must be on or after the start date.</string>
     <string name="class_track_attendance">Track attendance</string>
     <string name="class_attendance_title">Attendance · %1$s</string>
+    <string name="class_reminder_unavailable">This class has already been tracked or is no longer available.</string>
     <string name="class_unavailable">This class is no longer available for tracking. Close and reopen the class history.</string>
     <string name="class_retry">Retry</string>
     <string name="class_close">Close</string>

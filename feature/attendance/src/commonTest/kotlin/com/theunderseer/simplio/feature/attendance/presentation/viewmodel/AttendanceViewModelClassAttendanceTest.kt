@@ -5,6 +5,7 @@ import com.theunderseer.simplio.feature.attendance.fake.FakeClassAttendanceRepos
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.fake.FakeStudentRepository
 import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestData
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassAttendanceSheet
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceUiState
 import com.theunderseer.simplio.feature.attendance.presentation.ClassAttendanceUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -12,6 +13,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceViewModelClassAttendanceTest {
@@ -38,6 +40,43 @@ class AttendanceViewModelClassAttendanceTest {
             ClassAttendanceUiState.Closed,
             assertIs<AttendanceUiState.Content>(viewModel.uiState.value).classAttendanceState,
         )
+    }
+
+    @Test
+    fun `a reminder opens the ended class only while attendance is unrecorded`() = runViewModelTest {
+        val repository = FakeClassAttendanceRepository()
+        val viewModel = createViewModel(
+            FakeStudentRepository(),
+            FakeStudentPackageRepository(),
+            classAttendanceRepository = repository,
+        )
+        val session = ClassAttendanceTestData.session
+        observeUiState(viewModel)
+        advanceUntilIdle()
+
+        viewModel.openClassAttendanceFromReminder(session.id, session.endsAt - 1.seconds)
+        advanceUntilIdle()
+        assertEquals(
+            ClassAttendanceUiState.ReminderUnavailable,
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value).classAttendanceState,
+        )
+        viewModel.closeClassAttendance()
+
+        viewModel.openClassAttendanceFromReminder(session.id, session.endsAt)
+        advanceUntilIdle()
+        val content = assertIs<AttendanceUiState.Content>(viewModel.uiState.value)
+        val classAttendance = assertIs<ClassAttendanceUiState.Content>(content.classAttendanceState)
+        assertEquals(session.id, classAttendance.sheet.session.id)
+        viewModel.closeClassAttendance()
+
+        repository.sheet = testClassAttendanceSheet(recordedVisitCount = 1)
+        viewModel.openClassAttendanceFromReminder(session.id, session.endsAt)
+        advanceUntilIdle()
+        assertEquals(
+            ClassAttendanceUiState.ReminderUnavailable,
+            assertIs<AttendanceUiState.Content>(viewModel.uiState.value).classAttendanceState,
+        )
+        assertEquals(0, repository.saves)
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.theunderseer.simplio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,12 +21,18 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.desktopFirebaseModule
+import com.theunderseer.simplio.notifications.DesktopAttendanceReminders
+import com.theunderseer.simplio.notifications.MacClassNotificationCenter
+import com.theunderseer.simplio.notifications.reminderAccount
 import com.theunderseer.simplio.presentation.DesktopAttendanceContent
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
 import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
 import org.koin.core.parameter.parametersOf
@@ -35,6 +42,12 @@ import java.awt.datatransfer.StringSelection
 
 fun main(appArgs: Array<String>) {
     val isLocalMode = "--local" in appArgs
+    val reminderDiagnostics = "--reminder-diagnostics" in appArgs
+    val notificationCenter = MacClassNotificationCenter.open(reminderDiagnostics)
+    if (reminderDiagnostics) {
+        System.err.println("[reminders] native center ready=${notificationCenter != null}")
+    }
+    val reminders = notificationCenter?.let { DesktopAttendanceReminders(it, reminderDiagnostics) }
 
     DesktopDatabaseManager.open().use { databases ->
         val firebase = if (isLocalMode) null else koinApplication { modules(desktopFirebaseModule()) }
@@ -59,7 +72,15 @@ fun main(appArgs: Array<String>) {
                     onCloseRequest = ::exitApplication,
                     title = if (isLocalMode) "Simplio (local)" else "Simplio",
                 ) {
-                    DesktopApp(databases, firebase)
+                    if (reminders != null) {
+                        LaunchedEffect(reminders) {
+                            reminders.observeNativeEvents {
+                                windowState.isMinimized = false
+                                window.toFront()
+                            }
+                        }
+                    }
+                    DesktopApp(databases, firebase, reminders)
                 }
             }
         } finally {
@@ -70,7 +91,11 @@ fun main(appArgs: Array<String>) {
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplication?) {
+private fun DesktopApp(
+    databases: DesktopDatabaseManager,
+    firebase: KoinApplication?,
+    reminders: DesktopAttendanceReminders?,
+) {
     val clipboard = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
     val onCopyAttendance: (String) -> Unit = { text ->
@@ -86,10 +111,23 @@ private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplicat
                     userId = null,
                     databases = databases,
                     onCopyAttendance = onCopyAttendance,
+                    reminders = reminders,
                 )
             } else {
+                val sessions = remember(firebase) { firebase.koin.get<FirebaseSessionManager>() }
+                if (reminders != null) {
+                    LaunchedEffect(sessions, reminders) {
+                        var previous: String? = null
+                        sessions.session.map { it?.userId }.distinctUntilChanged().collect { current ->
+                            previous?.takeIf { it != current }?.let {
+                                reminders.accountSignedOut(reminderAccount(it))
+                            }
+                            previous = current
+                        }
+                    }
+                }
                 FirebaseSignInGate(
-                    sessionManager = firebase.koin.get<FirebaseSessionManager>(),
+                    sessionManager = sessions,
                     accessChecker = firebase.koin.get<FirestoreAccessChecker>(),
                 ) { session ->
                     key(session.userId) {
@@ -100,6 +138,7 @@ private fun DesktopApp(databases: DesktopDatabaseManager, firebase: KoinApplicat
                             },
                             databases = databases,
                             onCopyAttendance = onCopyAttendance,
+                            reminders = reminders,
                         )
                     }
                 }
