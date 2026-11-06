@@ -4,9 +4,10 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
 internal val wakeDeliveryGrace = 30.seconds
+private const val SOUND_REVISION_PREFIX = "sound:"
 
 internal data class ClassNotification(val id: String, val title: String, val body: String, val endsAt: Instant) {
-    val revision: String = sha256("$endsAt\n$title\n$body")
+    val revision: String = SOUND_REVISION_PREFIX + sha256("$endsAt\n$title\n$body")
 }
 
 internal data class ClassNotificationPlan(
@@ -34,6 +35,12 @@ internal fun planClassNotifications(
         removePending = pending.keys - keep,
         removeDelivered = delivered - eligible.keys,
         schedule = upcoming.filter { pending[it.id] != it.revision },
-        catchUp = overdue.filter { pending[it.id] != it.revision || now - it.endsAt >= wakeDeliveryGrace },
+        catchUp = overdue.filter { notification ->
+            val queuedRevision = pending[notification.id]
+            // A legacy silent request can still be delivered by macOS during wake.
+            val matchingRequest = queuedRevision == notification.revision ||
+                queuedRevision == notification.revision.removePrefix(SOUND_REVISION_PREFIX)
+            !matchingRequest || now - notification.endsAt >= wakeDeliveryGrace
+        },
     )
 }

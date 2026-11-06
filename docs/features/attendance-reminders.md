@@ -20,10 +20,19 @@ instant wherever the Mac is. Student names and account IDs are not included.
 
 ## macOS delivery
 
-In the packaged macOS app, turn on **Attendance reminders** above the
-attendance screen. The app requests macOS permission on first use. If alerts
-are blocked, the app shows where to change the permission. The setting is
-local to this Mac and to the active Simplio account.
+In the packaged macOS app, open the three-dot menu next to **Add Package**
+and turn on **Attendance reminders**. The app requests macOS permission for
+alerts and sounds on first use. The setting is local to this Mac and to the
+active Simplio account.
+
+Reminders use the system notification sound. If alerts or sounds are blocked,
+check **System Settings → Notifications** for the packaged app's name.
+The current local package may appear as **com.theunderseer.simplio**.
+Check **Play sound for notification** for that entry. After an update,
+launch Simplio so it can replace upcoming silent requests with requests that
+include sound. If macOS reports that sound is unavailable for an existing
+installation, enabling reminders again requests alert and sound authorization.
+macOS may retain the existing settings after that request.
 
 The app places individual local requests in Apple's
 [notification center][local] up to 14 days ahead, keeping at most 48 upcoming
@@ -76,8 +85,9 @@ Notification Center activation.
    different upcoming times. Confirm the first alert uses the first class
    date and opens that exact class. Check that entering attendance before
    the other class ends removes its pending alert.
+   Check the system sound while Simplio is in the foreground.
 3. Schedule another upcoming class and quit Simplio with **Cmd+Q**. Disable
-   network access after scheduling. Verify macOS shows the queued alert,
+   network access after scheduling. Verify macOS shows and sounds the queued alert,
    then restore the network if the existing sign-in flow requires it. Click
    the alert and confirm the correct class opens after sign-in.
 4. Repeat across sleep with multiple untracked classes. Verify separate

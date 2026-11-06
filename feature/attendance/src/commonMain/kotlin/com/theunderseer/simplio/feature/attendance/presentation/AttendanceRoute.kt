@@ -12,12 +12,14 @@ fun AttendanceRoute(
     viewModel: AttendanceViewModel = koinViewModel(),
     reminderSessionId: String? = null,
     onReminderHandled: () -> Unit = {},
+    additionalOptions: (@Composable () -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
 
     AttendanceScreen(
         state = state,
         reminderSessionId = reminderSessionId,
+        additionalOptions = additionalOptions,
         onOpenReminder = { sessionId ->
             viewModel.openClassAttendanceFromReminder(sessionId, Clock.System.now())
             onReminderHandled()

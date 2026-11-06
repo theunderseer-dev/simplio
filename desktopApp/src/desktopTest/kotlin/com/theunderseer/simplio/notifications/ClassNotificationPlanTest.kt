@@ -60,6 +60,22 @@ class ClassNotificationPlanTest {
     }
 
     @Test
+    fun `upgrades upcoming silent requests and gives overdue requests the wake grace period`() {
+        val upcoming = notification("upcoming", now + 15.minutes)
+        val overdue = notification("overdue", now - 10.seconds)
+        val delivered = notification("delivered", now - 20.seconds)
+        val candidates = listOf(upcoming, overdue, delivered)
+        val pending = candidates.associate { it.id to sha256("${it.endsAt}\n${it.title}\n${it.body}") }
+
+        val plan = planClassNotifications(candidates, pending, setOf(delivered.id), emptySet(), now)
+
+        assertEquals(listOf(upcoming), plan.schedule)
+        assertEquals(emptyList(), plan.catchUp)
+        assertEquals(setOf(delivered.id), plan.removePending)
+        assertEquals(emptySet(), plan.removeDelivered)
+    }
+
+    @Test
     fun `a class notification is scoped to one account and retains its canonical session ID`() {
         val sessionId = "schedule:slot:20763"
         val local = ClassNotificationIdentity(reminderAccount(null), sessionId)

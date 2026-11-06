@@ -100,8 +100,13 @@ static NSArray<NSString *> *FromJavaArray(JNIEnv *env, jobjectArray array) {
         completionHandler(0);
         return;
     }
+    if (diagnosticsEnabled) {
+        fprintf(stderr, "[reminders] foreground delivery soundPayload=%s\n",
+                notification.request.content.sound != nil ? "yes" : "no");
+    }
     SendEvent(@"observed", identifier);
-    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionList);
+    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionList |
+                      UNNotificationPresentationOptionSound);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -131,7 +136,15 @@ JNIEXPORT jboolean JNICALL JNI_METHOD(nativeInitialize)(
     JNIEnv *env, jobject instance, jobject events, jboolean diagnostics
 ) {
     @autoreleasepool {
-        if (![NSBundle.mainBundle.bundleIdentifier isEqualToString:@"com.theunderseer.simplio"]) {
+        NSBundle *bundle = NSBundle.mainBundle;
+        NSString *bundleID = bundle.bundleIdentifier;
+        if (diagnostics) {
+            NSString *name = [bundle objectForInfoDictionaryKey:@"CFBundleDisplayName"] ?:
+                [bundle objectForInfoDictionaryKey:@"CFBundleName"] ?: bundle.bundleURL.lastPathComponent;
+            fprintf(stderr, "[reminders] bundleID=%s, name=%s\n",
+                    (bundleID ?: @"unknown").UTF8String, (name ?: @"unknown").UTF8String);
+        }
+        if (![bundleID isEqualToString:@"com.theunderseer.simplio"]) {
             if (diagnostics) fputs("[reminders] unexpected application bundle identity\n", stderr);
             return JNI_FALSE;
         }
@@ -172,31 +185,55 @@ JNIEXPORT jboolean JNICALL JNI_METHOD(nativeInitialize)(
     }
 }
 
-static void ReadAuthorization(jobject callback) {
-    [Center() getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
+static const char *NotificationSettingName(UNNotificationSetting setting) {
+    switch (setting) {
+        case UNNotificationSettingEnabled: return "enabled";
+        case UNNotificationSettingDisabled: return "disabled";
+        case UNNotificationSettingNotSupported: return "not-supported";
+        default: return "unknown";
+    }
+}
+
+static void ReadAuthorization(jobject callback, BOOL requestIfNeeded) {
+    UNUserNotificationCenter *center = Center();
+    [center getNotificationSettingsWithCompletionHandler:^(UNNotificationSettings *settings) {
         NSString *status;
         switch (settings.authorizationStatus) {
             case UNAuthorizationStatusAuthorized: status = @"ALLOWED"; break;
             case UNAuthorizationStatusNotDetermined: status = @"NOT_DETERMINED"; break;
             default: status = @"DENIED"; break;
         }
-        Complete(callback, status, nil);
+        if (diagnosticsEnabled) {
+            fprintf(stderr, "[reminders] macOS authorization=%s, alertSetting=%s, soundSetting=%s\n",
+                    status.UTF8String, NotificationSettingName(settings.alertSetting),
+                    NotificationSettingName(settings.soundSetting));
+        }
+        BOOL firstRequest = settings.authorizationStatus == UNAuthorizationStatusNotDetermined;
+        // Earlier Simplio builds requested alerts only. A disabled sound setting is a user choice.
+        BOOL missingSound = settings.authorizationStatus == UNAuthorizationStatusAuthorized &&
+            settings.soundSetting == UNNotificationSettingNotSupported;
+        if (requestIfNeeded && (firstRequest || missingSound)) {
+            [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
+                                  completionHandler:^(BOOL granted, NSError *error) {
+                if (diagnosticsEnabled) {
+                    fprintf(stderr, "[reminders] alert+sound request: granted=%s, error=%s:%ld\n",
+                            granted ? "yes" : "no", (error.domain ?: @"none").UTF8String, (long)error.code);
+                }
+                if (error != nil) Complete(callback, firstRequest ? @"ERROR" : status, nil);
+                else ReadAuthorization(callback, NO);
+            }];
+        } else {
+            Complete(callback, status, nil);
+        }
     }];
 }
 
 JNIEXPORT void JNICALL JNI_METHOD(nativeAuthorization)(JNIEnv *env, jobject instance, jobject callback) {
-    @autoreleasepool { ReadAuthorization((*env)->NewGlobalRef(env, callback)); }
+    @autoreleasepool { ReadAuthorization((*env)->NewGlobalRef(env, callback), NO); }
 }
 
 JNIEXPORT void JNICALL JNI_METHOD(nativeRequestAuthorization)(JNIEnv *env, jobject instance, jobject callback) {
-    @autoreleasepool {
-        jobject global = (*env)->NewGlobalRef(env, callback);
-        [Center() requestAuthorizationWithOptions:UNAuthorizationOptionAlert
-                               completionHandler:^(BOOL granted, NSError *error) {
-            if (error != nil) Complete(global, @"ERROR", nil);
-            else ReadAuthorization(global);
-        }];
-    }
+    @autoreleasepool { ReadAuthorization((*env)->NewGlobalRef(env, callback), YES); }
 }
 
 JNIEXPORT void JNICALL JNI_METHOD(nativePending)(JNIEnv *env, jobject instance, jobject callback) {
@@ -204,10 +241,16 @@ JNIEXPORT void JNICALL JNI_METHOD(nativePending)(JNIEnv *env, jobject instance, 
         jobject global = (*env)->NewGlobalRef(env, callback);
         [Center() getPendingNotificationRequestsWithCompletionHandler:^(NSArray<UNNotificationRequest *> *requests) {
             NSMutableArray<NSString *> *result = [NSMutableArray array];
+            NSUInteger withSound = 0;
             for (UNNotificationRequest *request in requests) {
                 if (![request.identifier hasPrefix:ReminderPrefix]) continue;
+                if (diagnosticsEnabled && request.content.sound != nil) withSound++;
                 NSString *revision = request.content.userInfo[RevisionKey] ?: @"";
                 [result addObject:[NSString stringWithFormat:@"%@|%@", request.identifier, revision]];
+            }
+            if (diagnosticsEnabled && result.count > 0) {
+                fprintf(stderr, "[reminders] pending with sound=%lu/%lu\n",
+                        (unsigned long)withSound, (unsigned long)result.count);
             }
             Complete(global, nil, result);
         }];
@@ -245,6 +288,7 @@ JNIEXPORT void JNICALL JNI_METHOD(nativeAdd)(
         UNMutableNotificationContent *content = [UNMutableNotificationContent new];
         content.title = FromJava(env, title);
         content.body = FromJava(env, body);
+        content.sound = [UNNotificationSound defaultSound];
         content.categoryIdentifier = ReminderCategory;
         content.userInfo = @{RevisionKey: FromJava(env, revision)};
 

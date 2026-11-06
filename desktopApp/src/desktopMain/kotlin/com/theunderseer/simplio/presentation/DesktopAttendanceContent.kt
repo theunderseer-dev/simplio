@@ -167,14 +167,36 @@ private fun AttendanceSessionContent(
                         reminders.runForAccount(account, current.session.application.koin.get<AttendanceDatabase>())
                     }
                 }
+                val scope = rememberCoroutineScope()
+                var updatingReminders by remember(account) { mutableStateOf(false) }
                 Column(modifier = Modifier.fillMaxSize()) {
                     current.session.sync?.let { SyncNotice(it) }
-                    if (reminders != null) AttendanceReminderControls(reminders, account)
                     Box(modifier = Modifier.weight(1f)) {
                         AttendanceRoute(
                             onCopyAttendance = onCopyAttendance,
                             reminderSessionId = pending?.identity?.sessionId,
                             onReminderHandled = { if (pending != null) reminders?.acknowledge(pending) },
+                            additionalOptions = if (reminders == null) {
+                                null
+                            } else {
+                                {
+                                    AttendanceReminderControls(
+                                        reminders = reminders,
+                                        account = account,
+                                        updating = updatingReminders,
+                                        onEnabledChange = { enabled ->
+                                            updatingReminders = true
+                                            scope.launch {
+                                                try {
+                                                    reminders.setEnabled(account, enabled)
+                                                } finally {
+                                                    updatingReminders = false
+                                                }
+                                            }
+                                        },
+                                    )
+                                }
+                            },
                         )
                     }
                 }
