@@ -106,6 +106,7 @@ fun AttendanceScreen(
     onClearCreateStudentGroupState: () -> Unit = {},
     reminderSessionId: String? = null,
     onOpenReminder: (String) -> Unit = {},
+    additionalOptions: (@Composable () -> Unit)? = null,
 ) {
     var showPackageDialog by remember { mutableStateOf(false) }
     var showManageGroups by remember { mutableStateOf(false) }
@@ -243,6 +244,7 @@ fun AttendanceScreen(
                         onClearCreatePackageTypeState()
                         showPackageDialog = true
                     },
+                    additionalOptions = additionalOptions,
                     onManageGroupsClick = {
                         onClearDeleteStudentGroupState()
                         showManageGroups = true
@@ -578,6 +580,7 @@ private fun AttendanceContent(
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
     onManageGroupsClick: () -> Unit,
+    additionalOptions: (@Composable () -> Unit)?,
     onAddPackageClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,
@@ -732,7 +735,7 @@ private fun AttendanceContent(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SimplioOutlinedButton(onClick = onAddPackageClick) { Text(stringResource(Res.string.add_package)) }
-                    StudentGroupOptions(onManageGroupsClick)
+                    StudentGroupOptions(onManageGroupsClick, additionalOptions)
                 }
             }
         }

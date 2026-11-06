@@ -1,10 +1,13 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -64,5 +67,25 @@ class StudentGroupManagementUiTest {
         onNodeWithTag("manage-groups-dialog").assertExists()
         onNodeWithText("Close").performClick()
         onNodeWithText("Add Student").assertExists()
+    }
+
+    @Test
+    fun `additional attendance options share the menu with manage schedules`() = runComposeUiTest {
+        var managed = false
+        setContent {
+            StudentGroupOptions(
+                onManage = { managed = true },
+                additionalOptions = {
+                    DropdownMenuItem(text = { Text("Attendance reminders") }, onClick = {})
+                },
+            )
+        }
+
+        onNodeWithText("Attendance reminders").assertDoesNotExist()
+        onNodeWithContentDescription("Schedule options").performClick()
+        onNodeWithText("Attendance reminders").assertIsDisplayed()
+        onNodeWithText("Manage Schedules").performClick()
+        runOnIdle { assertEquals(true, managed) }
+        onNodeWithText("Attendance reminders").assertDoesNotExist()
     }
 }

@@ -139,10 +139,7 @@ internal class DesktopAttendanceReminders(
                 mutableSettings.value = AttendanceReminderSettings(account)
                 clearNotifications { it.account == account }
             } else {
-                val permission = when (val current = center.authorization()) {
-                    NotificationAuthorization.NOT_DETERMINED -> center.requestAuthorization()
-                    else -> current
-                }
+                val permission = center.requestAuthorization()
                 if (permission == NotificationAuthorization.ALLOWED && preferences.enabledSince(account) == null) {
                     preferences.setEnabledSince(account, Clock.System.now())
                 }
