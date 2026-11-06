@@ -22,3 +22,11 @@ internal suspend fun AttendanceDatabase.attendanceSessionId(studentId: Int, date
     }
     return sessionId.takeUnless { schedules.all { it.id == DefaultClassSchedule.ID } }
 }
+
+// Legacy attendance has no session ID; use the same group membership rule as class history.
+internal fun matchesClassAttendance(
+    sessionId: String,
+    groupIds: Set<Int>,
+    recordedSessionId: String?,
+    recordedGroupId: Int,
+): Boolean = recordedSessionId?.let { it == sessionId } ?: (recordedGroupId in groupIds)

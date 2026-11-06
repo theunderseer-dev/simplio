@@ -10,6 +10,9 @@ interface ClassSessionStateDao {
     @Query("SELECT * FROM class_session_states")
     suspend fun getAll(): List<ClassSessionStateEntity>
 
+    @Query("SELECT sessionId FROM class_session_states WHERE dateEpochDay BETWEEN :firstDay AND :lastDay")
+    suspend fun getSessionIdsBetween(firstDay: Long, lastDay: Long): List<String>
+
     @Query("SELECT * FROM class_session_states WHERE sessionId = :sessionId")
     suspend fun get(sessionId: String): ClassSessionStateEntity?
 

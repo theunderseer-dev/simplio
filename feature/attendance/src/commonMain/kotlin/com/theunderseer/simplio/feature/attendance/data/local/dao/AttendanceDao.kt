@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
 import com.theunderseer.simplio.feature.attendance.data.local.entity.AttendanceEntity
+import com.theunderseer.simplio.feature.attendance.data.local.model.ClassAttendancePresence
 import com.theunderseer.simplio.feature.attendance.data.local.model.ClassAttendanceRow
 
 @Dao
@@ -25,6 +26,17 @@ interface AttendanceDao {
 
     @Upsert
     suspend fun save(attendance: AttendanceEntity)
+
+    @Query(
+        """
+        SELECT DISTINCT attendance.attendedOnEpochDay, attendance.sessionId, students.groupId
+        FROM attendance
+        INNER JOIN student_packages ON student_packages.id = attendance.packageId
+        INNER JOIN students ON students.id = student_packages.studentId
+        WHERE attendance.attendedOnEpochDay BETWEEN :firstDay AND :lastDay
+        """,
+    )
+    suspend fun getClassAttendancePresence(firstDay: Long, lastDay: Long): List<ClassAttendancePresence>
 
     @Query("SELECT * FROM attendance ORDER BY packageId, attendedOnEpochDay")
     suspend fun getAll(): List<AttendanceEntity>

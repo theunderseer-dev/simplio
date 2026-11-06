@@ -66,7 +66,7 @@ internal class ScheduledClassHistory(private val database: AttendanceDatabase) {
                     currentInstant == null || it.startsAt <= currentInstant
                 }.map { session ->
                     val students = rows.filterIndexed { index, row ->
-                        val belongs = row.sessionId?.let { it == session.id } ?: (row.groupId in groupIds)
+                        val belongs = matchesClassAttendance(session.id, groupIds, row.sessionId, row.groupId)
                         if (belongs) matched += index
                         belongs
                     }.map { ClassHistoryStudent(Student(it.studentId, it.fullName, it.groupId), it.visitCount) }
