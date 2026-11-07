@@ -50,6 +50,7 @@ kotlin {
     }
 }
 
+val appName = "Simplio"
 val appPackageName = "com.theunderseer.simplio"
 val macNotificationResources = layout.buildDirectory.dir("mac-notification-resources")
 val isMacHost = providers.systemProperty("os.name").map { it.startsWith("Mac") }.get()
@@ -76,7 +77,7 @@ if (isMacHost) {
     }
 
     val packagedLibrary = layout.buildDirectory.file(
-        "compose/binaries/main/app/$appPackageName.app/Contents/app/resources/$libraryName",
+        "compose/binaries/main/app/$appName.app/Contents/app/resources/$libraryName",
     )
     tasks.configureEach {
         when (name) {
@@ -86,6 +87,7 @@ if (isMacHost) {
                 val copy = this as? AbstractCopyTask ?: error("Compose prepareAppResources must be a copy task")
                 copy.from(library)
             }
+
             "createDistributable" -> {
                 dependsOn(compileNotifications)
                 inputs.file(library)
@@ -109,11 +111,14 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg)
-            packageName = appPackageName
+            packageName = appName
             packageVersion = "1.0.0"
             modules("java.prefs")
             if (isMacHost) appResourcesRootDir.set(macNotificationResources)
-            macOS { bundleID = appPackageName }
+            macOS {
+                bundleID = appName
+                iconFile.set(project.file("icons/simplio.icns"))
+            }
         }
     }
 }
