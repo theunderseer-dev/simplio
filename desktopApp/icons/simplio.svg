@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Simplio app icon</title>
+  <desc id="desc">A silver and ice-blue S monogram on a rounded graphite tile. The area outside the tile is transparent.</desc>
+  <defs>
+    <linearGradient id="tile" x1="170" y1="64" x2="830" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#343D49"/>
+      <stop offset="1" stop-color="#141C2A"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="370" y1="250" x2="610" y2="586" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1F5FA"/>
+      <stop offset="1" stop-color="#DCE5F0"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="638" y1="480" x2="380" y2="800" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A8CBEF"/>
+      <stop offset="1" stop-color="#9DBFE1"/>
+    </linearGradient>
+  </defs>
+  <path id="background" fill="url(#tile)" d="M288 64H736C884 64 960 140 960 288V736C960 884 884 960 736 960H288C140 960 64 884 64 736V288C64 140 140 64 288 64Z"/>
+  <path id="s-upper" fill="url(#silver)" d="M661 250C704 250 738 280 738 322C738 361 710 386 674 386H430C400 386 381 403 381 425C381 448 400 463 424 463H584C600 463 615 465 630 470L414 586C320 569 250 507 250 425C250 329 332 250 430 250H661Z"/>
+  <path id="s-lower" fill="url(#blue)" d="M653 483C720 505 762 561 762 630C762 726 682 800 585 800H338C297 800 264 770 264 730C264 690 297 662 338 662H600C622 662 639 648 639 628C639 608 624 596 600 596H442L653 483Z"/>
+</svg>
