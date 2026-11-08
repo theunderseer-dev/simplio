@@ -1,0 +1,15 @@
+{
+  "name": "simplio-firestore-rules-tests",
+  "private": true,
+  "scripts": {
+    "test": "cd ../.. && firebase --config firebase.rules-test.json --project demo-simplio-rules emulators:exec --only firestore \"node --test tools/firestore-rules/firestore.rules.test.mjs\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.0",
+    "firebase": "12.10.0",
+    "firebase-tools": "14.12.1"
+  }
+}
