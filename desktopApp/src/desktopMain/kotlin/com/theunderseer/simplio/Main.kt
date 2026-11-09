@@ -129,6 +129,7 @@ private fun DesktopApp(
                 FirebaseSignInGate(
                     sessionManager = sessions,
                     accessChecker = firebase.koin.get<FirestoreAccessChecker>(),
+                    accountClient = firebase.koin.get(),
                 ) { session ->
                     key(session.userId) {
                         DesktopAttendanceContent(

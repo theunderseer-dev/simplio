@@ -25,8 +25,11 @@ class FirestoreAccessChecker(
             }
         }
 
-        check(response.status == HttpStatusCode.OK) {
-            "Firestore access check failed: HTTP ${response.status.value}"
+        if (response.status != HttpStatusCode.OK) {
+            throw FirestoreAccessException(response.status.value)
         }
     }
 }
+
+internal class FirestoreAccessException(val statusCode: Int) :
+    IllegalStateException("Firestore access check failed: HTTP $statusCode")

@@ -28,7 +28,7 @@ after(async () => environment?.cleanup());
 
 test('each teacher can create, list, and update records in their own workspace', async () => {
   for (const uid of ['teacher-a', 'teacher-b']) {
-    const db = environment.authenticatedContext(uid).firestore();
+    const db = environment.authenticatedContext(uid, { email_verified: true }).firestore();
     for (const collectionId of attendanceCollections) {
       const records = collection(db, 'users', uid, collectionId);
       assert.equal((await assertSucceeds(getDocs(records))).size, 0);
@@ -43,8 +43,8 @@ test('each teacher can create, list, and update records in their own workspace',
 });
 
 test('another teacher and a signed-out client cannot read, query, create, or change records', async () => {
-  const owner = environment.authenticatedContext('teacher-a').firestore();
-  const other = environment.authenticatedContext('teacher-b').firestore();
+  const owner = environment.authenticatedContext('teacher-a', { email_verified: true }).firestore();
+  const other = environment.authenticatedContext('teacher-b', { email_verified: true }).firestore();
   const signedOut = environment.unauthenticatedContext().firestore();
   for (const collectionId of attendanceCollections) {
     const path = `users/teacher-a/${collectionId}`;
@@ -61,7 +61,7 @@ test('another teacher and a signed-out client cannot read, query, create, or cha
 });
 
 test('a teacher can atomically commit a record, sync head, and immutable receipt', async () => {
-  const db = environment.authenticatedContext('teacher-a').firestore();
+  const db = environment.authenticatedContext('teacher-a', { email_verified: true }).firestore();
   const student = doc(db, 'users/teacher-a/students/student-1');
   const head = doc(db, 'users/teacher-a/syncState/attendance');
   const receipt = doc(db, 'users/teacher-a/syncReceipts/batch-1');
@@ -79,8 +79,8 @@ test('a teacher can atomically commit a record, sync head, and immutable receipt
 });
 
 test('a write to another workspace rejects the entire batch and protects sync metadata', async () => {
-  const owner = environment.authenticatedContext('teacher-a').firestore();
-  const other = environment.authenticatedContext('teacher-b').firestore();
+  const owner = environment.authenticatedContext('teacher-a', { email_verified: true }).firestore();
+  const other = environment.authenticatedContext('teacher-b', { email_verified: true }).firestore();
   const signedOut = environment.unauthenticatedContext().firestore();
   for (const path of ['syncState/attendance', 'syncReceipts/batch-1']) {
     const absolutePath = `users/teacher-a/${path}`;
@@ -101,8 +101,22 @@ test('a write to another workspace rejects the entire batch and protects sync me
 });
 
 test('access to unspecified paths is denied even inside the caller’s workspace', async () => {
-  const db = environment.authenticatedContext('teacher-a').firestore();
+  const db = environment.authenticatedContext('teacher-a', { email_verified: true }).firestore();
   await assertFails(setDoc(doc(db, 'users/teacher-a'), { admin: true }));
   await assertFails(setDoc(doc(db, 'users/teacher-a/other/record-1'), { value: true }));
   await assertFails(setDoc(doc(db, 'users/teacher-a/syncState/other'), { value: true }));
+});
+
+test('an unverified account cannot read or write its own workspace until it refreshes with a verified token', async () => {
+  const path = 'users/teacher-new/students';
+  const pending = environment.authenticatedContext('teacher-new', { email_verified: false }).firestore();
+  const verified = environment.authenticatedContext('teacher-new', { email_verified: true }).firestore();
+
+  await assertFails(getDocs(collection(pending, path)));
+  await assertFails(setDoc(doc(pending, path, 'student-1'), { isDeleted: false }));
+  await assertFails(getDoc(doc(pending, 'users/teacher-new/syncState/attendance')));
+  await assertFails(setDoc(doc(pending, 'users/teacher-new/syncReceipts/batch-1'), { batchId: 'batch-1' }));
+
+  await assertSucceeds(setDoc(doc(verified, path, 'student-1'), { isDeleted: false }));
+  assert.equal((await assertSucceeds(getDocs(collection(verified, path)))).size, 1);
 });

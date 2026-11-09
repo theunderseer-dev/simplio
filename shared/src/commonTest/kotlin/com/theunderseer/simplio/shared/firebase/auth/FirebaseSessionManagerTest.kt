@@ -29,6 +29,20 @@ class FirebaseSessionManagerTest {
     )
 
     @Test
+    fun `a rejected sign-in validation never exposes an authenticated session`() = runTest {
+        val manager = FirebaseSessionManager(FakeAuthApi())
+
+        assertFailsWith<IllegalStateException> {
+            manager.signIn("owner@example.com", "test-password") { candidate ->
+                assertSame(initialSession, candidate)
+                assertNull(manager.session.value)
+                error("Email verification required")
+            }
+        }
+        assertNull(manager.session.value)
+    }
+
+    @Test
     fun `returns valid session without refreshing`() = runTest {
         val api = FakeAuthApi()
         val timeSource = TestTimeSource()

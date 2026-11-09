@@ -26,7 +26,11 @@ class FirebaseSessionManager(
     private var refreshAt: TimeMark? = null
     private var revision = 0L
 
-    suspend fun signIn(email: String, password: String): FirebaseSession {
+    suspend fun signIn(
+        email: String,
+        password: String,
+        validate: suspend (FirebaseSession) -> Unit = {},
+    ): FirebaseSession {
         val operationRevision = stateMutex.withLock {
             clearSession()
             revision
@@ -38,6 +42,7 @@ class FirebaseSessionManager(
             email = email,
             password = password,
         )
+        validate(signedInSession)
 
         return stateMutex.withLock {
             currentCoroutineContext().ensureActive()

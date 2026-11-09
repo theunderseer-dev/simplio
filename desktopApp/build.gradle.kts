@@ -116,7 +116,7 @@ compose.desktop {
             modules("java.prefs")
             if (isMacHost) appResourcesRootDir.set(macNotificationResources)
             macOS {
-                bundleID = appName
+                bundleID = appPackageName
                 iconFile.set(project.file("icons/simplio.icns"))
             }
         }

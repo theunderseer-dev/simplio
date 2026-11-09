@@ -19,6 +19,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class FirebaseAuthClientTest {
@@ -29,6 +30,66 @@ class FirebaseAuthClientTest {
 
     private val email = "owner@example.com"
     private val password = "test-password"
+
+    @Test
+    fun `creates a password account and sends verification to the new account token`() = runTest {
+        val paths = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            val path = request.url.encodedPath
+            paths += path
+            assertEquals(config.apiKey, request.url.parameters["key"])
+            val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
+            val response = when (path) {
+                "/v1/accounts:signUp" -> {
+                    assertEquals(JsonPrimitive(email), body["email"])
+                    assertEquals(JsonPrimitive(password), body["password"])
+                    assertEquals(JsonPrimitive(true), body["returnSecureToken"])
+                    """{"localId":"new-user","idToken":"signup-token","refreshToken":"refresh","expiresIn":"3600"}"""
+                }
+
+                "/v1/accounts:sendOobCode" -> {
+                    assertEquals(JsonPrimitive("VERIFY_EMAIL"), body["requestType"])
+                    assertEquals(JsonPrimitive("signup-token"), body["idToken"])
+                    "{}"
+                }
+
+                "/v1/accounts:lookup" -> {
+                    assertEquals(JsonPrimitive("signup-token"), body["idToken"])
+                    """{"users":[{"localId":"new-user","emailVerified":false}]}"""
+                }
+
+                else -> error("Unexpected request path")
+            }
+            respond(response, headers = headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        withAuthClient(engine) { client ->
+            val account = client.createAccount(email, password)
+            client.sendVerificationEmail(account)
+            assertFalse(client.isEmailVerified(account))
+        }
+        assertEquals(listOf("/v1/accounts:signUp", "/v1/accounts:sendOobCode", "/v1/accounts:lookup"), paths)
+    }
+
+    @Test
+    fun `password reset does not disclose an unknown account but reports a service failure`() = runTest {
+        var attempts = 0
+        val engine = MockEngine { request ->
+            assertEquals("/v1/accounts:sendOobCode", request.url.encodedPath)
+            val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
+            assertEquals(JsonPrimitive("PASSWORD_RESET"), body["requestType"])
+            assertEquals(JsonPrimitive(email), body["email"])
+            val headers = headersOf(HttpHeaders.ContentType, "application/json")
+            if (attempts++ == 0) {
+                respond("""{"error":{"message":"EMAIL_NOT_FOUND"}}""", HttpStatusCode.BadRequest, headers)
+            } else {
+                respond("{}", HttpStatusCode.ServiceUnavailable, headers)
+            }
+        }
+        withAuthClient(engine) { client ->
+            client.sendPasswordResetEmail(email)
+            assertFailsWith<FirebaseAuthException> { client.sendPasswordResetEmail(email) }
+        }
+    }
 
     @Test
     fun `signs in with credentials and restores session from response`() = runTest {
