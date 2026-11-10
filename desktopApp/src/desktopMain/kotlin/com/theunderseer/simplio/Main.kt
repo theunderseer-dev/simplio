@@ -140,6 +140,7 @@ private fun DesktopApp(
                             databases = databases,
                             onCopyAttendance = onCopyAttendance,
                             reminders = reminders,
+                            onSignOut = sessions::signOut,
                         )
                     }
                 }

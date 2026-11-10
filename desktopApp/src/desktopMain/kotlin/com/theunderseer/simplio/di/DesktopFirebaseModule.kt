@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.di
 
+import com.theunderseer.simplio.auth.MacFirebaseSessionStore
 import com.theunderseer.simplio.shared.firebase.FirebaseConfig
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
@@ -43,6 +44,7 @@ internal fun desktopFirebaseModule() = module {
     single {
         FirebaseSessionManager(
             authApi = get<FirebaseAuthClient>(),
+            sessionStore = MacFirebaseSessionStore.open(get<FirebaseConfig>().projectId),
         )
     }
 }

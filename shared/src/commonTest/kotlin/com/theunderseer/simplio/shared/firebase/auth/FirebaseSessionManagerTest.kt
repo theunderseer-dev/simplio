@@ -171,6 +171,120 @@ class FirebaseSessionManagerTest {
         assertEquals(2, api.requestedRefreshTokens.size)
     }
 
+    @Test
+    fun `opted in sign-in can be restored after a restart and sign-out removes it`() = runTest {
+        val api = FakeAuthApi()
+        val store = FakeSessionStore()
+        val manager = FirebaseSessionManager(api, sessionStore = store)
+        manager.signIn("owner@example.com", "test-password", rememberSession = true)
+        assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
+
+        val restarted = FirebaseSessionManager(api, sessionStore = store)
+        assertSame(
+            refreshedSession,
+            restarted.restoreSession { candidate ->
+                assertSame(refreshedSession, candidate)
+                assertNull(restarted.session.value)
+            },
+        )
+        assertEquals(listOf(initialSession.refreshToken), api.requestedRefreshTokens)
+        assertEquals(refreshedSession.refreshToken, store.saved?.refreshToken)
+
+        restarted.signOut()
+        assertNull(restarted.session.value)
+        assertNull(FirebaseSessionManager(api, sessionStore = store).restoreSession())
+    }
+
+    @Test
+    fun `sign-in without remember me clears an older saved account`() = runTest {
+        val store = FakeSessionStore()
+        store.saved = RememberedFirebaseSession("other-user", "old-token")
+        val manager = FirebaseSessionManager(FakeAuthApi(), sessionStore = store)
+        manager.signIn("owner@example.com", "test-password")
+
+        assertSame(initialSession, manager.session.value)
+        assertNull(store.saved)
+    }
+
+    @Test
+    fun `temporary restore failure retains saved session while invalid credentials remove it`() = runTest {
+        val api = FakeAuthApi()
+        val store = FakeSessionStore()
+        store.saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
+        val manager = FirebaseSessionManager(api, sessionStore = store)
+        api.refreshHandler = { throw FirebaseAuthException(503, requiresSignIn = false) }
+        assertFailsWith<FirebaseAuthException> { manager.restoreSession() }
+        assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
+        assertNull(manager.session.value)
+
+        api.refreshHandler = { throw FirebaseAuthException(400, requiresSignIn = true) }
+        assertNull(manager.restoreSession())
+        assertNull(store.saved)
+    }
+
+    @Test
+    fun `restore rejects a refresh response for a different account`() = runTest {
+        val store = FakeSessionStore()
+        store.saved = RememberedFirebaseSession("other-user", initialSession.refreshToken)
+        val manager = FirebaseSessionManager(FakeAuthApi(), sessionStore = store)
+
+        assertNull(manager.restoreSession())
+        assertNull(manager.session.value)
+        assertNull(store.saved)
+    }
+
+    @Test
+    fun `sign-out during restore prevents both session activation and credential re-saving`() = runTest {
+        val api = FakeAuthApi()
+        val store = FakeSessionStore()
+        store.saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
+        val manager = FirebaseSessionManager(api, sessionStore = store)
+        val refreshStarted = CompletableDeferred<Unit>()
+        val finishRefresh = CompletableDeferred<Unit>()
+        api.refreshHandler = {
+            refreshStarted.complete(Unit)
+            finishRefresh.await()
+            refreshedSession
+        }
+
+        val restore = async { manager.restoreSession() }
+        refreshStarted.await()
+        manager.signOut()
+        finishRefresh.complete(Unit)
+
+        assertFailsWith<CancellationException> { restore.await() }
+        assertNull(manager.session.value)
+        assertNull(store.saved)
+    }
+
+    @Test
+    fun `failed sign-out keeps the session visible until stored credentials can be cleared`() = runTest {
+        val store = FakeSessionStore()
+        val manager = FirebaseSessionManager(FakeAuthApi(), sessionStore = store)
+        manager.signIn("owner@example.com", "test-password", rememberSession = true)
+        store.failClear = true
+
+        assertFailsWith<FirebaseSessionStorageException> { manager.signOut() }
+        assertSame(initialSession, manager.session.value)
+        assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
+    }
+
+    private class FakeSessionStore : FirebaseSessionStore {
+        var saved: RememberedFirebaseSession? = null
+        var failClear = false
+
+        override suspend fun read(): RememberedFirebaseSession? = saved
+
+        override suspend fun write(session: RememberedFirebaseSession) {
+            saved = session
+        }
+
+        override suspend fun clear() {
+            if (failClear) throw FirebaseSessionStorageException()
+            saved = null
+        }
+    }
+
     private inner class FakeAuthApi : FirebaseAuthApi {
         val requestedRefreshTokens = mutableListOf<String>()
 

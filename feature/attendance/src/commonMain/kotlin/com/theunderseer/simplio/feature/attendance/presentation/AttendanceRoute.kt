@@ -12,7 +12,7 @@ fun AttendanceRoute(
     viewModel: AttendanceViewModel = koinViewModel(),
     reminderSessionId: String? = null,
     onReminderHandled: () -> Unit = {},
-    additionalOptions: (@Composable () -> Unit)? = null,
+    additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
     val state by viewModel.uiState.collectAsState()
 

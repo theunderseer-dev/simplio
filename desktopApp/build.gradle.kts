@@ -56,13 +56,14 @@ val macNotificationResources = layout.buildDirectory.dir("mac-notification-resou
 val isMacHost = providers.systemProperty("os.name").map { it.startsWith("Mac") }.get()
 if (isMacHost) {
     val nativeSource = layout.projectDirectory.file("src/macos/ClassNotifications.m")
+    val keychainSource = layout.projectDirectory.file("src/macos/FirebaseKeychain.m")
     val libraryName = "libSimplioNotifications.dylib"
     val library = macNotificationResources.map { it.file(libraryName) }
     val jdkHeaders = File(System.getProperty("java.home"), "include")
     val architecture = if (System.getProperty("os.arch") in setOf("aarch64", "arm64")) "arm64" else "x86_64"
 
     val compileNotifications = tasks.register<Exec>("compileMacAttendanceNotifications") {
-        inputs.file(nativeSource)
+        inputs.files(nativeSource, keychainSource)
         inputs.property("architecture", architecture)
         outputs.file(library)
         val output = library.get().asFile
@@ -71,8 +72,8 @@ if (isMacHost) {
             "xcrun", "--sdk", "macosx", "clang",
             "-arch", architecture, "-mmacosx-version-min=13.0", "-dynamiclib", "-fobjc-arc", "-fblocks",
             "-I", jdkHeaders.absolutePath, "-I", jdkHeaders.resolve("darwin").absolutePath,
-            "-framework", "AppKit", "-framework", "UserNotifications",
-            nativeSource.asFile.absolutePath, "-o", output.absolutePath,
+            "-framework", "AppKit", "-framework", "UserNotifications", "-framework", "Security",
+            nativeSource.asFile.absolutePath, keychainSource.asFile.absolutePath, "-o", output.absolutePath,
         )
     }
 
@@ -117,7 +118,8 @@ compose.desktop {
             if (isMacHost) appResourcesRootDir.set(macNotificationResources)
             macOS {
                 bundleID = appPackageName
-                iconFile.set(project.file("icons/simplio.icns"))
+                val icon = project.file("icons/simplio.icns")
+                if (icon.isFile) iconFile.set(icon)
             }
         }
     }

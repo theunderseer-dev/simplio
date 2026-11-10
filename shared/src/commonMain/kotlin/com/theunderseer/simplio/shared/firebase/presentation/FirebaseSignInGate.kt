@@ -3,6 +3,7 @@ package com.theunderseer.simplio.shared.firebase.presentation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -19,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,6 +38,7 @@ import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthException
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
 import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
@@ -44,9 +48,7 @@ import com.theunderseer.simplio.shared.resources.sign_in_invalid_email
 import com.theunderseer.simplio.shared.validation.InputPolicy
 import com.theunderseer.simplio.shared.validation.isValidSignInEmail
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -65,9 +67,43 @@ fun FirebaseSignInGate(
     val email = emailInput.text
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var rememberMe by remember { mutableStateOf(false) }
+    var restoring by remember(sessionManager) { mutableStateOf(sessionManager.canRememberSession) }
+    var restoreFailed by remember { mutableStateOf(false) }
+    var restoreAttempt by remember { mutableIntStateOf(0) }
     var info by remember { mutableStateOf<AuthNotice?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(sessionManager, restoreAttempt) {
+        if (!sessionManager.canRememberSession) return@LaunchedEffect
+        restoring = true
+        restoreFailed = false
+        errorMessage = null
+        try {
+            val restored = sessionManager.restoreSession { candidate ->
+                if (!accountClient.isEmailVerified(candidate)) throw VerificationRequired(candidate)
+                accessChecker.checkAccess(candidate)
+            }
+            verifiedUserId = restored?.userId
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: VerificationRequired) {
+            errorMessage = "Please sign in again to confirm your email."
+        } catch (_: Exception) {
+            restoreFailed = true
+            errorMessage = "Couldn't restore your sign-in. Try again or sign in with your password."
+        } finally {
+            restoring = false
+        }
+    }
+
+    if (restoring) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Box(contentAlignment = Alignment.Center) { Text("Restoring sign-in…") }
+        }
+        return
+    }
 
     val currentSession = session
     if (currentSession != null && currentSession.userId == verifiedUserId) {
@@ -113,6 +149,7 @@ fun FirebaseSignInGate(
         val submittedForm = form
         val submittedEmail = email.trim()
         val submittedPassword = password
+        val submittedRemember = rememberMe
         busy = true
         errorMessage = null
         info = null
@@ -123,18 +160,21 @@ fun FirebaseSignInGate(
                 when (submittedForm) {
                     AuthForm.SignIn -> {
                         verifiedUserId = null
-                        val signedInSession = sessionManager.signIn(submittedEmail, submittedPassword) { candidate ->
+                        val signedInSession = sessionManager.signIn(
+                            submittedEmail,
+                            submittedPassword,
+                            rememberSession = submittedRemember,
+                        ) { candidate ->
                             checkingVerification = true
                             if (!accountClient.isEmailVerified(candidate)) throw VerificationRequired(candidate)
                             checkingVerification = false
-                        }
-                        checkingCloud = true
-                        accessChecker.checkAccess()
-                        currentCoroutineContext().ensureActive()
-                        if (sessionManager.session.value !== signedInSession) {
-                            throw CancellationException("Authentication state changed")
+                            checkingCloud = true
+                            accessChecker.checkAccess(candidate)
+                            checkingCloud = false
                         }
                         password = ""
+                        rememberMe = false
+                        restoreFailed = false
                         verifiedUserId = signedInSession.userId
                     }
 
@@ -163,7 +203,6 @@ fun FirebaseSignInGate(
                 verificationSession = required.session
                 showForm(AuthForm.Verify)
             } catch (error: Exception) {
-                if (checkingCloud) sessionManager.signOut()
                 errorMessage = authError(form, checkingCloud, checkingVerification, error)
             } finally {
                 busy = false
@@ -229,6 +268,13 @@ fun FirebaseSignInGate(
                     )
                 }
 
+                if (form == AuthForm.SignIn && sessionManager.canRememberSession) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = rememberMe, onCheckedChange = { rememberMe = it }, enabled = !busy)
+                        Text("Remember me on this Mac")
+                    }
+                }
+
                 info?.let { notice ->
                     if (notice == AuthNotice.EmailVerified) {
                         Text(notice.text, color = MaterialTheme.colorScheme.positive)
@@ -248,6 +294,14 @@ fun FirebaseSignInGate(
 
                 if (form == AuthForm.SignIn) {
                     Column {
+                        if (restoreFailed) {
+                            TextButton(onClick = {
+                                restoring = true
+                                restoreAttempt++
+                            }, enabled = !busy) {
+                                Text("Retry saved sign-in")
+                            }
+                        }
                         TextButton(onClick = { showForm(AuthForm.Register) }, enabled = !busy) {
                             Text("Create account")
                         }
@@ -286,6 +340,9 @@ private fun authError(
     checkingVerification: Boolean,
     error: Exception,
 ): String {
+    if (error is FirebaseSessionStorageException) {
+        return "Couldn't update the saved sign-in. Check access to macOS Keychain and try again."
+    }
     if (checkingCloud) {
         return if ((error as? FirestoreAccessException)?.statusCode == 403) {
             "Signed in, but this account doesn't have access to cloud data."
