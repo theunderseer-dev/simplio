@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +57,7 @@ internal fun DesktopAttendanceContent(
     onCopyAttendance: (String) -> Unit,
     uploadClient: FirestoreRestClient? = null,
     reminders: DesktopAttendanceReminders? = null,
+    onSignOut: (suspend () -> Unit)? = null,
 ) {
     require(uploadClient == null || uploadClient.userId == userId)
     var choice by remember(userId) { mutableStateOf<LegacyDataChoice?>(null) }
@@ -90,6 +92,7 @@ internal fun DesktopAttendanceContent(
             uploadClient,
             reminders,
             userId,
+            onSignOut,
         )
 
         is DatabaseSelectionState.Failed -> LocalDataError(current.message, onRetry = { attempt++ })
@@ -124,6 +127,7 @@ private fun AttendanceSessionContent(
     uploadClient: FirestoreRestClient?,
     reminders: DesktopAttendanceReminders?,
     userId: String?,
+    onSignOut: (suspend () -> Unit)?,
 ) {
     var attempt by remember(path) { mutableIntStateOf(0) }
     var state by remember(path) { mutableStateOf<AttendanceSessionState>(AttendanceSessionState.Loading) }
@@ -169,6 +173,54 @@ private fun AttendanceSessionContent(
                 }
                 val scope = rememberCoroutineScope()
                 var updatingReminders by remember(account) { mutableStateOf(false) }
+                var showSignOut by remember(account) { mutableStateOf(false) }
+                var signingOut by remember(account) { mutableStateOf(false) }
+                var signOutError by remember(account) { mutableStateOf(false) }
+
+                if (showSignOut && onSignOut != null) {
+                    AlertDialog(
+                        onDismissRequest = { if (!signingOut) showSignOut = false },
+                        title = { Text("Sign out of Simplio?") },
+                        text = {
+                            if (signOutError) {
+                                Text(
+                                    "Couldn't clear the saved sign-in. Check access to macOS Keychain and try again.",
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            } else {
+                                Text("You'll need to sign in again on this Mac.")
+                            }
+                        },
+                        confirmButton = {
+                            SimplioTextButton(
+                                enabled = !signingOut,
+                                onClick = {
+                                    signingOut = true
+                                    signOutError = false
+                                    scope.launch {
+                                        try {
+                                            onSignOut()
+                                        } catch (error: CancellationException) {
+                                            throw error
+                                        } catch (_: Exception) {
+                                            signOutError = true
+                                        } finally {
+                                            signingOut = false
+                                        }
+                                    }
+                                },
+                            ) {
+                                Text(if (signingOut) "Signing out…" else "Sign out")
+                            }
+                        },
+                        dismissButton = {
+                            SimplioTextButton(
+                                enabled = !signingOut,
+                                onClick = { showSignOut = false },
+                            ) { Text("Cancel") }
+                        },
+                    )
+                }
                 Column(modifier = Modifier.fillMaxSize()) {
                     current.session.sync?.let { SyncNotice(it) }
                     Box(modifier = Modifier.weight(1f)) {
@@ -176,25 +228,37 @@ private fun AttendanceSessionContent(
                             onCopyAttendance = onCopyAttendance,
                             reminderSessionId = pending?.identity?.sessionId,
                             onReminderHandled = { if (pending != null) reminders?.acknowledge(pending) },
-                            additionalOptions = if (reminders == null) {
+                            additionalOptions = if (reminders == null && onSignOut == null) {
                                 null
                             } else {
-                                {
-                                    AttendanceReminderControls(
-                                        reminders = reminders,
-                                        account = account,
-                                        updating = updatingReminders,
-                                        onEnabledChange = { enabled ->
-                                            updatingReminders = true
-                                            scope.launch {
-                                                try {
-                                                    reminders.setEnabled(account, enabled)
-                                                } finally {
-                                                    updatingReminders = false
+                                { dismiss ->
+                                    if (reminders != null) {
+                                        AttendanceReminderControls(
+                                            reminders = reminders,
+                                            account = account,
+                                            updating = updatingReminders,
+                                            onEnabledChange = { enabled ->
+                                                updatingReminders = true
+                                                scope.launch {
+                                                    try {
+                                                        reminders.setEnabled(account, enabled)
+                                                    } finally {
+                                                        updatingReminders = false
+                                                    }
                                                 }
-                                            }
-                                        },
-                                    )
+                                            },
+                                        )
+                                    }
+                                    if (onSignOut != null) {
+                                        DropdownMenuItem(
+                                            text = { Text("Sign out") },
+                                            onClick = {
+                                                dismiss()
+                                                signOutError = false
+                                                showSignOut = true
+                                            },
+                                        )
+                                    }
                                 }
                             },
                         )

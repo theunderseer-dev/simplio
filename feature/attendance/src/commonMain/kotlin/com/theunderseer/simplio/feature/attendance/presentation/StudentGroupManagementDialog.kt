@@ -72,7 +72,10 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-internal fun StudentGroupOptions(onManage: () -> Unit, additionalOptions: (@Composable () -> Unit)? = null) {
+internal fun StudentGroupOptions(
+    onManage: () -> Unit,
+    additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
+) {
     var expanded by remember { mutableStateOf(false) }
     androidx.compose.foundation.layout.Box {
         SimplioIconButton(
@@ -88,7 +91,7 @@ internal fun StudentGroupOptions(onManage: () -> Unit, additionalOptions: (@Comp
                     onManage()
                 },
             )
-            additionalOptions?.invoke()
+            additionalOptions?.invoke { expanded = false }
         }
     }
 }

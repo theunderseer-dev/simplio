@@ -15,12 +15,15 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.theunderseer.simplio.shared.firebase.FirebaseConfig
 import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthApi
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
 import com.theunderseer.simplio.shared.fixtures.InputTestData
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.headersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -37,10 +40,23 @@ class FirebaseSignInValidationUiTest {
                 }
                 override suspend fun refreshSession(refreshToken: String): FirebaseSession = error("Not expected")
             })
-            val http = createFirebaseHttpClient(MockEngine { respond("{}") })
+            val config = FirebaseConfig("test-key", "test-project")
+            val http = createFirebaseHttpClient(
+                MockEngine { request ->
+                    if (request.url.encodedPath == "/v1/accounts:lookup") {
+                        respond(
+                            """{"users":[{"localId":"test-user","emailVerified":true}]}""",
+                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                        )
+                    } else {
+                        respond("{}")
+                    }
+                },
+            )
             try {
-                val access = FirestoreAccessChecker(http, FirebaseConfig("test-key", "test-project"), sessions)
-                setContent { FirebaseSignInGate(sessions, access) { Text("Signed-in content") } }
+                val access = FirestoreAccessChecker(http, config, sessions)
+                val accounts = FirebaseAuthClient(http, config)
+                setContent { FirebaseSignInGate(sessions, access, accounts) { Text("Signed-in content") } }
                 onNodeWithText("Password").performTextInput(InputTestData.passwordWithSpaces)
                 onNodeWithText("Email").performTextInput("teacher")
                 onNodeWithText("Enter an email address, e.g. name@example.com.").assertIsDisplayed()

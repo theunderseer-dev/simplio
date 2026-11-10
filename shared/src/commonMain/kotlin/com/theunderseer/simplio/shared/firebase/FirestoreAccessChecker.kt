@@ -1,5 +1,6 @@
 package com.theunderseer.simplio.shared.firebase
 
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
@@ -11,8 +12,9 @@ class FirestoreAccessChecker(
     private val config: FirebaseConfig,
     private val sessionManager: FirebaseSessionManager,
 ) {
-    suspend fun checkAccess() {
-        val session = sessionManager.getValidSession()
+    suspend fun checkAccess() = checkAccess(sessionManager.getValidSession())
+
+    suspend fun checkAccess(session: FirebaseSession) {
         val response = httpClient.get(
             "https://firestore.googleapis.com/v1/projects/" +
                 "${config.projectId}/databases/(default)/documents/" +
@@ -25,8 +27,11 @@ class FirestoreAccessChecker(
             }
         }
 
-        check(response.status == HttpStatusCode.OK) {
-            "Firestore access check failed: HTTP ${response.status.value}"
+        if (response.status != HttpStatusCode.OK) {
+            throw FirestoreAccessException(response.status.value)
         }
     }
 }
+
+internal class FirestoreAccessException(val statusCode: Int) :
+    IllegalStateException("Firestore access check failed: HTTP $statusCode")

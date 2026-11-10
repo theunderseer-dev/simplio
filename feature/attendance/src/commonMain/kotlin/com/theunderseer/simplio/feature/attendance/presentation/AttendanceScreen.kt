@@ -106,7 +106,7 @@ fun AttendanceScreen(
     onClearCreateStudentGroupState: () -> Unit = {},
     reminderSessionId: String? = null,
     onOpenReminder: (String) -> Unit = {},
-    additionalOptions: (@Composable () -> Unit)? = null,
+    additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
     var showPackageDialog by remember { mutableStateOf(false) }
     var showManageGroups by remember { mutableStateOf(false) }
@@ -580,7 +580,7 @@ private fun AttendanceContent(
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
     onManageGroupsClick: () -> Unit,
-    additionalOptions: (@Composable () -> Unit)?,
+    additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)?,
     onAddPackageClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,

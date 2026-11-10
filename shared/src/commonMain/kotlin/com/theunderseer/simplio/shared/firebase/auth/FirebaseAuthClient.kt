@@ -16,30 +16,34 @@ import kotlinx.serialization.Serializable
 import kotlin.coroutines.cancellation.CancellationException
 
 class FirebaseAuthClient(private val httpClient: HttpClient, private val config: FirebaseConfig) : FirebaseAuthApi {
-    override suspend fun signIn(email: String, password: String): FirebaseSession {
-        val response = httpClient.post(
-            "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword",
-        ) {
-            url {
-                parameters.append("key", config.apiKey)
-            }
+    override suspend fun signIn(email: String, password: String): FirebaseSession =
+        passwordSession("signInWithPassword", email, password)
 
-            contentType(ContentType.Application.Json)
+    suspend fun createAccount(email: String, password: String): FirebaseSession =
+        passwordSession("signUp", email, password)
 
-            setBody(
-                SignInRequest(
-                    email = email,
-                    password = password,
-                    returnSecureToken = true,
-                ),
-            )
+    suspend fun sendVerificationEmail(session: FirebaseSession) {
+        postAccount("sendOobCode", VerificationEmailRequest("VERIFY_EMAIL", session.idToken))
+    }
+
+    suspend fun isEmailVerified(session: FirebaseSession): Boolean {
+        val result = postAccount("lookup", LookupRequest(session.idToken)).body<LookupResponse>()
+        return checkNotNull(result.users.singleOrNull { it.localId == session.userId }) {
+            "Firebase did not return the signed-in account"
+        }.emailVerified
+    }
+
+    suspend fun sendPasswordResetEmail(email: String) {
+        try {
+            postAccount("sendOobCode", PasswordResetRequest("PASSWORD_RESET", email))
+        } catch (error: FirebaseAuthException) {
+            // Older project configurations may disclose that the email does not exist.
+            if (error.errorCode != "EMAIL_NOT_FOUND") throw error
         }
+    }
 
-        if (!response.status.isSuccess()) {
-            throw response.toFirebaseAuthException()
-        }
-
-        val result = response.body<SignInResponse>()
+    private suspend fun passwordSession(action: String, email: String, password: String): FirebaseSession {
+        val result = postAccount(action, SignInRequest(email, password, true)).body<SignInResponse>()
 
         return FirebaseSession(
             userId = result.localId,
@@ -47,6 +51,16 @@ class FirebaseAuthClient(private val httpClient: HttpClient, private val config:
             refreshToken = result.refreshToken,
             expiresInSeconds = result.expiresIn.toLong(),
         )
+    }
+
+    private suspend inline fun <reified T : Any> postAccount(action: String, payload: T): HttpResponse {
+        val response = httpClient.post("https://identitytoolkit.googleapis.com/v1/accounts:$action") {
+            url { parameters.append("key", config.apiKey) }
+            contentType(ContentType.Application.Json)
+            setBody(payload)
+        }
+        if (!response.status.isSuccess()) throw response.toFirebaseAuthException()
+        return response
     }
 
     override suspend fun refreshSession(refreshToken: String): FirebaseSession {
@@ -84,6 +98,21 @@ private class SignInRequest(val email: String, val password: String, val returnS
 private class SignInResponse(val localId: String, val idToken: String, val refreshToken: String, val expiresIn: String)
 
 @Serializable
+private class VerificationEmailRequest(val requestType: String, val idToken: String)
+
+@Serializable
+private class PasswordResetRequest(val requestType: String, val email: String)
+
+@Serializable
+private class LookupRequest(val idToken: String)
+
+@Serializable
+private class LookupResponse(val users: List<LookupUser>)
+
+@Serializable
+private class LookupUser(val localId: String, val emailVerified: Boolean = false)
+
+@Serializable
 private class RefreshSessionResponse(
     @SerialName("user_id")
     val userId: String,
@@ -109,6 +138,7 @@ private suspend fun HttpResponse.toFirebaseAuthException(): FirebaseAuthExceptio
 
     return FirebaseAuthException(
         statusCode = status.value,
+        errorCode = errorCode,
         requiresSignIn = errorCode in setOf(
             "TOKEN_EXPIRED",
             "USER_DISABLED",

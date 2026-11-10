@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function ownsWorkspace(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true;
+    }
+
+    function isAttendanceCollection(collectionId) {
+      return collectionId in [
+        'studentGroups', 'packageTypes', 'students', 'studentPackages',
+        'attendance', 'classSchedules', 'classSessions'
+      ];
+    }
+
+    match /users/{uid}/{collectionId}/{documentId} {
+      // The sync protocol represents deletions by updating documents to tombstones.
+      allow read, create, update: if ownsWorkspace(uid) && isAttendanceCollection(collectionId);
+    }
+
+    match /users/{uid}/syncState/attendance {
+      allow get, create, update: if ownsWorkspace(uid);
+    }
+
+    match /users/{uid}/syncReceipts/{batchId} {
+      allow get, create: if ownsWorkspace(uid);
+    }
+  }
+}
