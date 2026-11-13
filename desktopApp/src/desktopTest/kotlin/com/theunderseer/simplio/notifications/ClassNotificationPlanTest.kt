@@ -54,9 +54,25 @@ class ClassNotificationPlanTest {
             now = now,
         )
         assertEquals(setOf(recorded.id), plan.removePending)
-        assertEquals(setOf(cancelled.id), plan.removeDelivered)
+        assertEquals(setOf(recorded.id, cancelled.id), plan.removeDelivered)
         assertEquals(listOf(moved), plan.schedule)
         assertNotEquals(original.revision, moved.revision)
+    }
+
+    @Test
+    fun `deleted schedule requests are removed from both lists during wake`() {
+        val obsolete = notification("deleted-schedule", now - 1.seconds)
+        val plan = planClassNotifications(
+            candidates = emptyList(),
+            pending = mapOf(obsolete.id to obsolete.revision),
+            delivered = emptySet(),
+            acknowledged = emptySet(),
+            now = now,
+        )
+
+        assertEquals(setOf(obsolete.id), plan.removePending)
+        assertEquals(setOf(obsolete.id), plan.removeDelivered)
+        assertEquals(emptyList(), plan.catchUp)
     }
 
     @Test

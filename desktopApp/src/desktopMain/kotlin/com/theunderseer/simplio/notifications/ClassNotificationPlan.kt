@@ -6,7 +6,12 @@ import kotlin.time.Instant
 internal val wakeDeliveryGrace = 30.seconds
 private const val SOUND_REVISION_PREFIX = "sound:"
 
-internal data class ClassNotification(val id: String, val title: String, val body: String, val endsAt: Instant) {
+internal data class ClassNotification(
+    val id: String,
+    val title: String,
+    val body: String,
+    val endsAt: Instant,
+) {
     val revision: String = SOUND_REVISION_PREFIX + sha256("$endsAt\n$title\n$body")
 }
 
@@ -33,7 +38,8 @@ internal fun planClassNotifications(
     val keep = (upcoming + overdue).mapTo(mutableSetOf()) { it.id }
     return ClassNotificationPlan(
         removePending = pending.keys - keep,
-        removeDelivered = delivered - eligible.keys,
+        // A pending request can move to Notification Center between the two reads and removal.
+        removeDelivered = (pending.keys + delivered) - eligible.keys,
         schedule = upcoming.filter { pending[it.id] != it.revision },
         catchUp = overdue.filter { notification ->
             val queuedRevision = pending[notification.id]

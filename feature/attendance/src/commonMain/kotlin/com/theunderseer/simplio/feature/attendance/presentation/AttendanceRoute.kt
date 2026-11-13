@@ -21,8 +21,9 @@ fun AttendanceRoute(
         reminderSessionId = reminderSessionId,
         additionalOptions = additionalOptions,
         onOpenReminder = { sessionId ->
-            viewModel.openClassAttendanceFromReminder(sessionId, Clock.System.now())
-            onReminderHandled()
+            if (viewModel.openClassAttendanceFromReminder(sessionId, Clock.System.now())) {
+                onReminderHandled()
+            }
         },
         classAttendanceCallbacks = ClassAttendanceCallbacks(
             viewModel::openClassAttendance, viewModel::closeClassAttendance, viewModel::saveClassAttendance,

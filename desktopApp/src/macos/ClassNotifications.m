@@ -115,6 +115,14 @@ static NSArray<NSString *> *FromJavaArray(JNIEnv *env, jobjectArray array) {
     NSString *identifier = response.notification.request.identifier;
     if ([identifier hasPrefix:ReminderPrefix]) {
         if ([response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier]) {
+            if (diagnosticsEnabled) fputs("[reminders] macOS default notification action received\n", stderr);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (@available(macOS 14.0, *)) {
+                    [NSApp activate];
+                } else {
+                    [NSApp activateIgnoringOtherApps:YES];
+                }
+            });
             SendEvent(@"open", identifier);
         } else if ([response.actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier]) {
             SendEvent(@"observed", identifier);

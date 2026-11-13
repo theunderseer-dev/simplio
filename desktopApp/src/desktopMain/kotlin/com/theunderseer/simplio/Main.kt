@@ -37,6 +37,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.KoinApplication
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.koinApplication
+import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.awt.datatransfer.StringSelection
 
@@ -81,7 +82,9 @@ fun main(appArgs: Array<String>) {
                         LaunchedEffect(reminders) {
                             reminders.observeNativeEvents {
                                 windowState.isMinimized = false
+                                window.extendedState = window.extendedState and Frame.ICONIFIED.inv()
                                 window.toFront()
+                                window.requestFocus()
                             }
                         }
                     }

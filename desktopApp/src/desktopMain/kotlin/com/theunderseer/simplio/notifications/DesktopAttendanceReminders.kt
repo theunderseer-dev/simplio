@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -32,8 +34,6 @@ import java.time.format.FormatStyle
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
-
-internal data class ReminderActivation(val identity: ClassNotificationIdentity, val sequence: Long)
 
 internal data class AttendanceReminderSettings(
     val account: String? = null,
@@ -50,14 +50,13 @@ internal class DesktopAttendanceReminders(
     private val preferences = LocalReminderPreferences()
     private var activeAccount: String? = null
     private val refresh = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    private val mutableActivation = MutableStateFlow<ReminderActivation?>(null)
+    private val activationQueue = ReminderActivationQueue()
     private val mutableSettings = MutableStateFlow(AttendanceReminderSettings())
 
-    val activation = mutableActivation.asStateFlow()
+    val activations = activationQueue.pending
     val settings = mutableSettings.asStateFlow()
 
-    suspend fun observeNativeEvents(onOpen: () -> Unit) {
-        var sequence = 0L
+    suspend fun observeNativeEvents(onOpen: () -> Unit): Unit = coroutineScope {
         center.events.collect { event ->
             when (event) {
                 ClassNotificationEvent.Refresh -> refresh.tryEmit(Unit)
@@ -65,20 +64,21 @@ internal class DesktopAttendanceReminders(
                     val identity = ClassNotificationIdentity.parse(event.id) ?: return@collect
                     trace("native callback: ${if (event.open) "opened" else "observed"}")
                     if (event.open) {
+                        activationQueue.enqueue(identity)
                         onOpen()
-                        mutableActivation.value = ReminderActivation(identity, ++sequence)
                     }
-                    guarded {
-                        preferences.remember(identity.account, setOf(event.id), Clock.System.now())
+                    val observedAt = Clock.System.now()
+                    launch {
+                        guarded {
+                            preferences.remember(identity.account, setOf(event.id), observedAt)
+                        }
                     }
                 }
             }
         }
     }
 
-    fun acknowledge(activation: ReminderActivation) {
-        mutableActivation.compareAndSet(activation, null)
-    }
+    fun acknowledge(activation: ClassNotificationIdentity) = activationQueue.acknowledge(activation)
 
     fun retry() {
         refresh.tryEmit(Unit)
@@ -89,8 +89,8 @@ internal class DesktopAttendanceReminders(
         guarded(account) {
             activeAccount = account
             mutableSettings.value = AttendanceReminderSettings(account, preferences.enabledSince(account) != null)
-            clearNotifications { it.account != account }
-            mutableActivation.value?.takeIf { it.identity.account != account }?.let(::acknowledge)
+            clearNotifications { it?.account != account }
+            activationQueue.removeAccounts { it != account }
         }
         val source = RoomClassAttendanceReminderSource(database)
         val changes = database.invalidationTracker.createFlow(
@@ -101,7 +101,7 @@ internal class DesktopAttendanceReminders(
             "class_schedules",
             "class_schedule_slots",
             "student_group_schedules",
-            emitInitialState = false,
+            emitInitialState = true,
         ).map { Unit }
         val periodic = flow {
             while (true) {
@@ -126,8 +126,8 @@ internal class DesktopAttendanceReminders(
         if (activeAccount == account) {
             activeAccount = null
             mutableSettings.value = AttendanceReminderSettings()
-            mutableActivation.value?.takeIf { it.identity.account == account }?.let(::acknowledge)
-            clearNotifications { it.account == account }
+            activationQueue.removeAccounts { it == account }
+            clearNotifications { it?.account == account }
         }
     }
 
@@ -137,7 +137,7 @@ internal class DesktopAttendanceReminders(
             if (!enabled) {
                 preferences.setEnabledSince(account, null)
                 mutableSettings.value = AttendanceReminderSettings(account)
-                clearNotifications { it.account == account }
+                clearNotifications { it?.account == account }
             } else {
                 val permission = center.requestAuthorization()
                 if (permission == NotificationAuthorization.ALLOWED && preferences.enabledSince(account) == null) {
@@ -163,7 +163,7 @@ internal class DesktopAttendanceReminders(
         )
         trace("enabled=${since != null}, authorization=$authorization")
         if (since == null || authorization != NotificationAuthorization.ALLOWED) {
-            clearNotifications { it.account == account }
+            clearNotifications { it?.account == account }
             return
         }
 
@@ -218,12 +218,12 @@ internal class DesktopAttendanceReminders(
         if (diagnostics) System.err.println("[reminders] $message")
     }
 
-    private suspend fun clearNotifications(filter: (ClassNotificationIdentity) -> Boolean) {
-        fun shouldRemove(id: String) = ClassNotificationIdentity.parse(id)?.let(filter) == true
-        center.remove(
-            pending = center.pending().keys.filterTo(mutableSetOf(), ::shouldRemove),
-            delivered = center.delivered().filterTo(mutableSetOf(), ::shouldRemove),
-        )
+    private suspend fun clearNotifications(filter: (ClassNotificationIdentity?) -> Boolean) {
+        // The native bridge returns only notifications with the attendance prefix.
+        val ids = (center.pending().keys + center.delivered()).filterTo(mutableSetOf()) {
+            filter(ClassNotificationIdentity.parse(it))
+        }
+        center.remove(pending = ids, delivered = ids)
     }
 
     private suspend fun guarded(account: String? = null, block: suspend () -> Unit) = mutex.withLock {

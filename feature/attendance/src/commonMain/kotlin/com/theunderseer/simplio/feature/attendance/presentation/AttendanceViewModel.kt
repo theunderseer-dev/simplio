@@ -278,8 +278,10 @@ class AttendanceViewModel(
 
     fun openClassAttendance(sessionId: String) = openClassAttendance(sessionId, reminderOpenedAt = null)
 
-    fun openClassAttendanceFromReminder(sessionId: String, openedAt: Instant) {
-        if (classAttendanceState.value == ClassAttendanceUiState.Closed) openClassAttendance(sessionId, openedAt)
+    fun openClassAttendanceFromReminder(sessionId: String, openedAt: Instant): Boolean {
+        if (classAttendanceState.value != ClassAttendanceUiState.Closed) return false
+        openClassAttendance(sessionId, openedAt)
+        return true
     }
 
     private fun openClassAttendance(sessionId: String, reminderOpenedAt: Instant?) {
