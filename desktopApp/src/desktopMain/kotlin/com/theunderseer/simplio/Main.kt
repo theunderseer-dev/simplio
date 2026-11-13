@@ -42,6 +42,7 @@ import java.awt.datatransfer.StringSelection
 
 fun main(appArgs: Array<String>) {
     val isLocalMode = "--local" in appArgs
+    val isMac = System.getProperty("os.name").startsWith("Mac")
     val reminderDiagnostics = "--reminder-diagnostics" in appArgs
     val notificationCenter = MacClassNotificationCenter.open(reminderDiagnostics)
     if (reminderDiagnostics) {
@@ -54,18 +55,22 @@ fun main(appArgs: Array<String>) {
 
         try {
             application(exitProcessOnExit = false) {
-                val initialSize = remember {
-                    val availableBounds = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
-                    DpSize(
-                        width = minOf(800, availableBounds.width).dp,
-                        height = minOf(840, availableBounds.height).dp,
+                val availableBounds = remember {
+                    GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+                }
+                val windowState = if (isMac) {
+                    // Set the final frame before showing it to avoid the native zoom on startup.
+                    rememberWindowState(
+                        position = WindowPosition.Absolute(availableBounds.x.dp, availableBounds.y.dp),
+                        size = DpSize(availableBounds.width.dp, availableBounds.height.dp),
+                    )
+                } else {
+                    rememberWindowState(
+                        placement = WindowPlacement.Maximized,
+                        position = WindowPosition(Alignment.Center),
+                        size = DpSize(minOf(800, availableBounds.width).dp, minOf(840, availableBounds.height).dp),
                     )
                 }
-                val windowState = rememberWindowState(
-                    placement = WindowPlacement.Maximized,
-                    position = WindowPosition(Alignment.Center),
-                    size = initialSize,
-                )
 
                 Window(
                     state = windowState,
