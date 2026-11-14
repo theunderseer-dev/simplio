@@ -33,7 +33,8 @@ internal fun planClassNotifications(
     val keep = (upcoming + overdue).mapTo(mutableSetOf()) { it.id }
     return ClassNotificationPlan(
         removePending = pending.keys - keep,
-        removeDelivered = delivered - eligible.keys,
+        // A pending request can move to Notification Center between the two reads and removal.
+        removeDelivered = (pending.keys + delivered) - eligible.keys,
         schedule = upcoming.filter { pending[it.id] != it.revision },
         catchUp = overdue.filter { notification ->
             val queuedRevision = pending[notification.id]

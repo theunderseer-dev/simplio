@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -74,6 +75,7 @@ import com.theunderseer.simplio.shared.presentation.components.collectIsKeyboard
 import com.theunderseer.simplio.shared.presentation.components.simplioClickable
 import com.theunderseer.simplio.shared.presentation.components.simplioHoverSurface
 import com.theunderseer.simplio.shared.presentation.theme.SimplioSpacing
+import com.theunderseer.simplio.shared.presentation.theme.positive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.getString
@@ -679,8 +681,11 @@ private fun AttendanceContent(
                             .testTag("student-row-${row.registeredStudent.student.id}")
                             .padding(horizontal = 12.dp),
                     ) {
+                        val renewalColor =
+                            if (row.requiresRenewal) MaterialTheme.colorScheme.positive else Color.Unspecified
                         StudentAttendanceRow(
                             row = row,
+                            renewalColor = renewalColor,
                             onCheckClick = {
                                 onCheckStudentClick(row)
                             },
@@ -697,7 +702,9 @@ private fun AttendanceContent(
                         Text(
                             text = student.note.ifBlank { "Add note" },
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (student.note.isBlank()) {
+                            color = if (row.requiresRenewal) {
+                                renewalColor
+                            } else if (student.note.isBlank()) {
                                 MaterialTheme.colorScheme.primary
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
@@ -753,6 +760,7 @@ private fun AttendanceContent(
 @Composable
 private fun StudentAttendanceRow(
     row: StudentAttendanceUiState,
+    renewalColor: Color,
     onCheckClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onRemoveAttendanceClick: (LocalDate) -> Unit,
@@ -775,6 +783,7 @@ private fun StudentAttendanceRow(
     ) {
         Text(
             text = registeredStudent.student.fullName,
+            color = renewalColor,
             modifier = Modifier.weight(AttendanceDimensions.NAME_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -798,7 +807,7 @@ private fun StudentAttendanceRow(
                     },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.primary,
+                color = if (row.requiresRenewal) renewalColor else MaterialTheme.colorScheme.primary,
                 textDecoration = if (historyHovered ||
                     historyFocused
                 ) {
@@ -880,6 +889,7 @@ private fun StudentAttendanceRow(
 
         Text(
             text = studentPackage.startedOn?.toDisplayDate().orEmpty(),
+            color = renewalColor,
             modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -891,6 +901,7 @@ private fun StudentAttendanceRow(
             } else {
                 studentPackage.expiresOn?.toDisplayDate().orEmpty()
             },
+            color = renewalColor,
             modifier = Modifier.weight(AttendanceDimensions.DATE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -898,6 +909,7 @@ private fun StudentAttendanceRow(
 
         Text(
             text = studentPackage.packageType.name,
+            color = renewalColor,
             modifier = Modifier.weight(AttendanceDimensions.PACKAGE_COLUMN_WEIGHT),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -913,10 +925,10 @@ private fun StudentAttendanceRow(
             onClick = onCheckClick,
             enabled = row.isCheckEnabled,
             selected = !row.requiresRenewal && row.checkState == AttendanceCheckState.Checked,
-            tone = when {
-                row.requiresRenewal -> SimplioActionTone.Accent
-                row.checkState == AttendanceCheckState.Checked -> SimplioActionTone.Positive
-                else -> SimplioActionTone.Neutral
+            tone = if (row.requiresRenewal || row.checkState == AttendanceCheckState.Checked) {
+                SimplioActionTone.Positive
+            } else {
+                SimplioActionTone.Neutral
             },
             modifier = Modifier.semantics {
                 stateDescription = if (row.requiresRenewal) "Renewal required" else row.checkState.name

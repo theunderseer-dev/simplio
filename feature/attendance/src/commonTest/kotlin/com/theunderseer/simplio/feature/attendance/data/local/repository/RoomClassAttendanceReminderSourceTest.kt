@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.repository
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.domain.model.WeeklyClassSlot
+import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestClock
 import com.theunderseer.simplio.feature.attendance.fixtures.ClassAttendanceTestData.nextSession
@@ -15,7 +16,9 @@ import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -100,6 +103,27 @@ class RoomClassAttendanceReminderSourceTest {
             val candidate = source.getCandidates(endsAt - 1.seconds, endsAt).single()
             assertEquals(session.date, candidate.session.date)
             assertEquals(endsAt, candidate.session.endsAt)
+        }
+    }
+
+    @Test
+    fun `a retired schedule stops producing both catch-up and upcoming candidates`() = runTest {
+        withDatabase { database ->
+            val student = database.seedClassAttendanceStudents().last()
+            val schedules = RoomClassScheduleRepository(database)
+            val schedule = DefaultClassSchedule.schedule.copy(id = "retired-reminder-schedule")
+            schedules.save(schedule)
+            schedules.assignToGroup(student.student.groupId, setOf(schedule.id))
+            val source = RoomClassAttendanceReminderSource(database)
+            val from = previousSession.endsAt - 1.seconds
+            val until = nextSession.endsAt
+            assertTrue(source.getCandidates(from, until).any { it.session.scheduleId == schedule.id })
+
+            RoomStudentRepository(database).delete(student.student.id)
+            val deletion = RoomStudentGroupDeletionRepository(database, ClassAttendanceTestClock(session.endsAt))
+            assertEquals(DeleteStudentGroupResult.DELETED, deletion.delete(student.student.groupId))
+
+            assertFalse(source.getCandidates(from, until).any { it.session.scheduleId == schedule.id })
         }
     }
 

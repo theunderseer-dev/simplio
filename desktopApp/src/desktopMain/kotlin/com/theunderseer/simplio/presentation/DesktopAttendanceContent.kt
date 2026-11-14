@@ -163,8 +163,8 @@ private fun AttendanceSessionContent(
                 val pending = if (reminders == null) {
                     null
                 } else {
-                    val activation by reminders.activation.collectAsState()
-                    activation?.takeIf { it.identity.account == account }
+                    val activations by reminders.activations.collectAsState()
+                    activations.firstOrNull { it.account == account }
                 }
                 if (reminders != null) {
                     LaunchedEffect(current.session, reminders, account) {
@@ -226,7 +226,7 @@ private fun AttendanceSessionContent(
                     Box(modifier = Modifier.weight(1f)) {
                         AttendanceRoute(
                             onCopyAttendance = onCopyAttendance,
-                            reminderSessionId = pending?.identity?.sessionId,
+                            reminderSessionId = pending?.sessionId,
                             onReminderHandled = { if (pending != null) reminders?.acknowledge(pending) },
                             additionalOptions = if (reminders == null && onSignOut == null) {
                                 null
