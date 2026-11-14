@@ -65,9 +65,13 @@ internal class RoomSyncJournal private constructor(private val database: Attenda
                 it.price == type.price &&
                 it.maxVisitsPerAttendance == type.maxVisitsPerAttendance
         }?.id == id
-        val cloudId = if (plan != null && isFirst) "default-plan-${plan.name.lowercase()}" else null
+        val defaultId = plan?.let { "default-plan-${it.name.lowercase()}" }
+        val reserved = defaultId != null && dao.getRecordByCloudId(SyncEntityType.PACKAGE_TYPE, defaultId) != null
+        val cloudId = defaultId.takeIf { isFirst && !reserved }
         return ensure(SyncEntityType.PACKAGE_TYPE, id.toString(), "PACKAGE_TYPE:$id", cloudId)
     }
+
+    suspend fun archivePackageType(id: Int) = change(ensurePackageType(id), deleted = false)
 
     suspend fun ensureStudent(id: Int): SyncRecordEntity {
         dao.getRecord(SyncEntityType.STUDENT, id.toString())?.let { return it }

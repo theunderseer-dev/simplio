@@ -26,6 +26,9 @@ class RoomStudentPackageRepository(private val database: AttendanceDatabase) : S
         require(initialAttendance == null || initialAttendance.date !in getAttendanceDatesForStudent(studentId)) {
             "Attendance already recorded for this date"
         }
+        require(database.packageTypeDao().getById(packageType.id)?.isArchived == false) {
+            "Choose an available package template"
+        }
         val student = checkNotNull(database.studentDao().getById(studentId))
         val scheduleRepository = RoomClassScheduleRepository(database)
         val schedules = scheduleRepository.getForGroup(student.groupId)

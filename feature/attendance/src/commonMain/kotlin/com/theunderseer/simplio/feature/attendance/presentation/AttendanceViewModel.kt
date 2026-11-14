@@ -16,6 +16,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
+import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeDeletionRepository
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
@@ -84,7 +85,9 @@ class AttendanceViewModel(
     private val createStudentGroupUseCase: CreateStudentGroupUseCase? = null,
     private val classScheduleRepository: ClassScheduleRepository? = null,
     currentInstants: Flow<Instant?> = flowOf(null),
+    private val packageTypeDeletionRepository: PackageTypeDeletionRepository? = null,
 ) : ViewModel() {
+    private val packageDeletionState = MutableStateFlow(DeletePackageTypeUiState.Idle)
     private val groupDeletionState = MutableStateFlow<DeleteStudentGroupUiState>(DeleteStudentGroupUiState.Idle)
     private val classAttendanceState = MutableStateFlow<ClassAttendanceUiState>(ClassAttendanceUiState.Closed)
     private var classAttendanceJob: Job? = null
@@ -193,6 +196,8 @@ class AttendanceViewModel(
             } else {
                 state
             }
+        }.combine(packageDeletionState) { state, deletion ->
+            if (state is AttendanceUiState.Content) state.copy(deletePackageTypeState = deletion) else state
         }.combine(groupDeletionState) { state, deletion ->
             if (state is AttendanceUiState.Content) state.copy(deleteStudentGroupState = deletion) else state
         }.combine(classAttendanceState) { state, attendance ->
@@ -240,6 +245,36 @@ class AttendanceViewModel(
             currentDates
                 .distinctUntilChangedBy { it }
                 .collect { currentDate -> loadClassHistory(currentDate = currentDate) }
+        }
+    }
+
+    fun deletePackageType(packageTypeId: Int) {
+        val repository = packageTypeDeletionRepository ?: return
+        if (packageDeletionState.value == DeletePackageTypeUiState.Saving) return
+        packageDeletionState.value = DeletePackageTypeUiState.Saving
+        viewModelScope.launch {
+            try {
+                repository.delete(packageTypeId)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                packageDeletionState.value = DeletePackageTypeUiState.Failed
+                return@launch
+            }
+            try {
+                refreshAttendance()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                // The catalog change is committed. Room invalidation also refreshes the list.
+            }
+            packageDeletionState.value = DeletePackageTypeUiState.Deleted
+        }
+    }
+
+    fun clearDeletePackageTypeState() {
+        if (packageDeletionState.value != DeletePackageTypeUiState.Saving) {
+            packageDeletionState.value = DeletePackageTypeUiState.Idle
         }
     }
 

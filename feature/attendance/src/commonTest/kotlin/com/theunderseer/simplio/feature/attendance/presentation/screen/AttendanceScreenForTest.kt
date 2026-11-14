@@ -41,6 +41,8 @@ internal fun AttendanceScreenForTest(
     onSaveClassAttendance: (Map<Int, Int>, Boolean) -> Unit = { _, _ -> },
     onCreateStudentGroup: (CreateStudentGroupRequest) -> Unit = {},
     onDeleteStudentGroup: (Int) -> Unit = {},
+    onDeletePackageType: (Int) -> Unit = {},
+    onClearDeletePackageTypeState: () -> Unit = {},
 ) {
     AttendanceScreen(
         state = state,
@@ -51,6 +53,8 @@ internal fun AttendanceScreenForTest(
         ),
         onCreateStudentGroup = onCreateStudentGroup,
         onDeleteStudentGroup = onDeleteStudentGroup,
+        onDeletePackageType = onDeletePackageType,
+        onClearDeletePackageTypeState = onClearDeletePackageTypeState,
         onClearDeleteStudentGroupState = {},
         onCreatePackageType = onCreatePackageType,
         onClearCreatePackageTypeState = onClearCreatePackageTypeState,

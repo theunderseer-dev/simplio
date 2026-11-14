@@ -37,6 +37,8 @@ fun AttendanceRoute(
         onClearDeleteStudentGroupState = viewModel::clearDeleteStudentGroupState,
         onCreatePackageType = viewModel::createPackageType,
         onClearCreatePackageTypeState = viewModel::clearCreatePackageTypeState,
+        onDeletePackageType = viewModel::deletePackageType,
+        onClearDeletePackageTypeState = viewModel::clearDeletePackageTypeState,
         onCreateStudentGroup = viewModel::createStudentGroup,
         onClearCreateStudentGroupState = viewModel::clearCreateStudentGroupState,
         onRenewStudentPackage = viewModel::renewStudentPackage,
