@@ -140,9 +140,15 @@ fun AttendanceScreen(
     when (state) {
         is AttendanceUiState.Content -> {
             val canOpenReminder = state.classAttendanceState == ClassAttendanceUiState.Closed &&
-                !showPackageDialog && !showManageGroups && !showGroupDialog && !showRegistrationDialog &&
-                deleteStudentDialog == null && attendanceDatePickerStudentId == null &&
-                attendanceRemovalRequest == null && renewalStudent == null && noteStudentId == null
+                !showPackageDialog &&
+                !showManageGroups &&
+                !showGroupDialog &&
+                !showRegistrationDialog &&
+                deleteStudentDialog == null &&
+                attendanceDatePickerStudentId == null &&
+                attendanceRemovalRequest == null &&
+                renewalStudent == null &&
+                noteStudentId == null
             LaunchedEffect(reminderSessionId, canOpenReminder) {
                 if (reminderSessionId != null && canOpenReminder) onOpenReminder(reminderSessionId)
             }

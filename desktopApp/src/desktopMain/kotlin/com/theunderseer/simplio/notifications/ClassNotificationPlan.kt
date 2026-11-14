@@ -6,12 +6,7 @@ import kotlin.time.Instant
 internal val wakeDeliveryGrace = 30.seconds
 private const val SOUND_REVISION_PREFIX = "sound:"
 
-internal data class ClassNotification(
-    val id: String,
-    val title: String,
-    val body: String,
-    val endsAt: Instant,
-) {
+internal data class ClassNotification(val id: String, val title: String, val body: String, val endsAt: Instant) {
     val revision: String = SOUND_REVISION_PREFIX + sha256("$endsAt\n$title\n$body")
 }
 
