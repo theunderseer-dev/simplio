@@ -54,6 +54,7 @@ import com.theunderseer.simplio.feature.attendance.resources.group_scroll_hint
 import com.theunderseer.simplio.feature.attendance.resources.group_student_count
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
 import com.theunderseer.simplio.feature.attendance.resources.ic_more_vert
+import com.theunderseer.simplio.feature.attendance.resources.manage_packages
 import com.theunderseer.simplio.feature.attendance.resources.package_cancel
 import com.theunderseer.simplio.feature.attendance.resources.weekday_friday
 import com.theunderseer.simplio.feature.attendance.resources.weekday_monday
@@ -75,6 +76,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun StudentGroupOptions(
     onManage: () -> Unit,
     additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
+    onManagePackages: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     androidx.compose.foundation.layout.Box {
@@ -91,6 +93,15 @@ internal fun StudentGroupOptions(
                     onManage()
                 },
             )
+            if (onManagePackages != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.manage_packages)) },
+                    onClick = {
+                        expanded = false
+                        onManagePackages()
+                    },
+                )
+            }
             additionalOptions?.invoke { expanded = false }
         }
     }

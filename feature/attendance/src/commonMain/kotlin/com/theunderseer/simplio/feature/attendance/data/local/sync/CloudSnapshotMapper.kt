@@ -40,9 +40,12 @@ internal fun mapCloudSnapshot(
         requireCloudId(document.cloudId)
         require(Instant.parse(document.updateTime) <= readTime)
         val version = document.number("schemaVersion")
-        require(version in 1L..4L)
+        require(version in 1L..5L)
         require(version != 3L || document.type in setOf(SyncEntityType.PACKAGE_TYPE, SyncEntityType.STUDENT_PACKAGE))
         require(version != 4L || document.type == SyncEntityType.STUDENT_PACKAGE)
+        require(version != 5L || document.type == SyncEntityType.PACKAGE_TYPE)
+        require("isArchived" !in document.fields || version == 5L)
+        document.isArchivedPackageType()
         require("validityExtensions" !in document.fields || version == 4L)
         require(document.type != SyncEntityType.CLASS_SCHEDULE || version == 2L)
         require("scheduleIds" !in document.fields || document.type == SyncEntityType.STUDENT_GROUP && version == 2L)
@@ -112,6 +115,7 @@ internal fun mapCloudSnapshot(
             it.validityWeeks(),
             it.int("price"),
             it.int("maxVisitsPerAttendance"),
+            isArchived = it.isArchivedPackageType(),
         )
     }
     val students = documents.live(SyncEntityType.STUDENT).map {

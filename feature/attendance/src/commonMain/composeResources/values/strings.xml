@@ -119,4 +119,14 @@
     <string name="schedule_shared_hint">Students on the same weekly schedule attend the same classes.</string>
     <string name="schedule_starts_on">Schedule starts on: %1$s</string>
     <string name="registration_schedule">Schedule</string>
+    <string name="manage_packages">Manage Packages</string>
+    <string name="manage_packages_empty">No package templates yet.</string>
+    <string name="manage_packages_terms">%1$s classes · %2$s</string>
+    <string name="manage_packages_weeks">%1$s weeks</string>
+    <string name="manage_packages_one_week">1 week</string>
+    <string name="package_delete_action">Delete %1$s</string>
+    <string name="package_delete_button">Delete package</string>
+    <string name="package_delete_title">Delete package?</string>
+    <string name="package_delete_confirmation">Remove “%1$s” from registration and renewal. Existing purchases and attendance history will be kept.</string>
+    <string name="package_delete_failed">Couldn’t delete the package. Try again.</string>
 </resources>

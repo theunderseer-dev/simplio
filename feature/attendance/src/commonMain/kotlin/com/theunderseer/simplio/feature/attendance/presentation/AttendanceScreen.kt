@@ -108,10 +108,13 @@ fun AttendanceScreen(
     onClearCreateStudentGroupState: () -> Unit = {},
     reminderSessionId: String? = null,
     onOpenReminder: (String) -> Unit = {},
+    onDeletePackageType: (Int) -> Unit = {},
+    onClearDeletePackageTypeState: () -> Unit = {},
     additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
     var showPackageDialog by remember { mutableStateOf(false) }
     var showManageGroups by remember { mutableStateOf(false) }
+    var showManagePackages by remember { mutableStateOf(false) }
     var showGroupDialog by remember { mutableStateOf(false) }
 
     var showRegistrationDialog by remember {
@@ -142,6 +145,7 @@ fun AttendanceScreen(
             val canOpenReminder = state.classAttendanceState == ClassAttendanceUiState.Closed &&
                 !showPackageDialog &&
                 !showManageGroups &&
+                !showManagePackages &&
                 !showGroupDialog &&
                 !showRegistrationDialog &&
                 deleteStudentDialog == null &&
@@ -166,6 +170,18 @@ fun AttendanceScreen(
                     {
                         onClearDeleteStudentGroupState()
                         showManageGroups = false
+                    },
+                )
+            }
+            if (showManagePackages) {
+                PackageTypeManagementDialog(
+                    packageTypes = state.packageTypes,
+                    deletion = state.deletePackageTypeState,
+                    onDelete = onDeletePackageType,
+                    onClear = onClearDeletePackageTypeState,
+                    onClose = {
+                        onClearDeletePackageTypeState()
+                        showManagePackages = false
                     },
                 )
             }
@@ -247,6 +263,10 @@ fun AttendanceScreen(
                         showPackageDialog = true
                     },
                     additionalOptions = additionalOptions,
+                    onManagePackagesClick = {
+                        onClearDeletePackageTypeState()
+                        showManagePackages = true
+                    },
                     onManageGroupsClick = {
                         onClearDeleteStudentGroupState()
                         showManageGroups = true
@@ -582,6 +602,7 @@ private fun AttendanceContent(
     onAddStudentClick: () -> Unit,
     onAddGroupClick: () -> Unit,
     onManageGroupsClick: () -> Unit,
+    onManagePackagesClick: () -> Unit,
     additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)?,
     onAddPackageClick: () -> Unit,
     onDeleteStudentClick: (Int) -> Unit,
@@ -742,7 +763,11 @@ private fun AttendanceContent(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SimplioOutlinedButton(onClick = onAddPackageClick) { Text(stringResource(Res.string.add_package)) }
-                    StudentGroupOptions(onManageGroupsClick, additionalOptions)
+                    StudentGroupOptions(
+                        onManage = onManageGroupsClick,
+                        additionalOptions = additionalOptions,
+                        onManagePackages = onManagePackagesClick,
+                    )
                 }
             }
         }

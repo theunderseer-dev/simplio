@@ -82,11 +82,13 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
     private val nameCollisions = device.values.filter {
         it.type in setOf(SyncEntityType.STUDENT_GROUP, SyncEntityType.PACKAGE_TYPE) &&
             !it.isDeleted &&
+            !it.isArchivedPackageType() &&
             deviceGroups[it.key] in originalGroups
     }.mapNotNull { localGroup ->
         val remote = server.values.firstOrNull {
             it.type == localGroup.type &&
                 !it.isDeleted &&
+                !it.isArchivedPackageType() &&
                 it.key != localGroup.key &&
                 normalizedGroupName(it.string("name")) == normalizedGroupName(localGroup.string("name"))
         }
@@ -129,7 +131,8 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
                 ).type == SyncEntityType.PACKAGE_TYPE,
             unavailablePackageNames = if (group in nameCollisions) {
                 (device.values + server.values)
-                    .filter { it.type == SyncEntityType.PACKAGE_TYPE && !it.isDeleted }.map { it.string("name") }
+                    .filter { it.type == SyncEntityType.PACKAGE_TYPE && !it.isDeleted && !it.isArchivedPackageType() }
+                    .map { it.string("name") }
             } else {
                 emptyList()
             },
@@ -192,6 +195,7 @@ internal class ConflictPlan(val local: ConflictLocalSnapshot, val cloud: Attenda
                     it.key != desired.key &&
                         it.type == desired.type &&
                         !it.isDeleted &&
+                        !it.isArchivedPackageType() &&
                         normalizedGroupName(it.string("name")) == normalizedGroupName(desired.string("name"))
                 },
             )

@@ -150,7 +150,8 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
                                 it.totalClasses == plan.totalClasses &&
                                 it.validityWeeks == plan.validityWeeks &&
                                 it.price == plan.price &&
-                                it.maxVisitsPerAttendance == plan.maxVisitsPerAttendance
+                                it.maxVisitsPerAttendance == plan.maxVisitsPerAttendance &&
+                                !it.isArchived
                         }
                 }
                 else -> false
