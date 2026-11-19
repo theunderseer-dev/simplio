@@ -61,6 +61,13 @@ All paths are relative to `~/Library/Application Support/Simplio/`:
 The digest and ownership record are local routing metadata, not an authorization mechanism.
 Firestore Security Rules must independently enforce the authenticated UID for every cloud request.
 
+## Saved sign-in on macOS
+
+In the packaged macOS app, **Remember me on this Mac** saves the Firebase UID and refresh token in Keychain.
+Automatic restore, background token refresh, and their cleanup use non-interactive Keychain access.
+If Keychain blocks automatic restore, Simplio shows the sign-in form with an option to try again.
+Explicit sign-in and sign-out can still prompt for the Keychain access they need.
+
 ## Alternatives
 
 Adding an owner column to every table is also valid, but would require changing all existing keys,

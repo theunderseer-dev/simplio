@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.time.Duration.Companion.seconds
@@ -124,7 +125,8 @@ class FirebaseSessionManagerTest {
     fun `invalid refresh token clears session`() = runTest {
         val api = FakeAuthApi()
         val timeSource = TestTimeSource()
-        val manager = FirebaseSessionManager(api, timeSource)
+        val store = FakeSessionStore()
+        val manager = FirebaseSessionManager(api, timeSource, store)
 
         api.refreshHandler = {
             throw FirebaseAuthException(
@@ -133,7 +135,7 @@ class FirebaseSessionManagerTest {
             )
         }
 
-        manager.signIn("owner@example.com", "test-password")
+        manager.signIn("owner@example.com", "test-password", rememberSession = true)
         timeSource += 3_540.seconds
 
         assertFailsWith<FirebaseAuthException> {
@@ -141,6 +143,41 @@ class FirebaseSessionManagerTest {
         }
 
         assertNull(manager.session.value)
+        assertNull(store.saved)
+        assertEquals(listOf(false), store.clearInteractions)
+    }
+
+    @Test
+    fun `invalid background refresh still requires sign-in when Keychain cleanup fails`() = runTest {
+        val authError = FirebaseAuthException(statusCode = 400, requiresSignIn = true)
+        val api = FakeAuthApi().apply { refreshHandler = { throw authError } }
+        val timeSource = TestTimeSource()
+        val store = FakeSessionStore()
+        val manager = FirebaseSessionManager(api, timeSource, store)
+        manager.signIn("owner@example.com", "test-password", rememberSession = true)
+        store.failClear = true
+        timeSource += 3_540.seconds
+
+        val failure = assertFailsWith<FirebaseAuthException> { manager.getValidSession() }
+        assertSame(authError, failure)
+        assertIs<FirebaseSessionStorageException>(failure.suppressedExceptions.single())
+        assertNull(manager.session.value)
+        assertEquals(listOf(false), store.clearInteractions)
+    }
+
+    @Test
+    fun `background refresh keeps the live session when saving would require interaction`() = runTest {
+        val timeSource = TestTimeSource()
+        val store = FakeSessionStore()
+        val manager = FirebaseSessionManager(FakeAuthApi(), timeSource, store)
+        manager.signIn("owner@example.com", "test-password", rememberSession = true)
+        store.requireInteractionForWrite = true
+        timeSource += 3_540.seconds
+
+        assertSame(refreshedSession, manager.getValidSession())
+        assertSame(refreshedSession, manager.session.value)
+        assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
+        assertEquals(listOf(true, false), store.writeInteractions)
     }
 
     @Test
@@ -189,10 +226,26 @@ class FirebaseSessionManagerTest {
         )
         assertEquals(listOf(initialSession.refreshToken), api.requestedRefreshTokens)
         assertEquals(refreshedSession.refreshToken, store.saved?.refreshToken)
+        assertEquals(listOf(true, false), store.writeInteractions)
 
         restarted.signOut()
         assertNull(restarted.session.value)
         assertNull(FirebaseSessionManager(api, sessionStore = store).restoreSession())
+        assertEquals(listOf(true), store.clearInteractions)
+    }
+
+    @Test
+    fun `restore leaves sign-in available when saving would require interaction`() = runTest {
+        val store = FakeSessionStore().apply {
+            saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
+            requireInteractionForWrite = true
+        }
+        val manager = FirebaseSessionManager(FakeAuthApi(), sessionStore = store)
+
+        assertFailsWith<FirebaseSessionStorageException> { manager.restoreSession() }
+        assertNull(manager.session.value)
+        assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
+        assertEquals(listOf(false), store.writeInteractions)
     }
 
     @Test
@@ -204,6 +257,7 @@ class FirebaseSessionManagerTest {
 
         assertSame(initialSession, manager.session.value)
         assertNull(store.saved)
+        assertEquals(listOf(true), store.clearInteractions)
     }
 
     @Test
@@ -220,6 +274,7 @@ class FirebaseSessionManagerTest {
         api.refreshHandler = { throw FirebaseAuthException(400, requiresSignIn = true) }
         assertNull(manager.restoreSession())
         assertNull(store.saved)
+        assertEquals(listOf(false), store.clearInteractions)
     }
 
     @Test
@@ -231,6 +286,7 @@ class FirebaseSessionManagerTest {
         assertNull(manager.restoreSession())
         assertNull(manager.session.value)
         assertNull(store.saved)
+        assertEquals(listOf(false), store.clearInteractions)
     }
 
     @Test
@@ -272,14 +328,20 @@ class FirebaseSessionManagerTest {
     private class FakeSessionStore : FirebaseSessionStore {
         var saved: RememberedFirebaseSession? = null
         var failClear = false
+        var requireInteractionForWrite = false
+        val writeInteractions = mutableListOf<Boolean>()
+        val clearInteractions = mutableListOf<Boolean>()
 
         override suspend fun read(): RememberedFirebaseSession? = saved
 
-        override suspend fun write(session: RememberedFirebaseSession) {
+        override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
+            writeInteractions += allowUserInteraction
+            if (requireInteractionForWrite && !allowUserInteraction) throw FirebaseSessionStorageException()
             saved = session
         }
 
-        override suspend fun clear() {
+        override suspend fun clear(allowUserInteraction: Boolean) {
+            clearInteractions += allowUserInteraction
             if (failClear) throw FirebaseSessionStorageException()
             saved = null
         }

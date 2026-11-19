@@ -13,22 +13,23 @@ internal class MacFirebaseSessionStore private constructor(private val projectId
         val bytes = keychain { readItem(projectId) } ?: return@withContext null
         val parts = bytes.decodeToString().split('\n', limit = 2)
         if (parts.size != 2 || parts.any { it.isBlank() }) {
-            keychain { clearItem(projectId) }
+            keychain { clearItem(projectId, allowUserInteraction = false) }
             return@withContext null
         }
         RememberedFirebaseSession(parts[0], parts[1])
     }
 
-    override suspend fun write(session: RememberedFirebaseSession) {
+    override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
         withContext(Dispatchers.IO) {
             check('\n' !in session.userId)
-            keychain { writeItem(projectId, (session.userId + "\n" + session.refreshToken).encodeToByteArray()) }
+            val data = (session.userId + "\n" + session.refreshToken).encodeToByteArray()
+            keychain { writeItem(projectId, data, allowUserInteraction) }
         }
     }
 
-    override suspend fun clear() {
+    override suspend fun clear(allowUserInteraction: Boolean) {
         withContext(Dispatchers.IO) {
-            keychain { clearItem(projectId) }
+            keychain { clearItem(projectId, allowUserInteraction) }
         }
     }
 
@@ -41,8 +42,8 @@ internal class MacFirebaseSessionStore private constructor(private val projectId
     }
 
     private external fun readItem(projectId: String): ByteArray?
-    private external fun writeItem(projectId: String, data: ByteArray)
-    private external fun clearItem(projectId: String)
+    private external fun writeItem(projectId: String, data: ByteArray, allowUserInteraction: Boolean)
+    private external fun clearItem(projectId: String, allowUserInteraction: Boolean)
 
     companion object {
         fun open(projectId: String): MacFirebaseSessionStore? {
