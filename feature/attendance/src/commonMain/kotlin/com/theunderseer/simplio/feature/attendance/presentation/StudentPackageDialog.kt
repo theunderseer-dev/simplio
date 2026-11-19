@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -36,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +53,7 @@ import com.theunderseer.simplio.feature.attendance.resources.registration_select
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.components.simplioClickable
+import com.theunderseer.simplio.shared.presentation.components.simplioToggleable
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -286,14 +285,12 @@ internal fun StudentPackageDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = 48.dp)
-                            .toggleable(
-                                value = recordFirstAttendance,
+                            .simplioToggleable(
+                                checked = recordFirstAttendance,
                                 enabled = !isSaving && !attendanceAlreadyRecorded,
-                                role = Role.Checkbox,
-                                onValueChange = {
-                                    wantsFirstAttendance = it
-                                },
-                            ),
+                                onValueChange = { wantsFirstAttendance = it },
+                            )
+                            .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(

@@ -16,6 +16,9 @@ interface SyncDao {
     @Query("SELECT * FROM sync_records WHERE entityType = :entityType AND localId = :localId")
     suspend fun getRecord(entityType: SyncEntityType, localId: String): SyncRecordEntity?
 
+    @Query("SELECT * FROM sync_records WHERE entityType = :entityType AND cloudId = :cloudId")
+    suspend fun getRecordByCloudId(entityType: SyncEntityType, cloudId: String): SyncRecordEntity?
+
     @Upsert
     suspend fun saveRecord(record: SyncRecordEntity)
 

@@ -169,13 +169,14 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
                     }
                 }
                 SyncEntityType.PACKAGE_TYPE -> {
-                    val row = database.packageTypeDao().getAll().single { it.id.toString() == change.localId }
+                    val row = checkNotNull(database.packageTypeDao().getById(change.localId.toInt()))
                     buildJsonObject {
                         put("name", FirestoreUploadProtocol.string(row.name))
                         put("totalClasses", FirestoreUploadProtocol.integer(row.totalClasses))
                         put("validityWeeks", FirestoreUploadProtocol.nullableInteger(row.validityWeeks))
                         put("price", FirestoreUploadProtocol.integer(row.price))
                         put("maxVisitsPerAttendance", FirestoreUploadProtocol.integer(row.maxVisitsPerAttendance))
+                        if (row.isArchived) put("isArchived", FirestoreUploadProtocol.boolean(true))
                     }
                 }
                 SyncEntityType.STUDENT -> {
@@ -254,7 +255,9 @@ class RoomUploadStore(private val database: AttendanceDatabase) {
             put(
                 "schemaVersion",
                 FirestoreUploadProtocol.integer(
-                    if ("validityExtensions" in businessFields) {
+                    if ("isArchived" in businessFields) {
+                        5
+                    } else if ("validityExtensions" in businessFields) {
                         4
                     } else if ("validityWeeks" in businessFields &&
                         businessFields["validityWeeks"] ==

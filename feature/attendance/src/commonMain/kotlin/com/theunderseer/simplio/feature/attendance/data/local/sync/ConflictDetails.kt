@@ -54,6 +54,7 @@ internal fun conflictDetails(rows: List<AttendanceCloudDocument>, all: List<Atte
     }
     live.filter { it.type == SyncEntityType.PACKAGE_TYPE }.forEach {
         result += "Package: ${it.string("name")} · Classes: ${it.integer("totalClasses")}"
+        if (it.isArchivedPackageType()) result += "Removed from package list"
         result +=
             "Price: ${it.integer("price")} · Validity: ${it.validityWeeks()?.let { weeks -> "$weeks weeks" } ?: "—"}"
         result += "People per class: ${it.integer("maxVisitsPerAttendance")}"

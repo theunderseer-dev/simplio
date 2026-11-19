@@ -10,7 +10,7 @@ internal val testUploadTarget = UploadTarget("test-project", "owner")
 internal val testServerVersion = "2026-10-19T12:00:00.123456Z"
 
 // Expected transport contract, deliberately independent of the production version constant.
-internal const val TEST_UPLOAD_PROTOCOL_VERSION = 7
+internal const val TEST_UPLOAD_PROTOCOL_VERSION = 8
 
 internal fun testUploadAcknowledgement(snapshot: UploadSnapshot) = UploadAcknowledgement(
     documentUpdateTimes = List(snapshot.documents.size) { testServerVersion },
