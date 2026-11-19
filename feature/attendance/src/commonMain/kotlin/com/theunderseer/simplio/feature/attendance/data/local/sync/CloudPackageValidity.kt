@@ -2,6 +2,7 @@ package com.theunderseer.simplio.feature.attendance.data.local.sync
 
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudDocument
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -9,7 +10,7 @@ import kotlinx.serialization.json.jsonPrimitive
 internal fun AttendanceCloudDocument.validityWeeks(): Int? {
     val value = fields.getValue("validityWeeks").jsonObject
     if ("nullValue" in value) {
-        require(integer("schemaVersion") in 3L..4L && value.size == 1 && value["nullValue"] == JsonNull)
+        require(integer("schemaVersion") in 3L..5L && value.size == 1 && value["nullValue"] == JsonNull)
         return null
     }
     val weeks = integer("validityWeeks")
@@ -35,4 +36,16 @@ internal fun AttendanceCloudDocument.validityExtensions(): Map<String, Int> {
     require(grants.values.sumOf { it.toLong() } <= Int.MAX_VALUE)
     require(grants.isEmpty() || validityWeeks() != null)
     return grants
+}
+
+internal fun AttendanceCloudDocument.isArchivedPackageType(): Boolean {
+    if (type != SyncEntityType.PACKAGE_TYPE) return false
+    val field = fields["isArchived"]
+    val archived = integer("schemaVersion") == 5L
+    if (archived) {
+        require(!isDeleted && field?.jsonObject == mapOf("booleanValue" to JsonPrimitive(true)))
+    } else {
+        require(field == null)
+    }
+    return archived
 }

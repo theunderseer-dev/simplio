@@ -7,10 +7,11 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.PackageType
 
 class RoomPackageTypeRepository(private val packageTypeDao: PackageTypeDao) : PackageTypeRepository {
     override suspend fun getAll(): List<PackageType> = packageTypeDao
-        .getAll()
+        .getActive()
         .map { it.toDomain() }
 
     override suspend fun getById(id: Int): PackageType? = packageTypeDao
         .getById(id)
+        ?.takeUnless { it.isArchived }
         ?.toDomain()
 }

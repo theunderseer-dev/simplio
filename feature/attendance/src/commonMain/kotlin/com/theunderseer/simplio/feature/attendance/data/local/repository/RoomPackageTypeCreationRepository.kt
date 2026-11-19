@@ -16,7 +16,7 @@ class RoomPackageTypeCreationRepository(private val database: AttendanceDatabase
         RoomSyncJournal.write(database) { journal ->
             packageTypeValidation(request)?.let { return@write CreatePackageTypeResult.Invalid(it) }
             val dao = database.packageTypeDao()
-            if (dao.getAll().any { normalizedPackageName(it.name) == normalizedPackageName(request.name) }) {
+            if (dao.getActive().any { normalizedPackageName(it.name) == normalizedPackageName(request.name) }) {
                 return@write CreatePackageTypeResult.DuplicateName
             }
             val entity = PackageTypeEntity(

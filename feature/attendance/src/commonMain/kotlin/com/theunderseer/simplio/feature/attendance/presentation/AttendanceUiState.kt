@@ -34,10 +34,13 @@ sealed interface AttendanceUiState {
         val classAttendanceState: ClassAttendanceUiState = ClassAttendanceUiState.Closed,
         val deleteStudentGroupState: DeleteStudentGroupUiState = DeleteStudentGroupUiState.Idle,
         val registerStudentState: RegisterStudentUiState = RegisterStudentUiState.Idle,
+        val deletePackageTypeState: DeletePackageTypeUiState = DeletePackageTypeUiState.Idle,
     ) : AttendanceUiState
 
     data class Error(val message: String) : AttendanceUiState
 }
+
+enum class DeletePackageTypeUiState { Idle, Saving, Deleted, Failed }
 
 sealed interface RegisterStudentUiState {
     data object Idle : RegisterStudentUiState

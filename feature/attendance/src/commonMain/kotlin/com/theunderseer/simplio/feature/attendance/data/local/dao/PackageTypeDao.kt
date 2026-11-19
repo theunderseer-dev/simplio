@@ -19,6 +19,12 @@ interface PackageTypeDao {
     )
     suspend fun getAll(): List<PackageTypeEntity>
 
+    @Query("SELECT * FROM package_types WHERE isArchived = 0 ORDER BY id")
+    suspend fun getActive(): List<PackageTypeEntity>
+
+    @Query("UPDATE package_types SET isArchived = 1 WHERE id = :id AND isArchived = 0")
+    suspend fun archive(id: Int): Int
+
     @Query(
         """
         SELECT *

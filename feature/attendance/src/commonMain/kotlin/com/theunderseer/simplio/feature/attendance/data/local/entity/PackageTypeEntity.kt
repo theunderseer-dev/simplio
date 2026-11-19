@@ -15,4 +15,7 @@ data class PackageTypeEntity(
 
     @ColumnInfo(defaultValue = "1")
     val maxVisitsPerAttendance: Int = 1,
+
+    @ColumnInfo(defaultValue = "0")
+    val isArchived: Boolean = false,
 )
