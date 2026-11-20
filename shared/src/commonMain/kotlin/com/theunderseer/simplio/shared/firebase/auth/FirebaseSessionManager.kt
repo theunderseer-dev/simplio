@@ -45,7 +45,7 @@ class FirebaseSessionManager(
         val requestStartedAt = timeSource.markNow()
         val candidate = authApi.signIn(email, password)
         validate(candidate)
-        return activate(candidate, requestStartedAt, operationRevision, rememberSession)
+        return activate(candidate, requestStartedAt, operationRevision, rememberSession, allowUserInteraction = true)
     }
 
     suspend fun restoreSession(validate: suspend (FirebaseSession) -> Unit = {}): FirebaseSession? {
@@ -70,13 +70,19 @@ class FirebaseSessionManager(
             return null
         }
         validate(candidate)
-        return activate(candidate, requestStartedAt, operationRevision, rememberSession = true)
+        return activate(
+            candidate,
+            requestStartedAt,
+            operationRevision,
+            rememberSession = true,
+            allowUserInteraction = false,
+        )
     }
 
     suspend fun signOut() {
         stateMutex.withLock {
             withContext(NonCancellable) {
-                sessionStore?.clear()
+                sessionStore?.clear(allowUserInteraction = true)
                 clearSession()
             }
         }
@@ -84,7 +90,7 @@ class FirebaseSessionManager(
 
     private suspend fun forgetFailedRestore(operationRevision: Long) {
         stateMutex.withLock {
-            if (revision == operationRevision) sessionStore?.clear()
+            if (revision == operationRevision) sessionStore?.clear(allowUserInteraction = false)
         }
     }
 
@@ -93,6 +99,7 @@ class FirebaseSessionManager(
         requestStartedAt: TimeMark,
         operationRevision: Long,
         rememberSession: Boolean,
+        allowUserInteraction: Boolean,
     ): FirebaseSession = stateMutex.withLock {
         currentCoroutineContext().ensureActive()
         if (revision != operationRevision) throw CancellationException("Authentication state changed")
@@ -101,9 +108,9 @@ class FirebaseSessionManager(
         val store = sessionStore
         if (store != null) {
             if (rememberSession) {
-                store.write(RememberedFirebaseSession(candidate.userId, candidate.refreshToken))
+                store.write(RememberedFirebaseSession(candidate.userId, candidate.refreshToken), allowUserInteraction)
             } else {
-                store.clear()
+                store.clear(allowUserInteraction)
             }
         }
         remembered = rememberSession && store != null
@@ -138,7 +145,13 @@ class FirebaseSessionManager(
                         if (isCurrent(snapshot)) {
                             val shouldForget = remembered
                             clearSession()
-                            if (shouldForget) sessionStore?.clear()
+                            if (shouldForget) {
+                                try {
+                                    sessionStore?.clear(allowUserInteraction = false)
+                                } catch (storageError: FirebaseSessionStorageException) {
+                                    error.addSuppressed(storageError)
+                                }
+                            }
                         }
                     }
                 }
@@ -161,6 +174,7 @@ class FirebaseSessionManager(
                     try {
                         sessionStore?.write(
                             RememberedFirebaseSession(refreshedSession.userId, refreshedSession.refreshToken),
+                            allowUserInteraction = false,
                         )
                     } catch (_: FirebaseSessionStorageException) {
                         // Keep the valid in-memory session if Keychain is temporarily unavailable.

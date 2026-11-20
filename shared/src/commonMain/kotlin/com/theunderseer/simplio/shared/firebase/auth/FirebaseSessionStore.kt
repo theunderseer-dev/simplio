@@ -1,9 +1,10 @@
 package com.theunderseer.simplio.shared.firebase.auth
 
 interface FirebaseSessionStore {
+    /** Reads saved credentials without prompting the user. */
     suspend fun read(): RememberedFirebaseSession?
-    suspend fun write(session: RememberedFirebaseSession)
-    suspend fun clear()
+    suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean)
+    suspend fun clear(allowUserInteraction: Boolean)
 }
 
 class RememberedFirebaseSession(val userId: String, val refreshToken: String)

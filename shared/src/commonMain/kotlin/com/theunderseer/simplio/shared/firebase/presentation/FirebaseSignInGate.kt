@@ -90,6 +90,9 @@ fun FirebaseSignInGate(
             throw error
         } catch (_: VerificationRequired) {
             errorMessage = "Please sign in again to confirm your email."
+        } catch (_: FirebaseSessionStorageException) {
+            restoreFailed = true
+            errorMessage = "Couldn't access your saved sign-in in Keychain. Try again or sign in with your password."
         } catch (_: Exception) {
             restoreFailed = true
             errorMessage = "Couldn't restore your sign-in. Try again or sign in with your password."
