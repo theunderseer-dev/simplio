@@ -2,10 +2,12 @@ package com.theunderseer.simplio.feature.attendance.domain.schedule
 
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.LocalDate as JavaDate
+import kotlin.time.Instant as KotlinInstant
 
 internal actual fun scheduleOverlapProbeDates(first: ClassSchedule, second: ClassSchedule): Sequence<LocalDate> =
     sequence {
@@ -34,25 +36,16 @@ internal actual fun scheduleOverlapProbeDates(first: ClassSchedule, second: Clas
             maxOf(lower, lastDefined).plusSeconds(15L * 86400)
         }
         val upper = listOfNotNull(first.end(firstZone), second.end(secondZone), completeCycleEnd).min()
-        if (lower >= upper) return@sequence
-        var lastDate: JavaDate? = null
-        suspend fun SequenceScope<LocalDate>.probe(at: Instant) {
-            var date = at.atZone(firstZone).toLocalDate().minusDays(1)
-            val last = minOf(date.plusDays(15), upper.atZone(firstZone).toLocalDate().plusDays(1))
-            while (date <= last) {
-                if (lastDate?.let { date > it } != false) {
-                    yield(LocalDate.fromEpochDays(date.toEpochDay()))
-                    lastDate = date
-                }
-                date = date.plusDays(1)
-            }
-        }
-        probe(lower)
-        var cursor = lower
-        while (true) {
-            val transition = zones.mapNotNull { it.rules.nextTransition(cursor)?.instant }.minOrNull() ?: break
-            if (transition >= upper) break
-            probe(transition)
-            cursor = transition
-        }
+        yieldAll(
+            scheduleProbeWindows(
+                TimeZone.of(first.timeZoneId),
+                lower.toKotlinInstant(),
+                upper.toKotlinInstant(),
+            ) { cursor ->
+                val after = Instant.ofEpochSecond(cursor.epochSeconds, cursor.nanosecondsOfSecond.toLong())
+                zones.mapNotNull { it.rules.nextTransition(after)?.instant }.minOrNull()?.toKotlinInstant()
+            },
+        )
     }
+
+private fun Instant.toKotlinInstant(): KotlinInstant = KotlinInstant.fromEpochSeconds(epochSecond, nano)

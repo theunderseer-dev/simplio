@@ -19,3 +19,4 @@ captures
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 /desktopApp/src/desktopMain/resources/firebase.properties
+/iosApp/Firebase.local.xcconfig

@@ -8,6 +8,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.mapper.toDomain
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudHead
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceCloudSnapshot
+import com.theunderseer.simplio.feature.attendance.data.sync.AttendancePullRemote
 import com.theunderseer.simplio.feature.attendance.data.sync.PullAction
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadPreparationFailure
 import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
@@ -25,6 +26,11 @@ class RoomPullStore(private val database: AttendanceDatabase, private val target
 
     fun observeWork(): Flow<Boolean> = uploads.observeWork()
     suspend fun retry() = uploads.retry()
+
+    internal suspend fun refreshFrom(remote: AttendancePullRemote) {
+        val head = remote.readHead()
+        if (plan(head) == PullAction.DOWNLOAD) apply(remote.readSnapshot(head))
+    }
 
     suspend fun mustRecoverBatch(): Boolean = transactions.run {
         checkTarget()

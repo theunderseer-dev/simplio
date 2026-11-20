@@ -2,10 +2,10 @@
 
 ## Overview
 
-Simplio is a modular Kotlin Multiplatform desktop application built around
+Simplio is a modular Kotlin Multiplatform application built around
 independent automation features.
 
-The initial target is macOS Desktop using Compose Multiplatform.
+The macOS Desktop and iOS apps use Compose Multiplatform.
 
 The architecture is intentionally developed incrementally from behavioral
 requirements rather than fully designed upfront.
@@ -17,6 +17,9 @@ Simplio
 │
 ├── desktopApp
 │   └── Desktop application shell and feature composition
+│
+├── iosApp
+│   └── Xcode application shell and Kotlin/Native composition
 │
 ├── feature
 │   └── attendance
@@ -44,6 +47,13 @@ Feature-specific business rules should not live here.
 For Attendance, `desktopApp` currently owns the application composition root,
 provides the macOS database path, initializes default package types, and closes
 the feature database when the application exits.
+
+### iosApp
+
+Owns the iOS entry point, Xcode settings, Firebase client configuration, and
+composition of the signed-in attendance screen. The feature owns the list and
+its data flow. See [iOS attendance](architecture/ios-attendance.md) for the
+read-only workflow and how to run it.
 
 ### feature:attendance
 
@@ -78,6 +88,9 @@ commonMain
 
 desktopMain
 └── file-backed AttendanceDatabase creation
+
+iosMain
+└── read-only attendance session with an in-memory AttendanceDatabase
 ```
 
 `commonTest` contains platform-independent behavior and persistence integration
@@ -107,7 +120,7 @@ On macOS, Simplio stores its database under:
 ~/Library/Application Support/Simplio/simplio.db
 ```
 
-The current dependency and composition flow is:
+The macOS dependency and composition flow is:
 
 ```text
 desktopApp
@@ -127,7 +140,7 @@ accessing DAOs or the database directly.
 The current module dependency direction is:
 
 ```text
-desktopApp
+desktopApp / iosApp
     ↓
 feature:attendance
     ↓

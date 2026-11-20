@@ -1,0 +1,61 @@
+package com.theunderseer.simplio.ios
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.ComposeUIViewController
+import com.theunderseer.simplio.feature.attendance.presentation.IosAttendanceHome
+import com.theunderseer.simplio.shared.firebase.FirebaseConfig
+import com.theunderseer.simplio.shared.firebase.FirestoreAccessChecker
+import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
+import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
+import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
+import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
+import kotlinx.coroutines.launch
+import platform.UIKit.UIViewController
+
+fun makeAppController(apiKey: String, projectId: String): UIViewController = ComposeUIViewController {
+    SimplioTheme {
+        Surface(Modifier.fillMaxSize()) {
+            if (apiKey.isBlank() || projectId.isBlank()) {
+                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Text("Set the Firebase project ID and API key in Firebase.local.xcconfig to sign in.")
+                }
+            } else {
+                SignedInAttendance(FirebaseConfig(apiKey, projectId))
+            }
+        }
+    }
+}
+
+@Suppress("FunctionNaming") // Compose UI functions use PascalCase.
+@Composable
+private fun SignedInAttendance(config: FirebaseConfig) {
+    val http = remember(config) { createFirebaseHttpClient() }
+    DisposableEffect(http) { onDispose { http.close() } }
+    val auth = remember(http, config) { FirebaseAuthClient(http, config) }
+    val sessions = remember(auth) { FirebaseSessionManager(auth) }
+    val access = remember(http, config, sessions) { FirestoreAccessChecker(http, config, sessions) }
+    val scope = rememberCoroutineScope()
+
+    FirebaseSignInGate(sessions, access, auth) { session ->
+        key(session.userId) {
+            val client = remember(session.userId, sessions) {
+                FirestoreRestClient(http, config, sessions, userId = session.userId)
+            }
+            IosAttendanceHome(client, onSignOut = { scope.launch { sessions.signOut() } })
+        }
+    }
+}

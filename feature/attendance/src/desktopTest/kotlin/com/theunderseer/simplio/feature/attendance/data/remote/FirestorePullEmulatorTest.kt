@@ -3,6 +3,7 @@ package com.theunderseer.simplio.feature.attendance.data.remote
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
+import com.theunderseer.simplio.feature.attendance.data.local.sync.CloudAttendanceRoster
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomUploadStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
@@ -26,6 +27,29 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class FirestorePullEmulatorTest {
+    @Test
+    fun `read-only roster imports the current purchase through the Firestore client`() = runTest {
+        withFirestoreEmulator { client, target ->
+            withSyncDatabases { source, mobile ->
+                val registered = source.registerSyncStudent(packageType = AttendanceTestData.duoSpecialPackage)
+                val uploader = AttendanceUploadCoordinator(
+                    RoomUploadStore(source),
+                    FirestoreAttendanceUploadRemote(client),
+                    target,
+                )
+                repeat(4) { uploader.uploadNext() }
+
+                val roster = CloudAttendanceRoster(mobile, target, FirestoreAttendancePullRemote(client)).getAll()
+                val row = roster.attendance.entries.single()
+                assertEquals(registered.student.fullName, row.student.fullName)
+                assertEquals(2, row.studentPackage.usedClasses)
+                assertEquals(8, row.studentPackage.packageType.totalClasses)
+                assertEquals(registered.studentPackage.expiresOn, row.studentPackage.expiresOn)
+                assertNull(RoomUploadStore(mobile).prepare(target))
+            }
+        }
+    }
+
     @Test
     fun `two databases exchange notes and attendance deletions without echo uploads`() = runTest {
         withFirestoreEmulator { client, target ->
