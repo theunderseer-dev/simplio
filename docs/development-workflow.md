@@ -2,6 +2,23 @@
 
 Build features through small, complete milestones. Commit each verified milestone rather than accumulating every change until the entire feature is finished.
 
+## Branch naming
+
+Name each new working branch `<type>/<short-description>`. Choose the type by the branch's primary purpose and describe the change in a few lowercase words separated by hyphens. Use a single slash and make the change type the only prefix, including for branches created by automation.
+
+| Type | Primary purpose | Example |
+| --- | --- | --- |
+| `feat` | New capability | `feat/manage-packages` |
+| `fix` | Bug fix | `fix/keychain-startup-prompt` |
+| `refactor` | Code restructuring that preserves behavior | `refactor/koin-di` |
+| `docs` | Documentation | `docs/branch-naming` |
+| `test` | Test coverage | `test/attendance-room-integration` |
+| `chore` | Project maintenance | `chore/code-quality` |
+
+Use more specific types when they fit, such as `build`, `ci`, `perf`, or `style`. Before committing, confirm the current branch matches the task with `git branch --show-current`. When pushing, publish it under the same name and use that branch as the PR head. Choose each commit's type for the change in that commit.
+
+The short, descriptive topic name follows AOSP guidance. Simplio uses its existing type prefixes to make the purpose visible in the branch name. [AOSP Repo command reference](https://source.android.com/docs/setup/reference/repo#start)
+
 ## TDD cycle
 
 1. Define the next milestone, its expected behavior, relevant checks, and intended commit boundary.
@@ -43,6 +60,14 @@ Choose milestone checks based on the affected behavior, consumers, and CI requir
 Before committing, inspect the final staged versions. Running tests in the working directory verifies the working tree, not an arbitrary staged subset. If splitting an accumulated change into intermediate commits, verify each intermediate snapshot separately.
 
 Report which checks were actually run and their results. Do not claim successful verification for checks that were not executed.
+
+### Desktop build before push
+
+For every change that affects the desktop app, follow this order on macOS:
+
+1. Run the relevant tests, ktlint, and detekt locally. Commit after all checks pass.
+2. Immediately after committing, build the committed version from the repository root with `./gradlew :desktopApp:createDistributable`.
+3. Push only after the build succeeds.
 
 ## Collaboration
 
