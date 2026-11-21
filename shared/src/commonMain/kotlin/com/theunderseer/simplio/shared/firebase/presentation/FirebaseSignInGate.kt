@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
@@ -29,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -272,9 +274,18 @@ fun FirebaseSignInGate(
                 }
 
                 if (form == AuthForm.SignIn && sessionManager.canRememberSession) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = rememberMe, onCheckedChange = { rememberMe = it }, enabled = !busy)
-                        Text("Remember me on this Mac")
+                    Row(
+                        modifier = Modifier.toggleable(
+                            value = rememberMe,
+                            enabled = !busy,
+                            role = Role.Checkbox,
+                            onValueChange = { rememberMe = it },
+                        ).padding(vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Checkbox(checked = rememberMe, onCheckedChange = null, enabled = !busy)
+                        Text("Remember me")
                     }
                 }
 
@@ -344,7 +355,7 @@ private fun authError(
     error: Exception,
 ): String {
     if (error is FirebaseSessionStorageException) {
-        return "Couldn't update the saved sign-in. Check access to macOS Keychain and try again."
+        return "Couldn't update the saved sign-in in Keychain. Try again."
     }
     if (checkingCloud) {
         return if ((error as? FirestoreAccessException)?.statusCode == 403) {

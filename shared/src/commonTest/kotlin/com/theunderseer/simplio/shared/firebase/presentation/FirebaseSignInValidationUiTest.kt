@@ -5,6 +5,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +20,9 @@ import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthApi
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStore
+import com.theunderseer.simplio.shared.firebase.auth.RememberedFirebaseSession
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
 import com.theunderseer.simplio.shared.fixtures.InputTestData
 import io.ktor.client.engine.mock.MockEngine
@@ -26,6 +31,7 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.headersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalTestApi::class)
 class FirebaseSignInValidationUiTest {
@@ -41,18 +47,7 @@ class FirebaseSignInValidationUiTest {
                 override suspend fun refreshSession(refreshToken: String): FirebaseSession = error("Not expected")
             })
             val config = FirebaseConfig("test-key", "test-project")
-            val http = createFirebaseHttpClient(
-                MockEngine { request ->
-                    if (request.url.encodedPath == "/v1/accounts:lookup") {
-                        respond(
-                            """{"users":[{"localId":"test-user","emailVerified":true}]}""",
-                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                        )
-                    } else {
-                        respond("{}")
-                    }
-                },
-            )
+            val http = authHttpClient()
             try {
                 val access = FirestoreAccessChecker(http, config, sessions)
                 val accounts = FirebaseAuthClient(http, config)
@@ -73,4 +68,72 @@ class FirebaseSignInValidationUiTest {
                 http.close()
             }
         }
+
+    @Test
+    fun `remember me is opt-in and its label toggles the checkbox after retrying Keychain`() = runComposeUiTest {
+        var saved: RememberedFirebaseSession? = null
+        var readAttempts = 0
+        val store = object : FirebaseSessionStore {
+            override suspend fun read(): RememberedFirebaseSession? {
+                if (++readAttempts == 1) throw FirebaseSessionStorageException()
+                return saved
+            }
+
+            override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
+                saved = session
+            }
+
+            override suspend fun clear(allowUserInteraction: Boolean) {
+                saved = null
+            }
+        }
+        val sessions = FirebaseSessionManager(
+            authApi = object : FirebaseAuthApi {
+                override suspend fun signIn(email: String, password: String) =
+                    FirebaseSession("test-user", "id-token", "refresh-token", 3600)
+
+                override suspend fun refreshSession(refreshToken: String): FirebaseSession = error("Not expected")
+            },
+            sessionStore = store,
+        )
+        val config = FirebaseConfig("test-key", "test-project")
+        val http = authHttpClient()
+        try {
+            val access = FirestoreAccessChecker(http, config, sessions)
+            val accounts = FirebaseAuthClient(http, config)
+            setContent { FirebaseSignInGate(sessions, access, accounts) { Text("Signed-in content") } }
+
+            onNodeWithText("Retry saved sign-in").assertIsDisplayed().performClick()
+            onNodeWithText("Retry saved sign-in").assertDoesNotExist()
+            assertEquals(2, readAttempts)
+            assertNull(saved)
+
+            val remember = onNodeWithText("Remember me")
+            remember.assertIsOff().performClick()
+            remember.assertIsOn()
+            onNodeWithText("Email").performTextInput(InputTestData.email)
+            onNodeWithText("Password").performTextInput(InputTestData.passwordWithSpaces)
+            onNode(hasText("Sign in") and hasClickAction()).performClick()
+            waitUntil(timeoutMillis = 5000) {
+                runCatching { onNodeWithText("Signed-in content").assertIsDisplayed() }.isSuccess
+            }
+            assertEquals("test-user", saved?.userId)
+            assertEquals("refresh-token", saved?.refreshToken)
+        } finally {
+            http.close()
+        }
+    }
+
+    private fun authHttpClient() = createFirebaseHttpClient(
+        MockEngine { request ->
+            if (request.url.encodedPath == "/v1/accounts:lookup") {
+                respond(
+                    """{"users":[{"localId":"test-user","emailVerified":true}]}""",
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            } else {
+                respond("{}")
+            }
+        },
+    )
 }
