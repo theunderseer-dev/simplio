@@ -6,8 +6,6 @@
     <string name="roster_empty">No students yet</string>
     <string name="roster_retry">Try again</string>
     <string name="roster_error">Unable to load attendance.</string>
-    <string name="roster_permission_denied">This account cannot read attendance from the cloud.</string>
-    <string name="roster_sign_in_again">Sign out and sign in again to load attendance.</string>
     <string name="roster_check">Check</string>
     <string name="roster_checked">Checked</string>
     <string name="roster_renew">Renew</string>

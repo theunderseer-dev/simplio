@@ -18,8 +18,6 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.ClassSchedu
 import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeDeletionRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.attendanceSchedulesByGroup
-import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
-import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.DefaultClassSchedule
 import com.theunderseer.simplio.feature.attendance.domain.schedule.ScheduleOverlap
@@ -642,26 +640,16 @@ class AttendanceViewModel(
                     recordFirstAttendance = recordFirstAttendance,
                     note = note,
                 )
-                val message = when (result) {
-                    is RenewStudentPackageResult.Success -> {
-                        refreshAttendance()
-                        loadClassHistory()
-                        renewalState.value = RenewStudentPackageUiState.Success(studentId)
-                        return@launch
-                    }
-                    is RenewStudentPackageResult.ActivePackageExists -> "Student package is still active"
-                    RenewStudentPackageResult.PackageNotFound -> "Student package not found"
-                    RenewStudentPackageResult.StudentNotFound -> "Student not found"
-                    RenewStudentPackageResult.PackageChanged -> {
-                        refreshAttendance()
-                        "Package changed. Close this dialog and review it again."
-                    }
-                    RenewStudentPackageResult.InvalidVisitCount -> "Visit count is not allowed for this package"
-                    RenewStudentPackageResult.AttendanceAlreadyRecorded -> "Attendance already recorded for this date"
-                    is RenewStudentPackageResult.RenewalDateTooEarly ->
-                        "Purchase cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
+                val message = result.errorMessage()
+                if (result is RenewStudentPackageResult.Success || result == RenewStudentPackageResult.PackageChanged) {
+                    refreshAttendance()
                 }
-                renewalState.value = RenewStudentPackageUiState.Error(studentId, message)
+                renewalState.value = if (message == null) {
+                    loadClassHistory()
+                    RenewStudentPackageUiState.Success(studentId)
+                } else {
+                    RenewStudentPackageUiState.Error(studentId, message)
+                }
             } catch (error: CancellationException) {
                 renewalState.value = RenewStudentPackageUiState.Idle
                 throw error
@@ -703,40 +691,14 @@ class AttendanceViewModel(
                         visitCount = visitCount,
                     )
 
-                val errorMessage =
-                    when (result) {
-                        is MarkStudentPresentResult.Success -> {
-                            refreshAttendance()
-                            loadClassHistory()
-                            markAttendanceState.value = MarkStudentPresentUiState.Success
-                            return@launch
-                        }
-
-                        is MarkStudentPresentResult.PackageCompleted ->
-                            "Student package is completed"
-
-                        is MarkStudentPresentResult.PackageExpired ->
-                            "Student package has expired"
-
-                        MarkStudentPresentResult.PackageNotFound ->
-                            "Student package for student $studentId not found"
-
-                        MarkStudentPresentResult.InvalidVisitCount ->
-                            "Visit count is not allowed for this package"
-
-                        MarkStudentPresentResult.InsufficientRemainingVisits ->
-                            "Not enough visits remaining"
-                        MarkStudentPresentResult.AttendanceAlreadyRecorded ->
-                            "Attendance already recorded for this date"
-
-                        is MarkStudentPresentResult.AttendanceDateTooEarly ->
-                            "Attendance cannot be before ${result.earliestAllowedDate.toDisplayDate()}"
-                    }
-
-                markAttendanceState.value =
-                    MarkStudentPresentUiState.Error(
-                        message = errorMessage,
-                    )
+                val message = result.errorMessage(studentId)
+                markAttendanceState.value = if (message == null) {
+                    refreshAttendance()
+                    loadClassHistory()
+                    MarkStudentPresentUiState.Success
+                } else {
+                    MarkStudentPresentUiState.Error(message)
+                }
             } catch (exception: CancellationException) {
                 markAttendanceState.value = MarkStudentPresentUiState.Idle
                 throw exception
@@ -769,19 +731,13 @@ class AttendanceViewModel(
                         attendanceDate = attendanceDate,
                     )
 
-                when (result) {
-                    is RemoveStudentAttendanceResult.Success -> {
-                        refreshAttendance()
-                        loadClassHistory()
-                        removeAttendanceState.value =
-                            RemoveStudentAttendanceUiState.Success
-                    }
-
-                    RemoveStudentAttendanceResult.PackageNotFound ->
-                        removeAttendanceState.value =
-                            RemoveStudentAttendanceUiState.Error(
-                                message = "Student package for student $studentId not found",
-                            )
+                val message = result.errorMessage(studentId)
+                removeAttendanceState.value = if (message == null) {
+                    refreshAttendance()
+                    loadClassHistory()
+                    RemoveStudentAttendanceUiState.Success
+                } else {
+                    RemoveStudentAttendanceUiState.Error(message)
                 }
             } catch (exception: CancellationException) {
                 removeAttendanceState.value = RemoveStudentAttendanceUiState.Idle

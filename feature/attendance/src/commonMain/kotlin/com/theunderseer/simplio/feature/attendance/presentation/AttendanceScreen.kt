@@ -469,31 +469,15 @@ fun AttendanceScreen(
 
             attendanceDatePickerStudentId?.let { studentId ->
                 val registeredStudent = state.attendance.entries.first { it.student.id == studentId }
-                val studentPackage = registeredStudent.studentPackage
-
-                AttendanceDatePickerDialog(
+                val groupId = registeredStudent.student.groupId
+                StudentAttendanceDateDialog(
+                    registeredStudent = registeredStudent,
                     initialDate = state.rows.first { it.registeredStudent.student.id == studentId }.effectiveClassDate
                         ?: state.latestClassDate,
-                    currentDate =
-                    state.groupCurrentDates[
-                        state.attendance.entries.first {
-                            it.student.id == studentId
-                        }.student.groupId,
-                    ]
-                        ?: state.currentDate,
-                    schedules = state.groupSchedules[
-                        state.attendance.entries.first { it.student.id == studentId }.student.groupId,
-                    ],
-                    maxVisitsPerAttendance =
-                    studentPackage.packageType.maxVisitsPerAttendance,
-                    remainingClasses = studentPackage.remainingClasses,
-                    purchasedOn = studentPackage.purchasedOn,
-                    startedOn = studentPackage.startedOn,
-                    expiresOn = studentPackage.expiresOn,
-                    recordedAttendanceDates = registeredStudent.recordedAttendanceDates,
+                    currentDate = state.groupCurrentDates[groupId] ?: state.currentDate,
+                    schedules = state.groupSchedules[groupId],
                     isSaving = markState == MarkStudentPresentUiState.Saving,
-                    errorMessage =
-                    (markState as? MarkStudentPresentUiState.Error)?.message,
+                    errorMessage = (markState as? MarkStudentPresentUiState.Error)?.message,
                     onConfirm = { selectedDate, visitCount ->
                         onMarkStudentPresent(
                             studentId,

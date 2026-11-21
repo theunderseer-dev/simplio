@@ -2,27 +2,30 @@
 
 The iOS app opens the attendance list after Firebase email/password sign-in with a verified
 account. Each student appears once with their latest purchase. The list shows the student or
-pair name, used and total visits, expiration, and a disabled Check, Checked, or Renew control.
-Refresh reads the current cloud data. The screen handles loading, empty accounts, access
-denials, and retry.
+pair name, used and total visits, expiration, and the Check, Checked, or Renew action.
+Check opens the same schedule-aware calendar as Desktop. Checked opens the removal confirmation.
+Renew uses the shared purchase form with an existing package template, an optional first
+attendance, and an optional note. The compact Purchase date field opens a calendar with a
+keyboard-input option. Room changes update the list after each save.
 
 ## Boundaries
 
-- `:iosApp` owns the SwiftUI app, Compose host, Firebase configuration, and the signed-in composition.
+- `:iosApp` owns the SwiftUI app, Compose host, Firebase configuration, and account database paths.
 - `:shared` owns the existing Firebase sign-in and REST clients. The iOS HTTP engine uses Ktor Darwin.
-- `:feature:attendance` owns the read-only session, Room import and queries, roster, and screen state.
-  The desktop and iOS paths use the same verified snapshot import, latest-purchase use case,
-  and Check/Renew calculations, including the schedule time zone and expiration boundary.
+- `:feature:attendance` owns the session, Room import and queries, roster, and screen state.
+  Desktop and iOS share the latest-purchase use case, date rules, dialogs, and use cases
+  for attendance, removal, and renewal.
 
-The first load and each user refresh read the account's Firestore head. A changed head triggers
-the existing bounded, paginated snapshot read at one read time. The shared importer validates the
-snapshot and applies it in a Room transaction. The list reads the imported rows through the same
-repositories used on Desktop. See [Firestore pull](firestore-pull.md).
+The shared coordinator checks the Firestore head at sign-in, on Refresh, and while the device is
+idle. It uses the same bounded snapshot import and durable outbox as Desktop. A save checks the
+reviewed purchase in a Room transaction. The use case updates the visit or purchase and journal
+together. Sync retries and conflict review use the shared status UI. See [Firestore pull](firestore-pull.md)
+and [Student package renewal](package-renewal.md).
 
-The iOS session opens an in-memory Room database for the signed-in account. Leaving the account
-cancels its load and closes the database. Firebase sign-in and the snapshot live for the current
-session. The roster uses the shared attendance clock to update date-dependent states while open.
-The mobile screen is read-only and installs no cloud uploader.
+The iOS app keeps the Room database under its Application Support directory with a path derived
+from the Firebase project ID and account UID. Leaving the account cancels list and sync work
+and closes the database. Saved changes and pending uploads survive closing the app or signing out.
+The roster uses the shared attendance clock to update date-dependent states while open.
 
 ## Xcode setup
 
@@ -51,18 +54,20 @@ terminal to the full Xcode developer directory, such as
 `/Applications/Xcode.app/Contents/Developer`.
 
 ```bash
-./gradlew :feature:attendance:desktopTest --tests '*CloudAttendanceRosterTest' --tests '*AttendanceRosterScreenTest'
-./gradlew :feature:attendance:iosSimulatorArm64Test --tests '*CloudAttendanceRosterTest' --tests '*AttendanceRosterScreenTest'
+./gradlew :feature:attendance:desktopTest --tests '*AttendanceRoster*Test'
+./gradlew :feature:attendance:iosSimulatorArm64Test --tests '*AttendanceRoster*Test'
 xcodebuild -project iosApp/iosApp.xcodeproj -scheme Simplio -configuration Debug \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
 
-Run the signed-in screen in Xcode with a verified test account containing active, expired, and
-prepaid purchases. Check scrolling, both appearance modes, and refresh after a Desktop change.
-Check the same screen with an empty test account.
+Run the signed-in screen with a verified test account containing active, expired, and prepaid
+purchases. Check a class, confirm that the counter updates, and remove the visit with Checked.
+Renew with and without first attendance and verify the purchase, note, and visit count on Desktop
+after sync. Check both appearance modes and an empty account.
 
 See [Apple lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),
+[Apple date picker guidance](https://developer.apple.com/design/human-interface-guidelines/pickers),
 [running on iOS devices](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices),
 [Compose and SwiftUI integration](https://kotlinlang.org/docs/multiplatform/compose-swiftui-integration.html),
 and [Android Developers on Room for KMP](https://developer.android.com/kotlin/multiplatform/room).

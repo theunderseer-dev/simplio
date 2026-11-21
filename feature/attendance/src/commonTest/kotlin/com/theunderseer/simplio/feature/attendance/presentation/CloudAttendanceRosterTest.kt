@@ -1,7 +1,8 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomAttendanceRoster
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
-import com.theunderseer.simplio.feature.attendance.data.local.sync.CloudAttendanceRoster
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.fake.FakeAttendanceCloud
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
@@ -23,8 +24,10 @@ class CloudAttendanceRosterTest {
             val registered = desktop.registerSyncStudent(packageType = AttendanceTestData.duoSpecialPackage)
             val cloud = FakeAttendanceCloud()
             cloud.uploadPending(desktop)
-            val roster = CloudAttendanceRoster(mobile, cloud.target, cloud)
+            val roster = RoomAttendanceRoster(mobile)
+            val pull = RoomPullStore(mobile, cloud.target)
 
+            pull.refreshFrom(cloud)
             val active = roster.getAll().toRows(Instant.parse("2026-10-02T10:00:00Z")).single()
             assertEquals(registered.student.fullName, active.registeredStudent.student.fullName)
             assertEquals(2, active.registeredStudent.studentPackage.usedClasses)
@@ -33,6 +36,7 @@ class CloudAttendanceRosterTest {
             assertEquals(AttendanceCheckState.Checked, active.checkState)
             assertFalse(active.requiresRenewal)
 
+            pull.refreshFrom(cloud)
             val expired = roster.getAll().toRows(Instant.parse("2026-10-30T17:00:00Z")).single()
             assertTrue(expired.requiresRenewal)
             assertEquals(1, cloud.downloads)
@@ -44,6 +48,7 @@ class CloudAttendanceRosterTest {
                 initialAttendance = null,
             )
             cloud.uploadPending(desktop)
+            pull.refreshFrom(cloud)
             val renewed = roster.getAll().toRows(Instant.parse("2026-11-02T10:00:00Z")).single()
             assertEquals(0, renewed.registeredStudent.studentPackage.usedClasses)
             assertNull(renewed.registeredStudent.studentPackage.expiresOn)
@@ -57,7 +62,8 @@ class CloudAttendanceRosterTest {
     fun `empty cloud account has no roster rows`() = runTest {
         withSyncDatabases { _, mobile ->
             val cloud = FakeAttendanceCloud()
-            val roster = CloudAttendanceRoster(mobile, cloud.target, cloud)
+            RoomPullStore(mobile, cloud.target).refreshFrom(cloud)
+            val roster = RoomAttendanceRoster(mobile)
             assertTrue(roster.getAll().attendance.entries.isEmpty())
         }
     }
