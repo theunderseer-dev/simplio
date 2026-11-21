@@ -10,8 +10,10 @@ keyboard-input option. Room changes update the list after each save.
 
 ## Boundaries
 
-- `:iosApp` owns the SwiftUI app, Compose host, Firebase configuration, and account database paths.
-- `:shared` owns the existing Firebase sign-in and REST clients. The iOS HTTP engine uses Ktor Darwin.
+- `:iosApp` owns the SwiftUI app, Compose host, Firebase configuration, iOS Keychain adapter, and
+  account database paths.
+- `:shared` owns the Firebase sign-in screen, session manager, storage contract, and REST clients.
+  The iOS HTTP engine uses Ktor Darwin.
 - `:feature:attendance` owns the session, Room import and queries, roster, and screen state.
   Desktop and iOS share the latest-purchase use case, date rules, dialogs, and use cases
   for attendance, removal, and renewal.
@@ -26,6 +28,22 @@ The iOS app keeps the Room database under its Application Support directory with
 from the Firebase project ID and account UID. Leaving the account cancels list and sync work
 and closes the database. Saved changes and pending uploads survive closing the app or signing out.
 The roster uses the shared attendance clock to update date-dependent states while open.
+
+## Remember me
+
+The shared sign-in screen offers Remember me as an opt-in. On iOS, the app stores the Firebase UID
+and refresh token in an app-private Keychain item scoped to the Firebase project. The item is
+available while the device is unlocked and stays on that device. The user's password is used only
+for the interactive sign-in.
+
+At launch, the shared session manager exchanges the refresh token for a fresh ID token, confirms the
+same UID, and rechecks email verification and Firestore access before opening attendance. A
+temporary failure shows Retry saved sign-in. A rejected refresh token requires password sign-in.
+Sign out removes the saved item before leaving the account. Sign-in with Remember me off also
+clears an older saved session.
+
+See [Apple Keychain item accessibility](https://developer.apple.com/documentation/security/restricting-keychain-item-accessibility)
+and [Firebase session management](https://firebase.google.com/docs/auth/admin/manage-sessions).
 
 ## Xcode setup
 
@@ -53,12 +71,23 @@ If the active command-line tools point to Command Line Tools, set `DEVELOPER_DIR
 terminal to the full Xcode developer directory, such as
 `/Applications/Xcode.app/Contents/Developer`.
 
+The Keychain test needs a booted simulator. Get its ID with `xcrun simctl list devices` and use
+that ID in the commands below.
+
 ```bash
+device_id="your-simulator-udid"
+xcrun simctl bootstatus "$device_id" -b
+./gradlew :iosApp:iosSimulatorArm64Test --device "$device_id" --tests '*IosFirebaseSessionStoreTest'
 ./gradlew :feature:attendance:desktopTest --tests '*AttendanceRoster*Test'
 ./gradlew :feature:attendance:iosSimulatorArm64Test --tests '*AttendanceRoster*Test'
 xcodebuild -project iosApp/iosApp.xcodeproj -scheme Simplio -configuration Debug \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
+
+On a signed iPhone build, sign in with Remember me checked, terminate the app, and reopen it.
+Verify that attendance opens for the same test account. Sign out, reopen the app, and verify that
+the sign-in screen stays visible. Repeat with Remember me unchecked. To verify recovery, try
+relaunching a remembered session offline, reconnect, and tap Retry saved sign-in.
 
 Run the signed-in screen with a verified test account containing active, expired, and prepaid
 purchases. Check a class, confirm that the counter updates, and remove the visit with Checked.
