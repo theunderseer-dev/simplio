@@ -26,23 +26,24 @@ import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
 import kotlinx.coroutines.launch
 import platform.UIKit.UIViewController
 
-fun makeAppController(apiKey: String, projectId: String): UIViewController = ComposeUIViewController {
-    SimplioTheme {
-        Surface(Modifier.fillMaxSize()) {
-            if (apiKey.isBlank() || projectId.isBlank()) {
-                Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                    Text("Set the Firebase project ID and API key in Firebase.local.xcconfig to sign in.")
+fun makeAppController(apiKey: String, projectId: String, databasePath: (String, String) -> String?): UIViewController =
+    ComposeUIViewController {
+        SimplioTheme {
+            Surface(Modifier.fillMaxSize()) {
+                if (apiKey.isBlank() || projectId.isBlank()) {
+                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                        Text("Set the Firebase project ID and API key in Firebase.local.xcconfig to sign in.")
+                    }
+                } else {
+                    SignedInAttendance(FirebaseConfig(apiKey, projectId), databasePath)
                 }
-            } else {
-                SignedInAttendance(FirebaseConfig(apiKey, projectId))
             }
         }
     }
-}
 
 @Suppress("FunctionNaming") // Compose UI functions use PascalCase.
 @Composable
-private fun SignedInAttendance(config: FirebaseConfig) {
+private fun SignedInAttendance(config: FirebaseConfig, databasePath: (String, String) -> String?) {
     val http = remember(config) { createFirebaseHttpClient() }
     DisposableEffect(http) { onDispose { http.close() } }
     val auth = remember(http, config) { FirebaseAuthClient(http, config) }
@@ -55,7 +56,11 @@ private fun SignedInAttendance(config: FirebaseConfig) {
             val client = remember(session.userId, sessions) {
                 FirestoreRestClient(http, config, sessions, userId = session.userId)
             }
-            IosAttendanceHome(client, onSignOut = { scope.launch { sessions.signOut() } })
+            IosAttendanceHome(
+                client,
+                databasePath = { databasePath(config.projectId, session.userId) },
+                onSignOut = { scope.launch { sessions.signOut() } },
+            )
         }
     }
 }

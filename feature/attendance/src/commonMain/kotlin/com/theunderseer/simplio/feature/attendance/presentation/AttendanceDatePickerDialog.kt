@@ -19,8 +19,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
+import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
-import com.theunderseer.simplio.feature.attendance.domain.schedule.isScheduledClassDate
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -28,6 +28,36 @@ import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Instant
+
+@Suppress("FunctionNaming") // Compose UI functions use PascalCase.
+@Composable
+internal fun StudentAttendanceDateDialog(
+    registeredStudent: RegisteredStudent,
+    initialDate: LocalDate,
+    currentDate: LocalDate,
+    schedules: List<ClassSchedule>?,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onConfirm: (LocalDate, Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val purchase = registeredStudent.studentPackage
+    AttendanceDatePickerDialog(
+        initialDate = initialDate,
+        currentDate = currentDate,
+        schedules = schedules,
+        maxVisitsPerAttendance = purchase.packageType.maxVisitsPerAttendance,
+        remainingClasses = purchase.remainingClasses,
+        purchasedOn = purchase.purchasedOn,
+        startedOn = purchase.startedOn,
+        expiresOn = purchase.expiresOn,
+        recordedAttendanceDates = registeredStudent.recordedAttendanceDates,
+        isSaving = isSaving,
+        errorMessage = errorMessage,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,15 +119,7 @@ internal fun AttendanceDatePickerDialog(
                     return date >= earliestDate &&
                         (expirationDate == null || date <= expirationDate) &&
                         date !in recordedAttendanceDatesState.value &&
-                        (
-                            schedulesState.value?.let {
-                                date <= currentDateState.value &&
-                                    it.isScheduledClassDate(
-                                        date,
-                                    )
-                            }
-                                ?: isAttendanceDateSelectable(date, currentDateState.value)
-                            )
+                        isAttendanceDateSelectable(date, currentDateState.value, schedulesState.value)
                 }
             }
         }

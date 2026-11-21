@@ -3,9 +3,7 @@ package com.theunderseer.simplio.presentation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,19 +22,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.theunderseer.simplio.database.AccountDatabaseSelection
 import com.theunderseer.simplio.database.DesktopDatabaseManager
 import com.theunderseer.simplio.di.DesktopAttendanceSession
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
-import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
-import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
-import com.theunderseer.simplio.feature.attendance.data.sync.ConflictReviewState
-import com.theunderseer.simplio.feature.attendance.data.sync.UploadProblem
 import com.theunderseer.simplio.feature.attendance.presentation.AttendanceRoute
-import com.theunderseer.simplio.feature.attendance.presentation.sync.SyncConflictReviewDialog
+import com.theunderseer.simplio.feature.attendance.presentation.sync.AttendanceSyncNotice
 import com.theunderseer.simplio.notifications.DesktopAttendanceReminders
 import com.theunderseer.simplio.notifications.reminderAccount
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
@@ -222,7 +215,7 @@ private fun AttendanceSessionContent(
                     )
                 }
                 Column(modifier = Modifier.fillMaxSize()) {
-                    current.session.sync?.let { SyncNotice(it) }
+                    current.session.sync?.let { AttendanceSyncNotice(it) }
                     Box(modifier = Modifier.weight(1f)) {
                         AttendanceRoute(
                             onCopyAttendance = onCopyAttendance,
@@ -331,70 +324,4 @@ private sealed interface AttendanceSessionState {
     data class Ready(val session: DesktopAttendanceSession) : AttendanceSessionState
 
     data class Failed(val message: String) : AttendanceSessionState
-}
-
-@Composable
-private fun SyncNotice(sync: AttendanceSyncCoordinator) {
-    val status by sync.status.collectAsState()
-    val review by sync.review.collectAsState()
-    val scope = rememberCoroutineScope()
-    SyncConflictReviewDialog(
-        state = review,
-        onDismiss = sync::dismissReview,
-        onRetry = { scope.launch { sync.openReview() } },
-        onApply = { id, choices -> scope.launch { sync.applyReview(id, choices) } },
-        onApplyRenamed = { id, choices, names -> scope.launch { sync.applyReview(id, choices, names) } },
-    )
-    val problem = (status as? AttendanceSyncStatus.Paused)?.problem
-    val message = when {
-        status is AttendanceSyncStatus.WaitingToRetry ->
-            "Connection or server issue. Changes saved on this device. Retrying automatically."
-
-        problem == UploadProblem.CONFLICT -> "Cloud and local changes need review. Changes saved on this device."
-
-        problem == UploadProblem.AUTHENTICATION -> "Sign in again to sync changes. Local changes are saved."
-
-        problem == UploadProblem.PERMISSION -> "Cloud access denied. Local changes are saved."
-
-        problem == UploadProblem.TOO_LARGE -> "Some data is too large to sync. Local changes are saved."
-
-        problem == UploadProblem.TARGET_MISMATCH ->
-            "This database belongs to another cloud account or project. Sync paused."
-
-        problem != null -> "Sync paused. Local changes are saved."
-
-        else -> null
-    }
-    if (message != null) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            if (problem == UploadProblem.CONFLICT) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    SimplioTextButton(
-                        onClick = { scope.launch { sync.openReview() } },
-                        enabled = review == ConflictReviewState.Closed,
-                    ) { Text("Review changes") }
-                    SimplioTextButton(onClick = sync::retry, enabled = review == ConflictReviewState.Closed) {
-                        Text("Retry sync")
-                    }
-                }
-            }
-            Text(
-                message,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
-            if (problem in setOf(
-                    UploadProblem.AUTHENTICATION,
-                    UploadProblem.PERMISSION,
-                    UploadProblem.SERVICE,
-                    UploadProblem.INVALID_DATA,
-                    UploadProblem.TOO_LARGE,
-                )
-            ) {
-                SimplioTextButton(onClick = sync::retry) { Text("Retry sync") }
-            }
-        }
-    }
 }

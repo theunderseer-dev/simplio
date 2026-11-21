@@ -12,10 +12,13 @@ import com.theunderseer.simplio.feature.attendance.fixtures.withSyncDatabases
 import com.theunderseer.simplio.shared.firebase.FirestoreFailure
 import com.theunderseer.simplio.shared.firebase.FirestoreFailureKind
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -154,6 +157,33 @@ class AttendanceSyncCoordinatorTest {
             }
             assertEquals(0, target.syncPullDao().pendingCount())
             job.cancelAndJoin()
+        }
+    }
+
+    @Test
+    fun `manual refresh wakes idle sync before the next poll`() = runTest {
+        withSyncDatabases { source, target ->
+            val student = source.registerSyncStudent().student
+            val cloud = FakeAttendanceCloud()
+            cloud.uploadPending(source)
+            val sync = coordinator(target, cloud)
+            val job = backgroundScope.launch(Dispatchers.Default) { sync.run() }
+            try {
+                target.invalidationTracker.createFlow("students").first { target.studentDao().count() == 1 }
+                sync.status.first { it == AttendanceSyncStatus.Idle }
+                RoomStudentRepository(source).updateNote(student.id, "Manual refresh")
+                cloud.uploadPending(source)
+                sync.retry()
+                withContext(Dispatchers.Default) {
+                    withTimeout(5_000) {
+                        target.invalidationTracker.createFlow("students").first {
+                            target.studentDao().getAll().singleOrNull()?.note == "Manual refresh"
+                        }
+                    }
+                }
+            } finally {
+                job.cancelAndJoin()
+            }
         }
     }
 

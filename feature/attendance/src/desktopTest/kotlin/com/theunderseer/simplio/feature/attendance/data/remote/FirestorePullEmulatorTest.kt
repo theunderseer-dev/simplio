@@ -1,9 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.data.remote
 
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomAttendanceRoster
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
-import com.theunderseer.simplio.feature.attendance.data.local.sync.CloudAttendanceRoster
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomUploadStore
 import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
@@ -39,7 +39,8 @@ class FirestorePullEmulatorTest {
                 )
                 repeat(4) { uploader.uploadNext() }
 
-                val roster = CloudAttendanceRoster(mobile, target, FirestoreAttendancePullRemote(client)).getAll()
+                RoomPullStore(mobile, target).refreshFrom(FirestoreAttendancePullRemote(client))
+                val roster = RoomAttendanceRoster(mobile).getAll()
                 val row = roster.attendance.entries.single()
                 assertEquals(registered.student.fullName, row.student.fullName)
                 assertEquals(2, row.studentPackage.usedClasses)

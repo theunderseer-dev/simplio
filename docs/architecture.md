@@ -52,8 +52,8 @@ the feature database when the application exits.
 
 Owns the iOS entry point, Xcode settings, Firebase client configuration, and
 composition of the signed-in attendance screen. The feature owns the list and
-its data flow. See [iOS attendance](architecture/ios-attendance.md) for the
-read-only workflow and how to run it.
+its data flow. See [iOS attendance](architecture/ios-attendance.md) for
+the mobile workflow and how to run it.
 
 ### feature:attendance
 
@@ -90,7 +90,7 @@ desktopMain
 └── file-backed AttendanceDatabase creation
 
 iosMain
-└── read-only attendance session with an in-memory AttendanceDatabase
+└── account-scoped attendance session with a file-backed AttendanceDatabase
 ```
 
 `commonTest` contains platform-independent behavior and persistence integration

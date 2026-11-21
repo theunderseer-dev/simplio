@@ -1,28 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.data.local.database
 
 import androidx.room.Room
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 
 fun createAttendanceDatabase(path: String): AttendanceDatabase = Room
     .databaseBuilder<AttendanceDatabase>(
         name = path,
-    ).setDriver(BundledSQLiteDriver())
-    .addMigrations(
-        AttendanceMigration1To2,
-        AttendanceMigration2To3,
-        AttendanceMigration3To4,
-        AttendanceMigration4To5,
-        AttendanceMigration5To6,
-        AttendanceMigration6To7,
-        AttendanceMigration7To8,
-        AttendanceMigration8To9,
-        AttendanceMigration9To10,
-        AttendanceMigration10To11,
-        AttendanceMigration11To12,
-        AttendanceMigration12To13,
-        AttendanceMigration13To14,
-        AttendanceMigration14To15,
-        AttendanceMigration15To16,
-        AttendanceMigration16To17,
-    )
+    ).configureAttendanceDatabase()
     .build()

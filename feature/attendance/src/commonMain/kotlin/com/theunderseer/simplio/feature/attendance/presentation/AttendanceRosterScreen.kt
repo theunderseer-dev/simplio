@@ -16,7 +16,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -57,7 +60,9 @@ internal fun AttendanceRosterScreen(
     now: Instant,
     onRefresh: () -> Unit,
     onSignOut: () -> Unit,
+    onEdit: suspend (AttendanceRosterEdit) -> String?,
 ) {
+    var dialog by remember { mutableStateOf<StudentAttendanceUiState?>(null) }
     Column(Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -83,21 +88,28 @@ internal fun AttendanceRosterScreen(
                 Text(stringResource(state.message))
                 TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
             }
-            is AttendanceRosterState.Content -> AttendanceRosterRows(state.roster, now)
+            is AttendanceRosterState.Content -> {
+                AttendanceRosterRows(state.roster, now) { row ->
+                    dialog = row
+                }
+                dialog?.let { selected ->
+                    AttendanceRosterActionDialog(selected, state.roster, now, onEdit) { dialog = null }
+                }
+            }
         }
     }
 }
 
 @Suppress("FunctionNaming")
 @Composable
-private fun AttendanceRosterRows(roster: AttendanceRoster, now: Instant) {
+private fun AttendanceRosterRows(roster: AttendanceRoster, now: Instant, onAction: (StudentAttendanceUiState) -> Unit) {
     val rows = remember(roster, now) { roster.toRows(now) }
     if (rows.isEmpty()) {
         RosterStatus { Text(stringResource(Res.string.roster_empty)) }
     } else {
         LazyColumn(Modifier.fillMaxSize()) {
             items(rows, key = { it.registeredStudent.student.id }) { row ->
-                AttendanceRosterRow(row)
+                AttendanceRosterRow(row, onAction = { onAction(row) })
                 HorizontalDivider()
             }
         }
@@ -114,7 +126,7 @@ private fun RosterStatus(content: @Composable () -> Unit) {
 
 @Suppress("FunctionNaming")
 @Composable
-private fun AttendanceRosterRow(row: StudentAttendanceUiState) {
+private fun AttendanceRosterRow(row: StudentAttendanceUiState, onAction: () -> Unit) {
     val student = row.registeredStudent.student
     val purchase = row.registeredStudent.studentPackage
     val total = purchase.packageType.totalClasses
@@ -145,6 +157,6 @@ private fun AttendanceRosterRow(row: StudentAttendanceUiState) {
             )
             Text(expiration, style = MaterialTheme.typography.bodySmall)
         }
-        OutlinedButton(onClick = {}, enabled = false) { Text(stringResource(action)) }
+        OutlinedButton(onClick = onAction, enabled = row.isCheckEnabled) { Text(stringResource(action)) }
     }
 }

@@ -7,10 +7,13 @@ import com.theunderseer.simplio.shared.firebase.FirestoreFailureKind
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -110,11 +113,13 @@ class AttendanceSyncCoordinator(
     suspend fun run() = runnerMutex.withLock {
         while (currentCoroutineContext().isActive) {
             when (val result = syncOnce()) {
-                AttendanceSyncStatus.Idle -> withTimeoutOrNull(pollMillis) { store.observeWork().first { it } }
+                AttendanceSyncStatus.Idle -> withTimeoutOrNull(pollMillis) {
+                    merge(store.observeWork().filter { it }.map { Unit }, retries.receiveAsFlow()).first()
+                }
                 AttendanceSyncStatus.Syncing -> Unit
                 is AttendanceSyncStatus.WaitingToRetry -> {
                     val base = (1_000L shl (result.attempt - 1).coerceIn(0, 6)).coerceAtMost(60_000)
-                    delay(base + Random.nextLong(0, base / 5 + 1))
+                    withTimeoutOrNull(base + Random.nextLong(0, base / 5 + 1)) { retries.receive() }
                 }
                 is AttendanceSyncStatus.Paused -> {
                     retries.receive()
