@@ -1,7 +1,9 @@
 package com.theunderseer.simplio.feature.attendance.data.local.database
 
+import androidx.room.ConstructedBy
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.RoomDatabaseConstructor
 import com.theunderseer.simplio.feature.attendance.data.local.dao.AttendanceDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.ClassScheduleDao
 import com.theunderseer.simplio.feature.attendance.data.local.dao.ClassSessionStateDao
@@ -48,6 +50,7 @@ import com.theunderseer.simplio.feature.attendance.data.local.entity.SyncUploadS
     version = 17,
     exportSchema = true,
 )
+@ConstructedBy(AttendanceDatabaseConstructor::class)
 abstract class AttendanceDatabase : RoomDatabase() {
     abstract fun classSessionStateDao(): ClassSessionStateDao
 
@@ -70,4 +73,9 @@ abstract class AttendanceDatabase : RoomDatabase() {
     abstract fun syncDao(): SyncDao
 
     abstract fun attendanceDao(): AttendanceDao
+}
+
+@Suppress("NO_ACTUAL_FOR_EXPECT")
+internal expect object AttendanceDatabaseConstructor : RoomDatabaseConstructor<AttendanceDatabase> {
+    override fun initialize(): AttendanceDatabase
 }

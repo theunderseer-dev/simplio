@@ -1,6 +1,6 @@
 # Simplio
 
-Simplio is a modular desktop application for automating recurring personal and operational workflows.
+Simplio is a modular application for automating recurring personal and operational workflows on macOS and iOS.
 
 The goal is to reduce repetitive administrative work by turning recurring tasks into small, focused workflows with reminders, structured input, local persistence, and automation.
 
@@ -31,20 +31,25 @@ The feature is developed from behavioral requirements before implementation deta
 
 - Kotlin
 - Kotlin Multiplatform
-- Compose Multiplatform for Desktop
+- Compose Multiplatform for Desktop and iOS
 - Kotlin Coroutines & Flow
+- Room KMP and SQLite
+- Firebase Authentication and Firestore REST
+- macOS system notifications
 - Kotlin Test
 - Gradle Kotlin DSL
 
 ### Planned as requirements emerge
 
-- Room KMP / SQLite for local persistence
-- macOS system notifications
 - background execution and launch-at-login support
 - structured feature navigation
 - persistence and notification abstractions
 
 Infrastructure is intentionally introduced only when required by executable behavior.
+
+## Run on iOS
+
+Open `iosApp/iosApp.xcodeproj` in Xcode with the shared `Simplio` scheme. See the [iOS setup and architecture](docs/architecture/ios-attendance.md) for signing, Firebase configuration, and local verification.
 
 ## Development Approach
 

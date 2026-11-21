@@ -17,6 +17,7 @@ import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttend
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassScheduleRepository
 import com.theunderseer.simplio.feature.attendance.domain.repository.DeleteStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.repository.PackageTypeDeletionRepository
+import com.theunderseer.simplio.feature.attendance.domain.repository.attendanceSchedulesByGroup
 import com.theunderseer.simplio.feature.attendance.domain.result.MarkStudentPresentResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAttendanceResult
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
@@ -178,20 +179,15 @@ class AttendanceViewModel(
             if (state is AttendanceUiState.Content) state.copy(registerStudentState = registration) else state
         }.combine(currentInstant) { state, now ->
             if (state is AttendanceUiState.Content && now != null) {
-                val dates = state.studentGroups.associate { group ->
-                    val zone = state.groupSchedules[group.id]?.firstOrNull()?.timeZoneId
-                        ?: DefaultClassSchedule.schedule.timeZoneId
-                    group.id to now.toLocalDateTime(TimeZone.of(zone)).date
-                }
+                val dates = attendanceDatesForGroups(state.studentGroups.map { it.id }, state.groupSchedules, now)
                 state.copy(
                     groupCurrentDates = dates,
-                    rows = attendanceContentUiState(
+                    rows = attendanceRowsUiState(
                         state.attendance,
-                        state.packageTypes,
                         state.currentDate,
                         state.groupSchedules,
                         dates,
-                    ).rows,
+                    ),
                 )
             } else {
                 state
@@ -974,10 +970,7 @@ class AttendanceViewModel(
             transactionRunner.run {
                 val schedules = classScheduleRepository?.getAll() ?: listOf(DefaultClassSchedule.schedule)
                 val groups = getStudentGroupsUseCase()
-                val byGroup = groups.mapNotNull { group ->
-                    val linked = classScheduleRepository?.getForGroup(group.id)
-                    if (linked != null && linked.any { it.id != DefaultClassSchedule.ID }) group.id to linked else null
-                }.toMap()
+                val byGroup = classScheduleRepository.attendanceSchedulesByGroup(groups.map { it.id })
                 AttendanceDataState.Content(
                     attendance = getAttendanceUseCase(),
                     packageTypes = getPackageTypesUseCase(),

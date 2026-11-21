@@ -24,7 +24,7 @@ See [Android Developers on architecture](https://developer.android.com/topic/arc
 
 ### KMP modularity and code reuse
 
-Simplio currently builds for the JVM. `:desktopApp` and `:feature:attendance` declare `jvm("desktop")` with `desktopMain` and `desktopTest`. `:shared` declares `jvm()` with `jvmMain` and `jvmTest`. The macOS app runs on the JVM and accesses native APIs through JNI. Verify targets and source sets against the Gradle files on the current branch. Add an Android or iOS target when platform support is part of the task.
+Simplio builds for macOS Desktop on the JVM and for iOS on Kotlin/Native. `:desktopApp` and `:feature:attendance` declare `jvm("desktop")`, and `:shared` declares `jvm()`. `:shared`, `:feature:attendance`, and `:iosApp` declare `iosArm64()` and `iosSimulatorArm64()`. Verify targets and source sets against the Gradle files on the current branch. See [iOS development and architecture](docs/architecture/ios-attendance.md) for Xcode setup and checks.
 
 Before extracting code, find the existing implementation and its owner. Check whether the callers share the same contract, business meaning, and reasons to change. Keep each shared rule in one place and update affected callers to use it. Similar syntax alone is insufficient reason to couple independent rules. Choose the owning module by responsibility, then choose the source set by its target consumers. `:shared` is a specific Simplio module. `commonMain` is a source set available to every configured target in its KMP module.
 

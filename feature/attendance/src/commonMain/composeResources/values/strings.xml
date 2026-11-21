@@ -1,4 +1,19 @@
 <resources>
+    <string name="roster_title">Attendance</string>
+    <string name="roster_refresh">Refresh</string>
+    <string name="roster_sign_out">Sign out</string>
+    <string name="roster_loading">Loading attendance</string>
+    <string name="roster_empty">No students yet</string>
+    <string name="roster_retry">Try again</string>
+    <string name="roster_error">Unable to load attendance.</string>
+    <string name="roster_permission_denied">This account cannot read attendance from the cloud.</string>
+    <string name="roster_sign_in_again">Sign out and sign in again to load attendance.</string>
+    <string name="roster_check">Check</string>
+    <string name="roster_checked">Checked</string>
+    <string name="roster_renew">Renew</string>
+    <string name="roster_visits_used">%1$d of %2$d visits used</string>
+    <string name="roster_expires_on">Expires %1$s</string>
+    <string name="roster_not_started">Not started</string>
     <string name="add_package">Add Package</string>
     <string name="create_package_title">Create package</string>
     <string name="package_name">Package name</string>

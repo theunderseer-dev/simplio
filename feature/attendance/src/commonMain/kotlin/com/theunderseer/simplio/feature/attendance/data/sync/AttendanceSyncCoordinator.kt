@@ -131,10 +131,7 @@ class AttendanceSyncCoordinator(
             val upload = if (store.mustRecoverBatch()) {
                 uploader.uploadNext()
             } else {
-                val head = remote.readHead()
-                if (store.plan(head) == PullAction.DOWNLOAD) {
-                    store.apply(remote.readSnapshot(head))
-                }
+                store.refreshFrom(remote)
                 uploader.uploadNext()
             }
             when (upload) {
