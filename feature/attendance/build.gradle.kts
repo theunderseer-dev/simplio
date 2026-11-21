@@ -1,3 +1,5 @@
+import dev.detekt.gradle.Detekt
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
@@ -77,6 +79,10 @@ ktlint {
             element.file.path.contains("${separator}build${separator}generated$separator")
         }
     }
+}
+
+tasks.withType<Detekt>().matching { it.name == "detektIosMainSourceSet" }.configureEach {
+    exclude { it.file.invariantSeparatorsPath.contains("/build/generated/compose/") }
 }
 
 compose.resources {

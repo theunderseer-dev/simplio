@@ -1,8 +1,5 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -11,7 +8,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.room.Room
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.database.configureAttendanceDatabase
@@ -61,27 +57,23 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
     }
 
     val current = session
-    Column(Modifier.fillMaxSize()) {
-        if (current != null) AttendanceSyncNotice(current.sync)
-        Box(Modifier.weight(1f)) {
-            val syncStatus = current?.sync?.status?.collectAsState()?.value
-            val empty = (state as? AttendanceRosterState.Content)?.roster?.attendance?.entries?.isEmpty() == true
-            val screenState = if (empty && syncStatus == AttendanceSyncStatus.Syncing) {
-                AttendanceRosterState.Loading
-            } else {
-                state
-            }
-            AttendanceRosterScreen(
-                state = screenState,
-                now = now,
-                onRefresh = { if (current == null) attempt++ else current.sync.retry() },
-                onSignOut = onSignOut,
-                onEdit = { edit ->
-                    if (current == null) "Attendance isn't ready. Try again." else current.apply(edit)
-                },
-            )
-        }
+    val syncStatus = current?.sync?.status?.collectAsState()?.value
+    val empty = (state as? AttendanceRosterState.Content)?.roster?.attendance?.entries?.isEmpty() == true
+    val screenState = if (empty && syncStatus == AttendanceSyncStatus.Syncing) {
+        AttendanceRosterState.Loading
+    } else {
+        state
     }
+    AttendanceRosterScreen(
+        state = screenState,
+        now = now,
+        onRefresh = { if (current == null) attempt++ else current.sync.retry() },
+        onSignOut = onSignOut,
+        onEdit = { edit ->
+            if (current == null) "Attendance isn't ready. Try again." else current.apply(edit)
+        },
+        syncNotice = { if (current != null) AttendanceSyncNotice(current.sync) },
+    )
 }
 
 private class IosRosterSession(

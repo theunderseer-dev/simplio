@@ -3,10 +3,16 @@
 The iOS app opens the attendance list after Firebase email/password sign-in with a verified
 account. Each student appears once with their latest purchase. The list shows the student or
 pair name, used and total visits, expiration, and the Check, Checked, or Renew action.
+The iOS roster reuses the Desktop action icons and highlights renewal rows in the same green.
 Check opens the same schedule-aware calendar as Desktop. Checked opens the removal confirmation.
 Renew uses the shared purchase form with an existing package template, an optional first
 attendance, and an optional note. The compact Purchase date field opens a calendar with a
 keyboard-input option. Room changes update the list after each save.
+
+The round add button opens three equal-width actions in order from bottom to top. Add student
+appears first, followed by Add package and Add schedule. The actions fade in with a short stagger
+and upward movement. With Reduce Motion enabled they fade in together without moving. Tapping
+outside, the round button, or an action closes the menu.
 
 ## Boundaries
 
@@ -15,8 +21,8 @@ keyboard-input option. Room changes update the list after each save.
 - `:shared` owns the Firebase sign-in screen, session manager, storage contract, and REST clients.
   The iOS HTTP engine uses Ktor Darwin.
 - `:feature:attendance` owns the session, Room import and queries, roster, and screen state.
-  Desktop and iOS share the latest-purchase use case, date rules, dialogs, and use cases
-  for attendance, removal, and renewal.
+  Desktop and iOS share the latest-purchase use case, date rules, icons, dialogs, and use cases
+  for attendance, removal, and renewal. The mobile roster and quick actions use Compose in `iosMain`.
 
 The shared coordinator checks the Firestore head at sign-in, on Refresh, and while the device is
 idle. It uses the same bounded snapshot import and durable outbox as Desktop. A save checks the
@@ -78,8 +84,7 @@ that ID in the commands below.
 device_id="your-simulator-udid"
 xcrun simctl bootstatus "$device_id" -b
 ./gradlew :iosApp:iosSimulatorArm64Test --device "$device_id" --tests '*IosFirebaseSessionStoreTest'
-./gradlew :feature:attendance:desktopTest --tests '*AttendanceRoster*Test'
-./gradlew :feature:attendance:iosSimulatorArm64Test --tests '*AttendanceRoster*Test'
+./gradlew :feature:attendance:iosSimulatorArm64Test --device "$device_id" --tests '*AttendanceRoster*Test'
 xcodebuild -project iosApp/iosApp.xcodeproj -scheme Simplio -configuration Debug \
   -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 ```
@@ -93,9 +98,12 @@ Run the signed-in screen with a verified test account containing active, expired
 purchases. Check a class, confirm that the counter updates, and remove the visit with Checked.
 Renew with and without first attendance and verify the purchase, note, and visit count on Desktop
 after sync. Check both appearance modes and an empty account.
+Open the add menu on a populated and empty roster. Verify that the buttons fit above the home
+indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
 
 See [Apple lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),
+[Apple motion guidance](https://developer.apple.com/design/human-interface-guidelines/motion),
 [Apple date picker guidance](https://developer.apple.com/design/human-interface-guidelines/pickers),
 [running on iOS devices](https://developer.apple.com/documentation/xcode/running-your-app-on-simulated-or-physical-devices),
 [Compose and SwiftUI integration](https://kotlinlang.org/docs/multiplatform/compose-swiftui-integration.html),
