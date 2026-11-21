@@ -1,9 +1,37 @@
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 #include <jni.h>
+#include <pthread.h>
 #include <stdio.h>
 
 #define JNI_METHOD(name) Java_com_theunderseer_simplio_auth_MacFirebaseSessionStore_##name
+
+// Existing sessions use the file-based Keychain. Serialize calls while its process-wide UI setting is changed.
+static pthread_mutex_t interactionLock = PTHREAD_MUTEX_INITIALIZER;
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+static OSStatus withKeychainInteraction(BOOL allowUserInteraction, OSStatus (^operation)(void)) {
+    pthread_mutex_lock(&interactionLock);
+    OSStatus status;
+    if (allowUserInteraction) {
+        status = operation();
+    } else {
+        Boolean previous;
+        status = SecKeychainGetUserInteractionAllowed(&previous);
+        if (status == errSecSuccess) {
+            status = SecKeychainSetUserInteractionAllowed(false);
+            if (status == errSecSuccess) {
+                status = operation();
+                OSStatus restoreStatus = SecKeychainSetUserInteractionAllowed(previous);
+                if (status == errSecSuccess) status = restoreStatus;
+            }
+        }
+    }
+    pthread_mutex_unlock(&interactionLock);
+    return status;
+}
+#pragma clang diagnostic pop
 
 static NSDictionary *itemQuery(JNIEnv *env, jstring projectId) {
     const char *raw = (*env)->GetStringUTFChars(env, projectId, NULL);
@@ -32,10 +60,13 @@ JNIEXPORT jbyteArray JNICALL JNI_METHOD(readItem)(JNIEnv *env, jobject self, jst
         NSMutableDictionary *query = [itemQuery(env, projectId) mutableCopy];
         if (query == nil) return NULL;
         query[(__bridge NSString *)kSecReturnData] = @YES;
-        CFTypeRef result = NULL;
-        OSStatus status = SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
+        __block CFTypeRef result = NULL;
+        OSStatus status = withKeychainInteraction(NO, ^OSStatus {
+            return SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
+        });
         if (status == errSecItemNotFound) return NULL;
         if (status != errSecSuccess) {
+            if (result != NULL) CFRelease(result);
             throwStatus(env, status);
             return NULL;
         }
@@ -48,7 +79,9 @@ JNIEXPORT jbyteArray JNICALL JNI_METHOD(readItem)(JNIEnv *env, jobject self, jst
     }
 }
 
-JNIEXPORT void JNICALL JNI_METHOD(writeItem)(JNIEnv *env, jobject self, jstring projectId, jbyteArray bytes) {
+JNIEXPORT void JNICALL JNI_METHOD(writeItem)(
+    JNIEnv *env, jobject self, jstring projectId, jbyteArray bytes, jboolean allowUserInteraction
+) {
     @autoreleasepool {
         NSDictionary *query = itemQuery(env, projectId);
         if (query == nil) return;
@@ -57,24 +90,29 @@ JNIEXPORT void JNICALL JNI_METHOD(writeItem)(JNIEnv *env, jobject self, jstring 
         (*env)->GetByteArrayRegion(env, bytes, 0, size, data.mutableBytes);
         if ((*env)->ExceptionCheck(env)) return;
         NSDictionary *attributes = @{ (__bridge NSString *)kSecValueData: data };
-        OSStatus status = SecItemUpdate((__bridge CFDictionaryRef)query, (__bridge CFDictionaryRef)attributes);
-        if (status == errSecItemNotFound) {
-            NSMutableDictionary *item = [query mutableCopy];
-            [item addEntriesFromDictionary:attributes];
-            status = SecItemAdd((__bridge CFDictionaryRef)item, NULL);
-            if (status == errSecDuplicateItem) {
-                status = SecItemUpdate((__bridge CFDictionaryRef)query, (__bridge CFDictionaryRef)attributes);
+        OSStatus status = withKeychainInteraction(allowUserInteraction, ^OSStatus {
+            CFDictionaryRef keychainQuery = (__bridge CFDictionaryRef)query;
+            CFDictionaryRef updates = (__bridge CFDictionaryRef)attributes;
+            OSStatus writeStatus = SecItemUpdate(keychainQuery, updates);
+            if (writeStatus == errSecItemNotFound) {
+                NSMutableDictionary *item = [query mutableCopy];
+                [item addEntriesFromDictionary:attributes];
+                writeStatus = SecItemAdd((__bridge CFDictionaryRef)item, NULL);
+                if (writeStatus == errSecDuplicateItem) writeStatus = SecItemUpdate(keychainQuery, updates);
             }
-        }
+            return writeStatus;
+        });
         if (status != errSecSuccess) throwStatus(env, status);
     }
 }
 
-JNIEXPORT void JNICALL JNI_METHOD(clearItem)(JNIEnv *env, jobject self, jstring projectId) {
+JNIEXPORT void JNICALL JNI_METHOD(clearItem)(JNIEnv *env, jobject self, jstring projectId, jboolean allowUserInteraction) {
     @autoreleasepool {
         NSDictionary *query = itemQuery(env, projectId);
         if (query == nil) return;
-        OSStatus status = SecItemDelete((__bridge CFDictionaryRef)query);
+        OSStatus status = withKeychainInteraction(allowUserInteraction, ^OSStatus {
+            return SecItemDelete((__bridge CFDictionaryRef)query);
+        });
         if (status != errSecSuccess && status != errSecItemNotFound) throwStatus(env, status);
     }
 }
