@@ -29,7 +29,15 @@ import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageExcep
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
 import com.theunderseer.simplio.shared.firebase.presentation.FirebaseSignInGate
 import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import platform.Foundation.NSNotificationCenter
+import platform.Foundation.NSOperationQueue
+import platform.UIKit.UIApplicationDidBecomeActiveNotification
+import platform.UIKit.UIApplicationProtectedDataDidBecomeAvailable
 import platform.UIKit.UIViewController
 
 fun makeAppController(apiKey: String, projectId: String, databasePath: (String, String) -> String?): UIViewController =
@@ -57,8 +65,9 @@ private fun SignedInAttendance(config: FirebaseConfig, databasePath: (String, St
         FirebaseSessionManager(auth, sessionStore = IosFirebaseSessionStore(config.projectId))
     }
     val access = remember(http, config, sessions) { FirestoreAccessChecker(http, config, sessions) }
+    val keychainAvailability = remember { keychainAvailabilityEvents() }
 
-    FirebaseSignInGate(sessions, access, auth) { session ->
+    FirebaseSignInGate(sessions, access, auth, keychainAvailability = keychainAvailability) { session ->
         key(session.userId) {
             val scope = rememberCoroutineScope()
             var signingOut by remember { mutableStateOf(false) }
@@ -95,3 +104,14 @@ private fun SignedInAttendance(config: FirebaseConfig, databasePath: (String, St
         }
     }
 }
+
+private fun keychainAvailabilityEvents(): Flow<Unit> = callbackFlow {
+    val center = NSNotificationCenter.defaultCenter
+    val observers = listOf(
+        UIApplicationDidBecomeActiveNotification,
+        UIApplicationProtectedDataDidBecomeAvailable,
+    ).map { notification ->
+        center.addObserverForName(notification, null, NSOperationQueue.mainQueue) { trySend(Unit) }
+    }
+    awaitClose { observers.forEach { center.removeObserver(it) } }
+}.conflate()

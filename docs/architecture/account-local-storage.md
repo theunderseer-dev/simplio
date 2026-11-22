@@ -63,10 +63,36 @@ Firestore Security Rules must independently enforce the authenticated UID for ev
 
 ## Saved sign-in on macOS
 
-In the packaged macOS app, **Remember me on this Mac** saves the Firebase UID and refresh token in Keychain.
-Automatic restore, background token refresh, and their cleanup use non-interactive Keychain access.
-If Keychain blocks automatic restore, Simplio shows the sign-in form with an option to try again.
-Explicit sign-in and sign-out can still prompt for the Keychain access they need.
+In the packaged macOS app, **Remember me** saves the Firebase UID and refresh token in the file-based Keychain.
+Automatic restore and background token refresh access Keychain without prompting. **Retry saved sign-in**
+can request the system's authorization, as can explicit sign-in and sign-out.
+Keychain errors include the operation and OSStatus when available.
+
+The file-based macOS Keychain can tie authorization to the app's designated code-signing requirement.
+Ad hoc builds can have a different requirement after each rebuild. For updates that preserve authorization,
+use the same bundle ID and a stable Developer ID Application signing identity. Enable signing for the local
+build with Compose Gradle properties.
+
+```bash
+./gradlew :desktopApp:createDistributable \
+  -Pcompose.desktop.mac.sign=true \
+  '-Pcompose.desktop.mac.signing.identity=Developer ID Application: Your Name (TEAMID)'
+```
+
+You can also set those properties in your local Gradle user configuration. Verify the package's
+signature and designated requirement before testing account restoration across two signed builds.
+
+```bash
+app=desktopApp/build/compose/binaries/main/app/Simplio.app
+codesign --verify --deep --strict "$app"
+codesign -d -r- --verbose=2 "$app"
+```
+
+After replacing an ad hoc build, the existing record may require one-time authorization through
+**Retry saved sign-in** or a fresh sign-in with **Remember me** enabled.
+
+See [Compose signing on macOS](https://github.com/JetBrains/compose-multiplatform/tree/master/tutorials/Signing_and_notarization_on_macOS)
+and [Apple code-signing requirements](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements).
 
 ## Alternatives
 

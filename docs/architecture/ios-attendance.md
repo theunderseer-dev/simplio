@@ -43,8 +43,15 @@ available while the device is unlocked and stays on that device. The user's pass
 for the interactive sign-in.
 
 At launch, the shared session manager exchanges the refresh token for a fresh ID token, confirms the
-same UID, and rechecks email verification and Firestore access before opening attendance. A
-temporary failure shows Retry saved sign-in. A rejected refresh token requires password sign-in.
+same UID, and rechecks email verification and Firestore access before opening attendance. An
+unchanged refresh token stays in Keychain without a write. If Keychain is temporarily unavailable
+while saving a new token, the verified session stays active in memory. Saving can be retried when
+the app becomes active or the device unlocks.
+
+Temporary Keychain failures preserve the saved session and offer Retry saved sign-in. The app also
+retries a temporarily unavailable Keychain read when it becomes active or protected data becomes
+available. A rejected refresh token requires password sign-in.
+Keychain errors include the operation and OSStatus when available.
 Sign out removes the saved item before leaving the account. Sign-in with Remember me off also
 clears an older saved session.
 
@@ -92,7 +99,9 @@ xcodebuild -project iosApp/iosApp.xcodeproj -scheme Simplio -configuration Debug
 On a signed iPhone build, sign in with Remember me checked, terminate the app, and reopen it.
 Verify that attendance opens for the same test account. Sign out, reopen the app, and verify that
 the sign-in screen stays visible. Repeat with Remember me unchecked. To verify recovery, try
-relaunching a remembered session offline, reconnect, and tap Retry saved sign-in.
+relaunching a remembered session offline, reconnect, and tap Retry saved sign-in. With Remember me
+enabled, also lock the device during startup and verify that the session restores after unlocking
+and returning to Simplio.
 
 Run the signed-in screen with a verified test account containing active, expired, and prepaid
 purchases. Check a class, confirm that the counter updates, and remove the visit with Checked.

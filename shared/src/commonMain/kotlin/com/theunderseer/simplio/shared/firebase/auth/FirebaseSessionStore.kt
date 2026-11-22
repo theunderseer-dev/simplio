@@ -1,13 +1,19 @@
 package com.theunderseer.simplio.shared.firebase.auth
 
 interface FirebaseSessionStore {
-    /** Reads saved credentials without prompting the user. */
-    suspend fun read(): RememberedFirebaseSession?
+    /** Automatic reads are silent. An explicit retry can authorize platform interaction. */
+    suspend fun read(allowUserInteraction: Boolean = false): RememberedFirebaseSession?
     suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean)
     suspend fun clear(allowUserInteraction: Boolean)
 }
 
 class RememberedFirebaseSession(val userId: String, val refreshToken: String)
 
-class FirebaseSessionStorageException(cause: Throwable? = null) :
-    IllegalStateException("Unable to access saved sign-in", cause)
+enum class FirebaseSessionStorageOperation { Read, Write, Clear }
+
+class FirebaseSessionStorageException(
+    cause: Throwable? = null,
+    val operation: FirebaseSessionStorageOperation? = null,
+    val status: Int? = null,
+    val isTemporarilyUnavailable: Boolean = false,
+) : IllegalStateException("Unable to access saved sign-in", cause)

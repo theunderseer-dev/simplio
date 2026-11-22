@@ -21,6 +21,7 @@ import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthClient
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStore
 import com.theunderseer.simplio.shared.firebase.auth.RememberedFirebaseSession
 import com.theunderseer.simplio.shared.firebase.createFirebaseHttpClient
@@ -29,9 +30,11 @@ import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.http.HttpHeaders
 import io.ktor.http.headersOf
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class FirebaseSignInValidationUiTest {
@@ -72,10 +75,11 @@ class FirebaseSignInValidationUiTest {
     @Test
     fun `remember me is opt-in and its label toggles the checkbox after retrying Keychain`() = runComposeUiTest {
         var saved: RememberedFirebaseSession? = null
-        var readAttempts = 0
+        val readInteractions = mutableListOf<Boolean>()
         val store = object : FirebaseSessionStore {
-            override suspend fun read(): RememberedFirebaseSession? {
-                if (++readAttempts == 1) throw FirebaseSessionStorageException()
+            override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession? {
+                readInteractions += allowUserInteraction
+                if (!allowUserInteraction) throw FirebaseSessionStorageException()
                 return saved
             }
 
@@ -105,7 +109,7 @@ class FirebaseSignInValidationUiTest {
 
             onNodeWithText("Retry saved sign-in").assertIsDisplayed().performClick()
             onNodeWithText("Retry saved sign-in").assertDoesNotExist()
-            assertEquals(2, readAttempts)
+            assertEquals(listOf(false, true), readInteractions)
             assertNull(saved)
 
             val remember = onNodeWithText("Remember me")
@@ -119,6 +123,113 @@ class FirebaseSignInValidationUiTest {
             }
             assertEquals("test-user", saved?.userId)
             assertEquals("refresh-token", saved?.refreshToken)
+        } finally {
+            http.close()
+        }
+    }
+
+    @Test
+    fun `temporary Keychain read retries silently when the app reports availability`() = runComposeUiTest {
+        val availability = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val readInteractions = mutableListOf<Boolean>()
+        val store = object : FirebaseSessionStore {
+            override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession {
+                readInteractions += allowUserInteraction
+                if (readInteractions.size == 1) {
+                    throw FirebaseSessionStorageException(
+                        operation = FirebaseSessionStorageOperation.Read,
+                        status = -25_308,
+                        isTemporarilyUnavailable = true,
+                    )
+                }
+                return RememberedFirebaseSession("test-user", "refresh-token")
+            }
+
+            override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
+                error("An unchanged token must not be written")
+            }
+
+            override suspend fun clear(allowUserInteraction: Boolean) = Unit
+        }
+        val sessions = FirebaseSessionManager(
+            authApi = object : FirebaseAuthApi {
+                override suspend fun signIn(email: String, password: String): FirebaseSession = error("Not expected")
+
+                override suspend fun refreshSession(refreshToken: String) =
+                    FirebaseSession("test-user", "refreshed-id-token", refreshToken, 3600)
+            },
+            sessionStore = store,
+        )
+        val config = FirebaseConfig("test-key", "test-project")
+        val http = authHttpClient()
+        try {
+            val access = FirestoreAccessChecker(http, config, sessions)
+            val accounts = FirebaseAuthClient(http, config)
+            setContent {
+                FirebaseSignInGate(sessions, access, accounts, keychainAvailability = availability) {
+                    Text("Signed-in content")
+                }
+            }
+            onNodeWithText("(read, OSStatus -25308)", substring = true).assertIsDisplayed()
+            waitUntil(timeoutMillis = 5000) { availability.subscriptionCount.value == 1 }
+            runOnIdle { assertTrue(availability.tryEmit(Unit)) }
+            waitUntil(timeoutMillis = 5000) {
+                runCatching { onNodeWithText("Signed-in content").assertIsDisplayed() }.isSuccess
+            }
+            assertEquals(listOf(false, false), readInteractions)
+        } finally {
+            http.close()
+        }
+    }
+
+    @Test
+    fun `availability after password sign-in keeps the signed-in screen open`() = runComposeUiTest {
+        val availability = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        var reads = 0
+        val store = object : FirebaseSessionStore {
+            override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession? {
+                reads++
+                throw FirebaseSessionStorageException(
+                    operation = FirebaseSessionStorageOperation.Read,
+                    isTemporarilyUnavailable = true,
+                )
+            }
+
+            override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) =
+                error("Not expected")
+
+            override suspend fun clear(allowUserInteraction: Boolean) = Unit
+        }
+        val sessions = FirebaseSessionManager(
+            authApi = object : FirebaseAuthApi {
+                override suspend fun signIn(email: String, password: String) =
+                    FirebaseSession("test-user", "id-token", "refresh-token", 3600)
+
+                override suspend fun refreshSession(refreshToken: String): FirebaseSession = error("Not expected")
+            },
+            sessionStore = store,
+        )
+        val config = FirebaseConfig("test-key", "test-project")
+        val http = authHttpClient()
+        try {
+            val access = FirestoreAccessChecker(http, config, sessions)
+            val accounts = FirebaseAuthClient(http, config)
+            setContent {
+                FirebaseSignInGate(sessions, access, accounts, keychainAvailability = availability) {
+                    Text("Signed-in content")
+                }
+            }
+            onNodeWithText("Retry saved sign-in").assertIsDisplayed()
+            onNodeWithText("Email").performTextInput(InputTestData.email)
+            onNodeWithText("Password").performTextInput(InputTestData.passwordWithSpaces)
+            onNode(hasText("Sign in") and hasClickAction()).performClick()
+            waitUntil(timeoutMillis = 5000) {
+                runCatching { onNodeWithText("Signed-in content").assertIsDisplayed() }.isSuccess
+            }
+            assertEquals(1, availability.subscriptionCount.value)
+            runOnIdle { assertTrue(availability.tryEmit(Unit)) }
+            onNodeWithText("Signed-in content").assertIsDisplayed()
+            assertEquals(1, reads)
         } finally {
             http.close()
         }

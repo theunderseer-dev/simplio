@@ -1,6 +1,7 @@
 package com.theunderseer.simplio.auth
 
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStore
 import com.theunderseer.simplio.shared.firebase.auth.RememberedFirebaseSession
 import kotlinx.coroutines.Dispatchers
@@ -9,11 +10,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal class MacFirebaseSessionStore private constructor(private val projectId: String) : FirebaseSessionStore {
-    override suspend fun read(): RememberedFirebaseSession? = withContext(Dispatchers.IO) {
-        val bytes = keychain { readItem(projectId) } ?: return@withContext null
+    override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession? = withContext(Dispatchers.IO) {
+        val bytes = keychain(FirebaseSessionStorageOperation.Read) {
+            readItemWithInteraction(projectId, allowUserInteraction)
+        } ?: return@withContext null
         val parts = bytes.decodeToString().split('\n', limit = 2)
         if (parts.size != 2 || parts.any { it.isBlank() }) {
-            keychain { clearItem(projectId, allowUserInteraction = false) }
+            keychain(FirebaseSessionStorageOperation.Clear) { clearItem(projectId, allowUserInteraction) }
             return@withContext null
         }
         RememberedFirebaseSession(parts[0], parts[1])
@@ -23,25 +26,32 @@ internal class MacFirebaseSessionStore private constructor(private val projectId
         withContext(Dispatchers.IO) {
             check('\n' !in session.userId)
             val data = (session.userId + "\n" + session.refreshToken).encodeToByteArray()
-            keychain { writeItem(projectId, data, allowUserInteraction) }
+            keychain(FirebaseSessionStorageOperation.Write) { writeItem(projectId, data, allowUserInteraction) }
         }
     }
 
     override suspend fun clear(allowUserInteraction: Boolean) {
         withContext(Dispatchers.IO) {
-            keychain { clearItem(projectId, allowUserInteraction) }
+            keychain(FirebaseSessionStorageOperation.Clear) { clearItem(projectId, allowUserInteraction) }
         }
     }
 
-    private inline fun <T> keychain(action: () -> T): T = try {
+    private inline fun <T> keychain(operation: FirebaseSessionStorageOperation, action: () -> T): T = try {
         action()
+    } catch (error: MacKeychainOperationException) {
+        throw FirebaseSessionStorageException(
+            cause = error,
+            operation = operation,
+            status = error.status,
+            isTemporarilyUnavailable = error.isTemporarilyUnavailable,
+        )
     } catch (error: IllegalStateException) {
-        throw FirebaseSessionStorageException(error)
+        throw FirebaseSessionStorageException(cause = error, operation = operation)
     } catch (error: LinkageError) {
-        throw FirebaseSessionStorageException(error)
+        throw FirebaseSessionStorageException(cause = error, operation = operation)
     }
 
-    private external fun readItem(projectId: String): ByteArray?
+    private external fun readItemWithInteraction(projectId: String, allowUserInteraction: Boolean): ByteArray?
     private external fun writeItem(projectId: String, data: ByteArray, allowUserInteraction: Boolean)
     private external fun clearItem(projectId: String, allowUserInteraction: Boolean)
 
@@ -60,3 +70,6 @@ internal class MacFirebaseSessionStore private constructor(private val projectId
         }
     }
 }
+
+private class MacKeychainOperationException(val status: Int, val isTemporarilyUnavailable: Boolean) :
+    IllegalStateException("Keychain OSStatus $status")
