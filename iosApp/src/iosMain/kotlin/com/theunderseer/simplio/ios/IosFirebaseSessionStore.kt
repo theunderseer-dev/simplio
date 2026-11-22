@@ -1,6 +1,10 @@
 package com.theunderseer.simplio.ios
 
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation.Clear
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation.Read
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation.Write
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStore
 import com.theunderseer.simplio.shared.firebase.auth.RememberedFirebaseSession
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -34,7 +38,9 @@ import platform.Security.SecItemCopyMatching
 import platform.Security.SecItemDelete
 import platform.Security.SecItemUpdate
 import platform.Security.errSecDuplicateItem
+import platform.Security.errSecInteractionNotAllowed
 import platform.Security.errSecItemNotFound
+import platform.Security.errSecNotAvailable
 import platform.Security.errSecSuccess
 import platform.Security.kSecAttrAccessible
 import platform.Security.kSecAttrAccessibleWhenUnlockedThisDeviceOnly
@@ -47,7 +53,8 @@ import platform.Security.kSecValueData
 
 @OptIn(ExperimentalForeignApi::class)
 internal class IosFirebaseSessionStore(private val projectId: String) : FirebaseSessionStore {
-    override suspend fun read(): RememberedFirebaseSession? = withContext(Dispatchers.IO) {
+    // The device unlock policy governs access. These operations never request authentication UI.
+    override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession? = withContext(Dispatchers.IO) {
         val stored = readItem() ?: return@withContext null
         val parts = stored.split('\n', limit = 2)
         if (parts.size != 2 || parts.any { it.isBlank() }) {
@@ -57,20 +64,19 @@ internal class IosFirebaseSessionStore(private val projectId: String) : Firebase
         RememberedFirebaseSession(parts[0], parts[1])
     }
 
-    // This item uses device unlock only and requires no Keychain interaction on any operation.
     override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
         withContext(Dispatchers.IO) {
             require('\n' !in session.userId)
             val encoded = "${session.userId}\n${session.refreshToken}".encodeToByteArray()
             val data = encoded.usePinned { CFDataCreate(null, it.addressOf(0).reinterpret(), encoded.size.toLong()) }
-                ?: throw FirebaseSessionStorageException()
+                ?: throw FirebaseSessionStorageException(operation = Write)
             try {
-                withItemQuery { query ->
-                    withDictionary { update ->
+                withItemQuery(Write) { query ->
+                    withDictionary(Write) { update ->
                         CFDictionarySetValue(update, kSecValueData, data)
                         var status = SecItemUpdate(query, update)
                         if (status == errSecItemNotFound) {
-                            status = withItemQuery { item ->
+                            status = withItemQuery(Write) { item ->
                                 CFDictionarySetValue(item, kSecValueData, data)
                                 CFDictionarySetValue(
                                     item,
@@ -81,7 +87,7 @@ internal class IosFirebaseSessionStore(private val projectId: String) : Firebase
                             }
                             if (status == errSecDuplicateItem) status = SecItemUpdate(query, update)
                         }
-                        requireKeychainSuccess(status)
+                        requireIosKeychainSuccess(status, Write)
                     }
                 }
             } finally {
@@ -94,14 +100,14 @@ internal class IosFirebaseSessionStore(private val projectId: String) : Firebase
         deleteItem()
     }
 
-    private fun readItem(): String? = withItemQuery { query ->
+    private fun readItem(): String? = withItemQuery(Read) { query ->
         CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue)
         memScoped {
             val result = alloc<CFTypeRefVar>()
             val status = SecItemCopyMatching(query, result.ptr)
             if (status == errSecItemNotFound) return@memScoped null
-            requireKeychainSuccess(status)
-            val data: CFDataRef = result.value?.reinterpret() ?: throw FirebaseSessionStorageException()
+            requireIosKeychainSuccess(status, Read)
+            val data: CFDataRef = result.value?.reinterpret() ?: throw FirebaseSessionStorageException(operation = Read)
             try {
                 CFDataGetBytePtr(data)?.readBytes(CFDataGetLength(data).toInt())?.decodeToString().orEmpty()
             } finally {
@@ -110,20 +116,23 @@ internal class IosFirebaseSessionStore(private val projectId: String) : Firebase
         }
     }
 
-    private fun deleteItem() = withItemQuery { query ->
+    private fun deleteItem() = withItemQuery(Clear) { query ->
         val status = SecItemDelete(query)
-        if (status != errSecItemNotFound) requireKeychainSuccess(status)
+        if (status != errSecItemNotFound) requireIosKeychainSuccess(status, Clear)
     }
 
-    private inline fun <T> withItemQuery(block: (CFMutableDictionaryRef) -> T): T = withDictionary { query ->
+    private inline fun <T> withItemQuery(
+        operation: FirebaseSessionStorageOperation,
+        block: (CFMutableDictionaryRef) -> T,
+    ): T = withDictionary(operation) { query ->
         val service = CFStringCreateWithCString(
             null,
             "com.theunderseer.simplio.firebase-session",
             kCFStringEncodingUTF8,
-        ) ?: throw FirebaseSessionStorageException()
+        ) ?: throw FirebaseSessionStorageException(operation = operation)
         try {
             val account = CFStringCreateWithCString(null, projectId, kCFStringEncodingUTF8)
-                ?: throw FirebaseSessionStorageException()
+                ?: throw FirebaseSessionStorageException(operation = operation)
             try {
                 CFDictionarySetValue(query, kSecClass, kSecClassGenericPassword)
                 CFDictionarySetValue(query, kSecAttrService, service)
@@ -137,20 +146,26 @@ internal class IosFirebaseSessionStore(private val projectId: String) : Firebase
         }
     }
 
-    private inline fun <T> withDictionary(block: (CFMutableDictionaryRef) -> T): T {
+    private inline fun <T> withDictionary(
+        operation: FirebaseSessionStorageOperation,
+        block: (CFMutableDictionaryRef) -> T,
+    ): T {
         val dictionary =
             CFDictionaryCreateMutable(null, 0, kCFTypeDictionaryKeyCallBacks.ptr, kCFTypeDictionaryValueCallBacks.ptr)
-                ?: throw FirebaseSessionStorageException()
+                ?: throw FirebaseSessionStorageException(operation = operation)
         return try {
             block(dictionary)
         } finally {
             CFRelease(dictionary)
         }
     }
+}
 
-    private fun requireKeychainSuccess(status: Int) {
-        if (status != errSecSuccess) {
-            throw FirebaseSessionStorageException(IllegalStateException("Keychain OSStatus $status"))
-        }
-    }
+internal fun requireIosKeychainSuccess(status: Int, operation: FirebaseSessionStorageOperation) {
+    if (status == errSecSuccess) return
+    throw FirebaseSessionStorageException(
+        operation = operation,
+        status = status,
+        isTemporarilyUnavailable = status == errSecInteractionNotAllowed || status == errSecNotAvailable,
+    )
 }

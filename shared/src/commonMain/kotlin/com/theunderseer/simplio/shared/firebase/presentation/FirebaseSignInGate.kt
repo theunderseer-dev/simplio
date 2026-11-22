@@ -41,6 +41,7 @@ import com.theunderseer.simplio.shared.firebase.auth.FirebaseAuthException
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSession
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionManager
 import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageException
+import com.theunderseer.simplio.shared.firebase.auth.FirebaseSessionStorageOperation
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.input.ValidatedOutlinedTextField
 import com.theunderseer.simplio.shared.presentation.input.rememberValidatedInput
@@ -51,6 +52,8 @@ import com.theunderseer.simplio.shared.validation.InputPolicy
 import com.theunderseer.simplio.shared.validation.isValidSignInEmail
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
@@ -59,6 +62,7 @@ fun FirebaseSignInGate(
     sessionManager: FirebaseSessionManager,
     accessChecker: FirestoreAccessChecker,
     accountClient: FirebaseAuthClient,
+    keychainAvailability: Flow<Unit> = emptyFlow(),
     content: @Composable (FirebaseSession) -> Unit,
 ) {
     val session by sessionManager.session.collectAsState()
@@ -72,18 +76,49 @@ fun FirebaseSignInGate(
     var rememberMe by remember { mutableStateOf(false) }
     var restoring by remember(sessionManager) { mutableStateOf(sessionManager.canRememberSession) }
     var restoreFailed by remember { mutableStateOf(false) }
-    var restoreAttempt by remember { mutableIntStateOf(0) }
+    var retryAfterUnlock by remember(sessionManager) { mutableStateOf(false) }
+    var availabilityRevision by remember(sessionManager) { mutableIntStateOf(0) }
+    var restoreAvailabilityRevision by remember(sessionManager) { mutableIntStateOf(0) }
+    var restoreAttempt by remember(sessionManager) { mutableStateOf(SavedSignInAttempt(allowUserInteraction = false)) }
     var info by remember { mutableStateOf<AuthNotice?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val windowFocused = LocalWindowInfo.current.isWindowFocused
+
+    fun requestSavedSignIn(allowUserInteraction: Boolean) {
+        if (busy || restoring || form != AuthForm.SignIn || sessionManager.session.value != null) return
+        restoring = true
+        restoreAttempt = SavedSignInAttempt(allowUserInteraction)
+    }
+
+    LaunchedEffect(sessionManager, keychainAvailability) {
+        keychainAvailability.collect {
+            availabilityRevision++
+            sessionManager.retrySavingRememberedSession()
+        }
+    }
+    val shouldRetryAfterUnlock = session == null &&
+        retryAfterUnlock &&
+        !busy &&
+        !restoring &&
+        form == AuthForm.SignIn &&
+        availabilityRevision != restoreAvailabilityRevision
+    LaunchedEffect(sessionManager, shouldRetryAfterUnlock) {
+        if (shouldRetryAfterUnlock) requestSavedSignIn(allowUserInteraction = false)
+    }
+    LaunchedEffect(sessionManager, windowFocused) {
+        if (windowFocused) sessionManager.retrySavingRememberedSession()
+    }
 
     LaunchedEffect(sessionManager, restoreAttempt) {
         if (!sessionManager.canRememberSession) return@LaunchedEffect
         restoring = true
         restoreFailed = false
+        retryAfterUnlock = false
+        restoreAvailabilityRevision = availabilityRevision
         errorMessage = null
         try {
-            val restored = sessionManager.restoreSession { candidate ->
+            val restored = sessionManager.restoreSession(restoreAttempt.allowUserInteraction) { candidate ->
                 if (!accountClient.isEmailVerified(candidate)) throw VerificationRequired(candidate)
                 accessChecker.checkAccess(candidate)
             }
@@ -92,9 +127,11 @@ fun FirebaseSignInGate(
             throw error
         } catch (_: VerificationRequired) {
             errorMessage = "Please sign in again to confirm your email."
-        } catch (_: FirebaseSessionStorageException) {
+        } catch (error: FirebaseSessionStorageException) {
             restoreFailed = true
-            errorMessage = "Couldn't access your saved sign-in in Keychain. Try again or sign in with your password."
+            retryAfterUnlock = error.isTemporarilyUnavailable && error.operation == FirebaseSessionStorageOperation.Read
+            errorMessage = "Couldn't access your saved sign-in in Keychain${error.details()}. " +
+                "Try again or sign in with your password."
         } catch (_: Exception) {
             restoreFailed = true
             errorMessage = "Couldn't restore your sign-in. Try again or sign in with your password."
@@ -124,7 +161,6 @@ fun FirebaseSignInGate(
         if (next != AuthForm.Verify) verificationSession = null
     }
 
-    val windowFocused = LocalWindowInfo.current.isWindowFocused
     val verificationCandidate = verificationSession.takeIf { form == AuthForm.Verify && !busy && windowFocused }
     LaunchedEffect(verificationCandidate) {
         val candidate = verificationCandidate ?: return@LaunchedEffect
@@ -150,7 +186,7 @@ fun FirebaseSignInGate(
     }
 
     fun submit() {
-        if (busy) return
+        if (busy || restoring) return
         val submittedForm = form
         val submittedEmail = email.trim()
         val submittedPassword = password
@@ -180,6 +216,7 @@ fun FirebaseSignInGate(
                         password = ""
                         rememberMe = false
                         restoreFailed = false
+                        retryAfterUnlock = false
                         verifiedUserId = signedInSession.userId
                     }
 
@@ -309,10 +346,7 @@ fun FirebaseSignInGate(
                 if (form == AuthForm.SignIn) {
                     Column {
                         if (restoreFailed) {
-                            TextButton(onClick = {
-                                restoring = true
-                                restoreAttempt++
-                            }, enabled = !busy) {
+                            TextButton(onClick = { requestSavedSignIn(allowUserInteraction = true) }, enabled = !busy) {
                                 Text("Retry saved sign-in")
                             }
                         }
@@ -348,6 +382,13 @@ private enum class AuthForm(val title: String, val action: String) {
 
 private class VerificationRequired(val session: FirebaseSession) : IllegalStateException()
 
+private class SavedSignInAttempt(val allowUserInteraction: Boolean)
+
+private fun FirebaseSessionStorageException.details(): String {
+    val action = operation?.name?.lowercase() ?: return ""
+    return if (status == null) " ($action)" else " ($action, OSStatus $status)"
+}
+
 private fun authError(
     form: AuthForm,
     checkingCloud: Boolean,
@@ -355,7 +396,7 @@ private fun authError(
     error: Exception,
 ): String {
     if (error is FirebaseSessionStorageException) {
-        return "Couldn't update the saved sign-in in Keychain. Try again."
+        return "Couldn't update the saved sign-in in Keychain${error.details()}. Try again."
     }
     if (checkingCloud) {
         return if ((error as? FirestoreAccessException)?.statusCode == 403) {

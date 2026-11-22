@@ -166,7 +166,7 @@ class FirebaseSessionManagerTest {
     }
 
     @Test
-    fun `background refresh keeps the live session when saving would require interaction`() = runTest {
+    fun `background refresh retries an unsaved token even if Firebase returns it again`() = runTest {
         val timeSource = TestTimeSource()
         val store = FakeSessionStore()
         val manager = FirebaseSessionManager(FakeAuthApi(), timeSource, store)
@@ -178,6 +178,12 @@ class FirebaseSessionManagerTest {
         assertSame(refreshedSession, manager.session.value)
         assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
         assertEquals(listOf(true, false), store.writeInteractions)
+
+        store.requireInteractionForWrite = false
+        timeSource += 3_540.seconds
+        assertSame(refreshedSession, manager.getValidSession())
+        assertEquals(refreshedSession.refreshToken, store.saved?.refreshToken)
+        assertEquals(listOf(true, false, false), store.writeInteractions)
     }
 
     @Test
@@ -235,17 +241,55 @@ class FirebaseSessionManagerTest {
     }
 
     @Test
-    fun `restore leaves sign-in available when saving would require interaction`() = runTest {
+    fun `restore skips rewriting an unchanged refresh token`() = runTest {
+        val store = FakeSessionStore().apply {
+            saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
+            requireInteractionForWrite = true
+        }
+        val api = FakeAuthApi().apply { refreshHandler = { initialSession } }
+        val manager = FirebaseSessionManager(api, sessionStore = store)
+
+        assertSame(initialSession, manager.restoreSession())
+        assertSame(initialSession, manager.session.value)
+        assertEquals(emptyList(), store.writeInteractions)
+    }
+
+    @Test
+    fun `temporary write failure during restore keeps the confirmed session`() = runTest {
         val store = FakeSessionStore().apply {
             saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
             requireInteractionForWrite = true
         }
         val manager = FirebaseSessionManager(FakeAuthApi(), sessionStore = store)
 
-        assertFailsWith<FirebaseSessionStorageException> { manager.restoreSession() }
-        assertNull(manager.session.value)
+        assertSame(refreshedSession, manager.restoreSession())
+        assertSame(refreshedSession, manager.session.value)
         assertEquals(initialSession.refreshToken, store.saved?.refreshToken)
         assertEquals(listOf(false), store.writeInteractions)
+
+        store.requireInteractionForWrite = false
+        manager.retrySavingRememberedSession()
+        manager.retrySavingRememberedSession()
+        assertEquals(refreshedSession.refreshToken, store.saved?.refreshToken)
+        assertEquals(listOf(false, false), store.writeInteractions)
+    }
+
+    @Test
+    fun `manual retry authorizes reading and saving while automatic restore stays silent`() = runTest {
+        val store = FakeSessionStore().apply {
+            saved = RememberedFirebaseSession(initialSession.userId, initialSession.refreshToken)
+            requireInteractionForRead = true
+            requireInteractionForWrite = true
+        }
+        val api = FakeAuthApi()
+        val manager = FirebaseSessionManager(api, sessionStore = store)
+
+        assertFailsWith<FirebaseSessionStorageException> { manager.restoreSession() }
+        assertEquals(emptyList(), api.requestedRefreshTokens)
+        assertSame(refreshedSession, manager.restoreSession(allowUserInteraction = true))
+        assertEquals(listOf(false, true), store.readInteractions)
+        assertEquals(listOf(true), store.writeInteractions)
+        assertEquals(refreshedSession.refreshToken, store.saved?.refreshToken)
     }
 
     @Test
@@ -328,15 +372,28 @@ class FirebaseSessionManagerTest {
     private class FakeSessionStore : FirebaseSessionStore {
         var saved: RememberedFirebaseSession? = null
         var failClear = false
+        var requireInteractionForRead = false
         var requireInteractionForWrite = false
+        val readInteractions = mutableListOf<Boolean>()
         val writeInteractions = mutableListOf<Boolean>()
         val clearInteractions = mutableListOf<Boolean>()
 
-        override suspend fun read(): RememberedFirebaseSession? = saved
+        override suspend fun read(allowUserInteraction: Boolean): RememberedFirebaseSession? {
+            readInteractions += allowUserInteraction
+            if (requireInteractionForRead && !allowUserInteraction) {
+                throw FirebaseSessionStorageException(operation = FirebaseSessionStorageOperation.Read)
+            }
+            return saved
+        }
 
         override suspend fun write(session: RememberedFirebaseSession, allowUserInteraction: Boolean) {
             writeInteractions += allowUserInteraction
-            if (requireInteractionForWrite && !allowUserInteraction) throw FirebaseSessionStorageException()
+            if (requireInteractionForWrite && !allowUserInteraction) {
+                throw FirebaseSessionStorageException(
+                    operation = FirebaseSessionStorageOperation.Write,
+                    isTemporarilyUnavailable = true,
+                )
+            }
             saved = session
         }
 

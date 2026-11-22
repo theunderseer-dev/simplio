@@ -2,7 +2,6 @@
 #import <Security/Security.h>
 #include <jni.h>
 #include <pthread.h>
-#include <stdio.h>
 
 #define JNI_METHOD(name) Java_com_theunderseer_simplio_auth_MacFirebaseSessionStore_##name
 
@@ -48,20 +47,25 @@ static NSDictionary *itemQuery(JNIEnv *env, jstring projectId) {
 }
 
 static void throwStatus(JNIEnv *env, OSStatus status) {
-    jclass exception = (*env)->FindClass(env, "java/lang/IllegalStateException");
-    if (exception == NULL) return;
-    char message[64];
-    snprintf(message, sizeof(message), "Keychain OSStatus %d", (int)status);
-    (*env)->ThrowNew(env, exception, message);
+    jclass exceptionClass = (*env)->FindClass(env, "com/theunderseer/simplio/auth/MacKeychainOperationException");
+    if (exceptionClass == NULL) return;
+    jmethodID constructor = (*env)->GetMethodID(env, exceptionClass, "<init>", "(IZ)V");
+    if (constructor == NULL) return;
+    jboolean temporarilyUnavailable = status == errSecInteractionNotAllowed ||
+        status == errSecInteractionRequired || status == errSecNotAvailable || status == errSecInDarkWake;
+    jthrowable exception = (*env)->NewObject(env, exceptionClass, constructor, (jint)status, temporarilyUnavailable);
+    if (exception != NULL) (*env)->Throw(env, exception);
 }
 
-JNIEXPORT jbyteArray JNICALL JNI_METHOD(readItem)(JNIEnv *env, jobject self, jstring projectId) {
+JNIEXPORT jbyteArray JNICALL JNI_METHOD(readItemWithInteraction)(
+    JNIEnv *env, jobject self, jstring projectId, jboolean allowUserInteraction
+) {
     @autoreleasepool {
         NSMutableDictionary *query = [itemQuery(env, projectId) mutableCopy];
         if (query == nil) return NULL;
         query[(__bridge NSString *)kSecReturnData] = @YES;
         __block CFTypeRef result = NULL;
-        OSStatus status = withKeychainInteraction(NO, ^OSStatus {
+        OSStatus status = withKeychainInteraction(allowUserInteraction, ^OSStatus {
             return SecItemCopyMatching((__bridge CFDictionaryRef)query, &result);
         });
         if (status == errSecItemNotFound) return NULL;
