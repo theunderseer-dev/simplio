@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceRoster
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
@@ -93,6 +94,38 @@ class AttendanceRosterScreenTest {
             )
         }
         onNodeWithText("No students yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `roster preserves group and student order and omits empty groups`() = runComposeUiTest {
+        val firstGroup = StudentGroup(1, "Tuesday class")
+        val emptyGroup = StudentGroup(2, "Empty class")
+        val secondGroup = StudentGroup(3, "Monday class")
+        val student = AttendanceTestData.student
+        val students = listOf(
+            student.copy(id = 2, fullName = "Ben", groupId = secondGroup.id),
+            student.copy(id = 3, fullName = "Zoe", groupId = firstGroup.id),
+            student.copy(id = 4, fullName = "Ana", groupId = firstGroup.id),
+        )
+        val roster = AttendanceRoster(
+            attendance = Attendance(students.flatMap { testStudentAttendanceUiState(student = it).attendance.entries }),
+            groupSchedules = emptyMap(),
+            studentGroups = listOf(firstGroup, emptyGroup, secondGroup),
+        )
+        setContent {
+            AttendanceRosterScreen(
+                state = AttendanceRosterState.Content(roster),
+                now = Instant.parse("2026-10-02T10:00:00Z"),
+                onRefresh = {},
+                onSignOut = {},
+                onEdit = { null },
+            )
+        }
+
+        val labels = listOf(firstGroup.name, "Zoe", "Ana", secondGroup.name, "Ben")
+        val positions = labels.map { onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot().top }
+        assertTrue(positions.zipWithNext().all { (above, below) -> above < below })
+        onNodeWithText(emptyGroup.name).assertDoesNotExist()
     }
 
     @Test

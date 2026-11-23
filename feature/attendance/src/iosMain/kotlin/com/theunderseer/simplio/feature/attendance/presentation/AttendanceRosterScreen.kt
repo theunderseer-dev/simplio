@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -167,12 +168,38 @@ private fun AttendanceRosterRows(
     if (rows.isEmpty()) {
         RosterStatus { Text(stringResource(Res.string.roster_empty)) }
     } else {
+        val rowsByGroup = rows.groupBy { it.registeredStudent.student.groupId }
+        val namedGroupIds = roster.studentGroups.mapTo(mutableSetOf()) { it.id }
+        val ungroupedRows = rows.filterNot { it.registeredStudent.student.groupId in namedGroupIds }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = quickActionListClearance)) {
-            items(rows, key = { it.registeredStudent.student.id }) { row ->
-                AttendanceRosterRow(row, reduceMotion, onAction = { onAction(row) })
-                HorizontalDivider()
+            roster.studentGroups.forEach { group ->
+                val groupRows = rowsByGroup[group.id].orEmpty()
+                if (groupRows.isNotEmpty()) {
+                    item(key = "student-group-${group.id}", contentType = "student-group-header") {
+                        Text(
+                            text = group.name,
+                            modifier = Modifier.fillMaxWidth()
+                                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 6.dp)
+                                .semantics { heading() },
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    attendanceRosterItems(groupRows, reduceMotion, onAction)
+                }
             }
+            attendanceRosterItems(ungroupedRows, reduceMotion, onAction)
         }
+    }
+}
+
+private fun LazyListScope.attendanceRosterItems(
+    rows: List<StudentAttendanceUiState>,
+    reduceMotion: Boolean,
+    onAction: (StudentAttendanceUiState) -> Unit,
+) {
+    items(rows, key = { it.registeredStudent.student.id }, contentType = { "student-row" }) { row ->
+        AttendanceRosterRow(row, reduceMotion, onAction = { onAction(row) })
+        HorizontalDivider()
     }
 }
 
