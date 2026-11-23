@@ -21,11 +21,13 @@ The short, descriptive topic name follows AOSP guidance. Simplio uses its existi
 
 ## TDD cycle
 
-1. Define the next milestone, its expected behavior, relevant checks, and intended commit boundary.
-2. **RED:** add a test for the required behavior. Minimal declarations or temporary stubs may be needed to compile the test; verify that it fails for the expected reason.
-3. **GREEN:** implement the behavior and run the relevant checks. Preserve existing tests unless their underlying requirement has changed.
-4. **Refactor:** improve the implementation when needed while keeping the tests green.
-5. **Commit:** once the milestone is complete and verified, commit it before moving to the next milestone.
+Follow BDD → TDD for every feature and bug fix.
+
+1. **BDD.** Define the expected behavior, relevant edge cases, verification steps, and intended commit boundary for the next milestone.
+2. **RED.** Start with an executable test for the scenario before changing production behavior. For a fix, use a regression test that reproduces the bug. Add minimal declarations or stubs if the test needs them to compile. Confirm the test fails for the expected reason.
+3. **GREEN.** Make the smallest change that passes the test and run the relevant checks. Preserve existing tests unless their underlying requirement has changed.
+4. **Refactor.** Improve the implementation when needed while keeping the tests green.
+5. **Commit.** Keep RED tests local. Once the applicable checks pass, commit the working implementation and its passing tests together before moving to the next milestone.
 
 Several RED–GREEN cycles may belong to one milestone. A separate commit is not required for every test, file, import, or line change.
 

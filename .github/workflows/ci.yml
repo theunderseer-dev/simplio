@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   verify:
-    name: verify
+    name: JVM Tests, Lint & Coverage
     runs-on: ubuntu-latest
 
     steps:
@@ -48,3 +48,89 @@ jobs:
       - name: Generate coverage report
         if: ${{ !cancelled() }}
         run: ./gradlew :feature:attendance:koverXmlReport
+
+  ios:
+    name: iOS Build & Tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.4.app/Contents/Developer
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Boot iPhone simulator
+        id: simulator
+        run: |
+          xcodebuild -version
+          sdk_version="$(xcrun --sdk iphonesimulator --show-sdk-version)"
+          runtime="com.apple.CoreSimulator.SimRuntime.iOS-${sdk_version//./-}"
+          device_id="$(
+            xcrun simctl list --json devices available |
+              jq -r --arg runtime "$runtime" '
+                [
+                  .devices | to_entries[]
+                  | select(.key == $runtime or (.key | startswith($runtime + "-")))
+                  | .value[]
+                  | select(.isAvailable and (.name | startswith("iPhone ")))
+                ]
+                | sort_by(.state != "Booted", .name)
+                | .[0].udid // empty
+              '
+          )"
+
+          if [[ -z "$device_id" ]]; then
+            printf '::error::No available iPhone simulator for iOS SDK %s.\n' "$sdk_version"
+            xcrun simctl list devices available
+            exit 1
+          fi
+
+          xcrun simctl bootstatus "$device_id" -b
+          printf 'device_id=%s\n' "$device_id" >> "$GITHUB_OUTPUT"
+
+      - name: Build iOS app
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.device_id }}
+        run: >-
+          xcodebuild build
+          -project iosApp/iosApp.xcodeproj
+          -scheme Simplio
+          -configuration Debug
+          -destination "id=$SIMULATOR_ID"
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Run iOS simulator tests
+        env:
+          SIMULATOR_ID: ${{ steps.simulator.outputs.device_id }}
+        run: >-
+          ./gradlew
+          :iosApp:iosSimulatorArm64Test --device "$SIMULATOR_ID"
+          --tests '*IosFirebaseSessionStoreTest'
+          :feature:attendance:iosSimulatorArm64Test --device "$SIMULATOR_ID"
+          --tests '*AttendanceRoster*Test'
+          --tests '*IosAttendanceQuickActionsTest'
+          --tests '*IosRegistrationPickerTest'
+          --tests '*IosStudentSwipe*Test'
+          --stacktrace
+
+      - name: Run detekt for iOS Attendance
+        run: >-
+          ./gradlew
+          :feature:attendance:detektIosMainSourceSet
+          :feature:attendance:detektIosTestSourceSet
+          --stacktrace
