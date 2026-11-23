@@ -98,6 +98,15 @@ FIREBASE_API_KEY = your-client-api-key
 
 Use a verified test account authorized to read attendance in that project.
 
+## Continuous integration
+
+The [iOS Build & Tests job](../../.github/workflows/ci.yml) runs alongside the Ubuntu
+checks on macOS ARM64. It uses JDK 21 and Xcode 26.4, the Xcode version listed for this
+project's Kotlin release in the [Kotlin compatibility guide](https://kotlinlang.org/docs/multiplatform/multiplatform-compatibility-guide.html#version-compatibility).
+The job boots an iPhone simulator for the selected SDK and builds the `Simplio` scheme without
+signing. Gradle runs the Keychain, roster, quick actions, date picker, and swipe tests with
+local fixtures. Detekt checks Attendance's `iosMain` and `iosTest` source sets.
+
 ## Local verification
 
 If the active command-line tools point to Command Line Tools, set `DEVELOPER_DIR` in your
