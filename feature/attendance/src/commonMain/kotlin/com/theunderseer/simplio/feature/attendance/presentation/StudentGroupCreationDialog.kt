@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.ClassSchedule
@@ -146,8 +147,71 @@ internal fun StudentGroupCreationDialog(
         !checking &&
         overlap == null &&
         (if (newSchedule) draft != null else selected != null)
+    chooseDate?.let { field ->
+        val initial = if (field == "start") startDate else endDate ?: startDate
+        val picker =
+            rememberDatePickerState(
+                initialSelectedDateMillis = initial.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
+            )
+        ClassDatePickerDialog(
+            title = if (field == "start") "Schedule starts on" else "Schedule ends on",
+            state = picker,
+            canConfirm = picker.selectedDateMillis != null,
+            dialogProperties = formDialogProperties(usePlatformDefaultWidth = false),
+            onDismiss = { chooseDate = null },
+            onConfirm = {
+                picker.selectedDateMillis?.let {
+                    val date = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date
+                    if (field == "start") startDate = date else endDate = date
+                }
+                chooseDate = null
+            },
+        )
+        return
+    }
+    chooseTime?.let { field ->
+        val initial = runCatching {
+            LocalTime.parse(
+                if (field ==
+                    "start"
+                ) {
+                    startTime
+                } else {
+                    endTime
+                },
+            )
+        }.getOrDefault(LocalTime(9, 0))
+        val picker = rememberTimePickerState(initial.hour, initial.minute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { chooseTime = null },
+            properties = formDialogProperties(),
+            title = {
+                Text(
+                    if (field ==
+                        "start"
+                    ) {
+                        "Start time"
+                    } else {
+                        "End time"
+                    },
+                )
+            },
+            text = { TimePicker(picker) },
+            confirmButton = {
+                SimplioTextButton(onClick = {
+                    val value = LocalTime(picker.hour, picker.minute).toString()
+                    if (field == "start") startInput.replaceText(value) else endInput.replaceText(value)
+                    chooseTime = null
+                }) { Text("OK") }
+            },
+            dismissButton = { SimplioTextButton(onClick = { chooseTime = null }) { Text("Cancel") } },
+        )
+        return
+    }
+
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
+        properties = formDialogProperties(),
         title = {
             Column {
                 Text(stringResource(Res.string.attendance_add_group))
@@ -155,6 +219,7 @@ internal fun StudentGroupCreationDialog(
             }
         },
         text = {
+            val focusManager = LocalFocusManager.current
             Column(
                 modifier = Modifier.verticalScroll(scroll).testTag("group-form"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -244,7 +309,10 @@ internal fun StudentGroupCreationDialog(
                             startInput,
                             !saving,
                             false,
-                            { chooseTime = "start" },
+                            {
+                                focusManager.clearFocus()
+                                chooseTime = "start"
+                            },
                             Modifier.weight(1f),
                         )
                         ScheduleTimeField(
@@ -252,7 +320,10 @@ internal fun StudentGroupCreationDialog(
                             endInput,
                             !saving,
                             invalidOrder,
-                            { chooseTime = "end" },
+                            {
+                                focusManager.clearFocus()
+                                chooseTime = "end"
+                            },
                             Modifier.weight(1f),
                         )
                     }
@@ -275,7 +346,10 @@ internal fun StudentGroupCreationDialog(
                         },
                     )
                     SimplioTextButton(
-                        onClick = { chooseDate = "start" },
+                        onClick = {
+                            focusManager.clearFocus()
+                            chooseDate = "start"
+                        },
                         enabled = !saving,
                         modifier = Modifier.testTag("group-start-date"),
                     ) { Text(stringResource(Res.string.schedule_starts_on, startDate.toString())) }
@@ -288,6 +362,7 @@ internal fun StudentGroupCreationDialog(
                         Text("End date")
                         endDate?.let {
                             SimplioTextButton(onClick = {
+                                focusManager.clearFocus()
                                 chooseDate = "end"
                             }, enabled = !saving) { Text(it.toString()) }
                         }
@@ -324,63 +399,6 @@ internal fun StudentGroupCreationDialog(
         },
         dismissButton = { SimplioTextButton(onClick = onDismiss, enabled = !saving) { Text("Cancel") } },
     )
-    chooseDate?.let { field ->
-        val initial = if (field == "start") startDate else endDate ?: startDate
-        val picker =
-            rememberDatePickerState(
-                initialSelectedDateMillis = initial.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds(),
-            )
-        ClassDatePickerDialog(
-            title = if (field == "start") "Schedule starts on" else "Schedule ends on",
-            state = picker,
-            canConfirm = picker.selectedDateMillis != null,
-            onDismiss = { chooseDate = null },
-            onConfirm = {
-                picker.selectedDateMillis?.let {
-                    val date = Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.UTC).date
-                    if (field == "start") startDate = date else endDate = date
-                }
-                chooseDate = null
-            },
-        )
-    }
-    chooseTime?.let { field ->
-        val initial = runCatching {
-            LocalTime.parse(
-                if (field ==
-                    "start"
-                ) {
-                    startTime
-                } else {
-                    endTime
-                },
-            )
-        }.getOrDefault(LocalTime(9, 0))
-        val picker = rememberTimePickerState(initial.hour, initial.minute, is24Hour = true)
-        AlertDialog(
-            onDismissRequest = { chooseTime = null },
-            title = {
-                Text(
-                    if (field ==
-                        "start"
-                    ) {
-                        "Start time"
-                    } else {
-                        "End time"
-                    },
-                )
-            },
-            text = { TimePicker(picker) },
-            confirmButton = {
-                SimplioTextButton(onClick = {
-                    val value = LocalTime(picker.hour, picker.minute).toString()
-                    if (field == "start") startInput.replaceText(value) else endInput.replaceText(value)
-                    chooseTime = null
-                }) { Text("OK") }
-            },
-            dismissButton = { SimplioTextButton(onClick = { chooseTime = null }) { Text("Cancel") } },
-        )
-    }
 }
 
 private data class CheckedSchedule(val schedule: ClassSchedule, val overlap: ScheduleOverlap?)

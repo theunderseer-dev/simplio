@@ -8,10 +8,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -88,50 +93,51 @@ internal fun AttendanceRosterScreen(
     var showQuickActions by remember(showTrigger) { mutableStateOf(false) }
     val reduceMotion = rememberIosReduceMotion()
     val contentSemantics = if (showQuickActions) Modifier.clearAndSetSemantics {} else Modifier
-    Box(Modifier.fillMaxSize().safeDrawingPadding()) {
-        Column(Modifier.fillMaxSize().then(contentSemantics)) {
+    val systemBars = WindowInsets.systemBars
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.fillMaxSize()
+                .windowInsetsPadding(systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+                .then(contentSemantics),
+        ) {
             syncNotice()
             AttendanceRosterHeader(loaded, onRefresh, onSignOut)
             HorizontalDivider()
-            when (state) {
-                AttendanceRosterState.Loading -> RosterStatus {
-                    val loading = stringResource(Res.string.roster_loading)
-                    CircularProgressIndicator(Modifier.semantics { contentDescription = loading })
-                }
-                is AttendanceRosterState.Error -> RosterStatus {
-                    Text(stringResource(state.message))
-                    TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
-                }
-                is AttendanceRosterState.Content -> {
-                    AttendanceRosterRows(state.roster, now, reduceMotion) { row -> dialog = row }
-                    dialog?.let { selected ->
-                        AttendanceRosterActionDialog(selected, state.roster, now, onEdit) { dialog = null }
-                    }
-                    val action = creationDialog
-                    if (creation != null && action != null) {
-                        IosAttendanceCreationDialog(
-                            action = action,
-                            roster = state.roster,
-                            now = now,
-                            creation = creation,
-                            onCreated = { resource, name ->
-                                creationDialog = null
-                                scope.launch { snackbarHost.showSnackbar(getString(resource, name)) }
-                            },
-                            onDismiss = { creationDialog = null },
-                        )
-                    }
-                }
-            }
+            AttendanceRosterContent(state, now, reduceMotion, onRefresh) { row -> dialog = row }
         }
-        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(bottom = quickActionListClearance))
+        val bottomBars = systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
+        SnackbarHost(
+            snackbarHost,
+            Modifier.align(Alignment.BottomCenter)
+                .windowInsetsPadding(bottomBars)
+                .padding(bottom = quickActionListClearance),
+        )
         if (showTrigger) {
             IosAttendanceQuickActions(
                 expanded = showQuickActions,
                 reduceMotion = reduceMotion,
                 onExpandedChange = { showQuickActions = it },
                 onAction = { creationDialog = it },
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().windowInsetsPadding(systemBars),
+            )
+        }
+    }
+    if (state is AttendanceRosterState.Content) {
+        dialog?.let { selected ->
+            AttendanceRosterActionDialog(selected, state.roster, now, onEdit) { dialog = null }
+        }
+        val action = creationDialog
+        if (creation != null && action != null) {
+            IosAttendanceCreationDialog(
+                action = action,
+                roster = state.roster,
+                now = now,
+                creation = creation,
+                onCreated = { resource, name ->
+                    creationDialog = null
+                    scope.launch { snackbarHost.showSnackbar(getString(resource, name)) }
+                },
+                onDismiss = { creationDialog = null },
             )
         }
     }
@@ -158,6 +164,28 @@ private fun AttendanceRosterHeader(canRefresh: Boolean, onRefresh: () -> Unit, o
 
 @Suppress("FunctionNaming")
 @Composable
+private fun AttendanceRosterContent(
+    state: AttendanceRosterState,
+    now: Instant,
+    reduceMotion: Boolean,
+    onRefresh: () -> Unit,
+    onAction: (StudentAttendanceUiState) -> Unit,
+) {
+    when (state) {
+        AttendanceRosterState.Loading -> RosterStatus {
+            val loading = stringResource(Res.string.roster_loading)
+            CircularProgressIndicator(Modifier.semantics { contentDescription = loading })
+        }
+        is AttendanceRosterState.Error -> RosterStatus {
+            Text(stringResource(state.message))
+            TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
+        }
+        is AttendanceRosterState.Content -> AttendanceRosterRows(state.roster, now, reduceMotion, onAction)
+    }
+}
+
+@Suppress("FunctionNaming")
+@Composable
 private fun AttendanceRosterRows(
     roster: AttendanceRoster,
     now: Instant,
@@ -171,7 +199,11 @@ private fun AttendanceRosterRows(
         val rowsByGroup = rows.groupBy { it.registeredStudent.student.groupId }
         val namedGroupIds = roster.studentGroups.mapTo(mutableSetOf()) { it.id }
         val ungroupedRows = rows.filterNot { it.registeredStudent.student.groupId in namedGroupIds }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = quickActionListClearance)) {
+        val bottomInset = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+        LazyColumn(
+            Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = quickActionListClearance + bottomInset),
+        ) {
             roster.studentGroups.forEach { group ->
                 val groupRows = rowsByGroup[group.id].orEmpty()
                 if (groupRows.isNotEmpty()) {

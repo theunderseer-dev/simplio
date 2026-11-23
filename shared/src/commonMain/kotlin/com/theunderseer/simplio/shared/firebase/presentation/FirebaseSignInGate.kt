@@ -63,6 +63,7 @@ fun FirebaseSignInGate(
     accessChecker: FirestoreAccessChecker,
     accountClient: FirebaseAuthClient,
     keychainAvailability: Flow<Unit> = emptyFlow(),
+    formModifier: Modifier = Modifier,
     content: @Composable (FirebaseSession) -> Unit,
 ) {
     val session by sessionManager.session.collectAsState()
@@ -263,7 +264,7 @@ fun FirebaseSignInGate(
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Box(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier.fillMaxSize().then(formModifier).padding(24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(

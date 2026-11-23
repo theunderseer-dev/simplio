@@ -8,6 +8,7 @@ struct SimplioApp: App {
   var body: some Scene {
     WindowGroup {
       SimplioContent()
+        .ignoresSafeArea()
     }
   }
 }

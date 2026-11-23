@@ -8,6 +8,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
@@ -18,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
@@ -246,7 +249,9 @@ class AttendanceRosterScreenTest {
         addActions.performClick()
         onNodeWithText("Add package").performClick()
         onNode(dialog and hasText("Create package")).assertIsDisplayed()
-        onNodeWithTag("create-package-name").performScrollTo().performTextReplacement("Private package")
+        val packageName = onNodeWithTag("create-package-name").performScrollTo()
+        packageName.performTouchInput { click() }
+        packageName.assertIsFocused().performTextReplacement("Private package")
         onNodeWithTag("create-package-classes").performScrollTo().performTextReplacement("8")
         onNodeWithTag("create-package-price").performScrollTo().performTextReplacement("1200")
         onNodeWithTag("create-package-weeks").performScrollTo().performTextReplacement("4")

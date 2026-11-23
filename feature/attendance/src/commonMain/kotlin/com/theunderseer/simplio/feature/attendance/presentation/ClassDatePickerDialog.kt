@@ -37,6 +37,7 @@ internal fun ClassDatePickerDialog(
     onDismiss: () -> Unit,
     isSaving: Boolean = false,
     availabilityKey: Any? = null,
+    dialogProperties: DialogProperties = DialogProperties(usePlatformDefaultWidth = false),
     supportingContent: @Composable ColumnScope.() -> Unit = {},
 ) {
     val scrollState = rememberScrollState()
@@ -46,7 +47,7 @@ internal fun ClassDatePickerDialog(
     BasicAlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
         modifier = Modifier.widthIn(max = 360.dp).padding(vertical = 24.dp),
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = dialogProperties,
     ) {
         Surface(
             shape = DatePickerDefaults.shape,

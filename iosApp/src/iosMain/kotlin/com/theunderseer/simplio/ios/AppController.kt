@@ -3,6 +3,7 @@ package com.theunderseer.simplio.ios
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,7 +46,10 @@ fun makeAppController(apiKey: String, projectId: String, databasePath: (String, 
         SimplioTheme {
             Surface(Modifier.fillMaxSize()) {
                 if (apiKey.isBlank() || projectId.isBlank()) {
-                    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
                         Text("Set the Firebase project ID and API key in Firebase.local.xcconfig to sign in.")
                     }
                 } else {
@@ -67,7 +71,13 @@ private fun SignedInAttendance(config: FirebaseConfig, databasePath: (String, St
     val access = remember(http, config, sessions) { FirestoreAccessChecker(http, config, sessions) }
     val keychainAvailability = remember { keychainAvailabilityEvents() }
 
-    FirebaseSignInGate(sessions, access, auth, keychainAvailability = keychainAvailability) { session ->
+    FirebaseSignInGate(
+        sessions,
+        access,
+        auth,
+        keychainAvailability = keychainAvailability,
+        formModifier = Modifier.safeDrawingPadding(),
+    ) { session ->
         key(session.userId) {
             val scope = rememberCoroutineScope()
             var signingOut by remember { mutableStateOf(false) }
