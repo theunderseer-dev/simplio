@@ -19,9 +19,15 @@ class RoomClassScheduleRepository(private val database: AttendanceDatabase) : Cl
         dao.schedules().map { it.toDomain(slots) }
     }
 
-    override suspend fun getForGroup(groupId: Int): List<ClassSchedule> = transactions.run {
-        val ids = dao.groupSchedules().filter { it.groupId == groupId }.map { it.scheduleId }.toSet()
-        getAll().filter { it.id in ids }
+    override suspend fun getForGroup(groupId: Int): List<ClassSchedule> =
+        getForGroups(listOf(groupId)).getValue(groupId)
+
+    override suspend fun getForGroups(groupIds: Iterable<Int>): Map<Int, List<ClassSchedule>> = transactions.run {
+        val linksByGroup = dao.groupSchedules().groupBy { it.groupId }
+        val schedulesById = getAll().associateBy { it.id }
+        groupIds.associateWith { groupId ->
+            linksByGroup[groupId].orEmpty().mapNotNull { schedulesById[it.scheduleId] }
+        }
     }
 
     override suspend fun save(schedule: ClassSchedule) = RoomSyncJournal.write(database) { journal ->

@@ -17,12 +17,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +61,8 @@ import com.theunderseer.simplio.feature.attendance.resources.roster_visits_used
 import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
 import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
 import com.theunderseer.simplio.shared.presentation.theme.positive
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
@@ -70,17 +75,22 @@ internal fun AttendanceRosterScreen(
     onRefresh: () -> Unit,
     onSignOut: () -> Unit,
     onEdit: suspend (AttendanceRosterEdit) -> String?,
+    creation: IosAttendanceCreation? = null,
     syncNotice: @Composable () -> Unit = {},
 ) {
     var dialog by remember { mutableStateOf<StudentAttendanceUiState?>(null) }
-    val showTrigger = state is AttendanceRosterState.Content
+    var creationDialog by remember(creation) { mutableStateOf<IosAttendanceQuickAction?>(null) }
+    val snackbarHost = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val loaded = state is AttendanceRosterState.Content
+    val showTrigger = loaded && creation != null
     var showQuickActions by remember(showTrigger) { mutableStateOf(false) }
     val reduceMotion = rememberIosReduceMotion()
     val contentSemantics = if (showQuickActions) Modifier.clearAndSetSemantics {} else Modifier
     Box(Modifier.fillMaxSize().safeDrawingPadding()) {
         Column(Modifier.fillMaxSize().then(contentSemantics)) {
             syncNotice()
-            AttendanceRosterHeader(showTrigger, onRefresh, onSignOut)
+            AttendanceRosterHeader(loaded, onRefresh, onSignOut)
             HorizontalDivider()
             when (state) {
                 AttendanceRosterState.Loading -> RosterStatus {
@@ -96,14 +106,30 @@ internal fun AttendanceRosterScreen(
                     dialog?.let { selected ->
                         AttendanceRosterActionDialog(selected, state.roster, now, onEdit) { dialog = null }
                     }
+                    val action = creationDialog
+                    if (creation != null && action != null) {
+                        IosAttendanceCreationDialog(
+                            action = action,
+                            roster = state.roster,
+                            now = now,
+                            creation = creation,
+                            onCreated = { resource, name ->
+                                creationDialog = null
+                                scope.launch { snackbarHost.showSnackbar(getString(resource, name)) }
+                            },
+                            onDismiss = { creationDialog = null },
+                        )
+                    }
                 }
             }
         }
+        SnackbarHost(snackbarHost, Modifier.align(Alignment.BottomCenter).padding(bottom = quickActionListClearance))
         if (showTrigger) {
             IosAttendanceQuickActions(
                 expanded = showQuickActions,
                 reduceMotion = reduceMotion,
                 onExpandedChange = { showQuickActions = it },
+                onAction = { creationDialog = it },
                 modifier = Modifier.matchParentSize(),
             )
         }

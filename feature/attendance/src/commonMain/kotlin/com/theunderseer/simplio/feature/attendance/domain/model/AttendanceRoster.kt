@@ -5,4 +5,5 @@ internal data class AttendanceRoster(
     val groupSchedules: Map<Int, List<ClassSchedule>>,
     val packageTypes: List<PackageType> = emptyList(),
     val studentGroups: List<StudentGroup> = emptyList(),
+    val classSchedules: List<ClassSchedule> = emptyList(),
 )
