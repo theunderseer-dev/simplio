@@ -76,6 +76,7 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
             if (current == null) "Attendance isn't ready. Try again." else current.apply(edit)
         },
         creation = current?.creation,
+        onDeleteStudent = current?.deleteStudent,
         syncNotice = { if (current != null) AttendanceSyncNotice(current.sync) },
     )
 }
@@ -84,6 +85,7 @@ private class IosRosterSession(
     val sync: AttendanceSyncCoordinator,
     val apply: suspend (AttendanceRosterEdit) -> String?,
     val creation: IosAttendanceCreation,
+    val deleteStudent: suspend (Int) -> String?,
 )
 
 private suspend fun runRosterSession(
@@ -119,6 +121,7 @@ private suspend fun runRosterSession(
                         sync = sync,
                         apply = { edit -> async { edits.apply(edit) }.await() },
                         creation = creation,
+                        deleteStudent = { studentId -> async { edits.delete(studentId) }.await() },
                     ),
                 )
                 roster.observe().collect { onState(AttendanceRosterState.Content(it)) }

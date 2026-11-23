@@ -6,6 +6,9 @@ import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPac
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
+import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomSyncOutbox
+import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncEntityType
+import com.theunderseer.simplio.feature.attendance.data.local.sync.SyncOperation
 import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.fake.FakeAttendanceCloud
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
@@ -19,10 +22,49 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
 class AttendanceRosterEditsTest {
+    @Test
+    fun `mobile student deletion cascades locally and syncs the same deletion to desktop`() = runTest {
+        withSyncDatabases { desktop, mobile ->
+            desktop.registerSyncStudent()
+            val cloud = FakeAttendanceCloud()
+            cloud.uploadPending(desktop)
+            RoomPullStore(mobile, cloud.target).refreshFrom(cloud)
+            val roster = RoomAttendanceRoster(mobile)
+            val reviewed = roster.getAll().attendance.entries.single()
+            val edits = AttendanceRosterEdits(
+                RoomTransactionRunner(mobile),
+                RoomStudentPackageRepository(mobile),
+                RoomPackageTypeRepository(mobile.packageTypeDao()),
+                RoomClassScheduleRepository(mobile),
+                RoomStudentRepository(mobile),
+            )
+
+            assertNull(edits.delete(reviewed.student.id))
+            assertTrue(roster.getAll().attendance.entries.isEmpty())
+            assertTrue(mobile.studentPackageDao().getForStudent(reviewed.student.id).isEmpty())
+            assertTrue(mobile.attendanceDao().getForPackage(reviewed.studentPackage.id).isEmpty())
+
+            val pending = RoomSyncOutbox(mobile).getPending()
+            assertEquals(3, pending.size)
+            assertTrue(pending.all { it.operation == SyncOperation.DELETE })
+            assertEquals(
+                setOf(SyncEntityType.STUDENT, SyncEntityType.STUDENT_PACKAGE, SyncEntityType.ATTENDANCE),
+                pending.map { it.entityType }.toSet(),
+            )
+            assertNull(edits.delete(reviewed.student.id))
+            assertEquals(pending, RoomSyncOutbox(mobile).getPending())
+
+            cloud.uploadPending(mobile)
+            RoomPullStore(desktop, cloud.target).refreshFrom(cloud)
+            assertTrue(RoomAttendanceRoster(desktop).getAll().attendance.entries.isEmpty())
+        }
+    }
+
     @Test
     fun `mobile check and renewal update Room and upload the same purchases and visits desktop reads`() = runTest {
         withSyncDatabases { desktop, mobile ->

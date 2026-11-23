@@ -40,6 +40,12 @@
     <string name="student_registered">Student registered: %1$s</string>
     <string name="student_registration_failed">Could not register the student. Try again.</string>
     <string name="student_name_invalid">Enter a name of 1–200 characters on one line.</string>
+    <string name="student_delete_title">Delete student?</string>
+    <string name="student_delete_confirmation">Delete &quot;%1$s&quot;?</string>
+    <string name="student_delete_button">Delete</string>
+    <string name="student_deleting">Deleting…</string>
+    <string name="student_delete_failed">Could not delete the student. Try again.</string>
+    <string name="ios_delete_student_action">Delete student %1$s</string>
     <string name="group_name_invalid">Enter a name of 1–80 characters on one line.</string>
     <string name="schedule_time_invalid">Use HH:mm between 00:00 and 23:59.</string>
     <string name="schedule_zone_invalid">Enter a valid time zone, e.g. Asia/Bangkok.</string>
