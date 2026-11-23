@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -148,9 +149,10 @@ internal fun StudentPackageDialog(
             null
         }
 
-    if (visible) {
+    if (visible && !showDatePicker) {
         AlertDialog(
             onDismissRequest = { if (!isSaving) onDismiss() },
+            properties = formDialogProperties(),
             title = {
                 Column {
                     Text(title)
@@ -166,6 +168,7 @@ internal fun StudentPackageDialog(
                 }
             },
             text = {
+                val focusManager = LocalFocusManager.current
                 Column(
                     modifier = Modifier.verticalScroll(formScrollState),
                 ) {
@@ -204,6 +207,7 @@ internal fun StudentPackageDialog(
                             Modifier
                                 .matchParentSize()
                                 .simplioClickable(enabled = !isSaving && dateSelectionAvailable && fixedDate == null) {
+                                    focusManager.clearFocus()
                                     showDatePicker = true
                                 }
                                 .semantics {
@@ -444,6 +448,7 @@ internal fun StudentPackageDialog(
             state = datePickerState,
             canConfirm = datePickerState.selectedDateMillis?.let { selectableDates.isSelectableDate(it) } == true,
             availabilityKey = listOf(initialDate, earliestDate, schedules),
+            dialogProperties = formDialogProperties(usePlatformDefaultWidth = false),
             onConfirm = {
                 datePickerState.selectedDateMillis?.let { millis ->
                     selectedDate = Instant.fromEpochMilliseconds(millis).toLocalDateTime(TimeZone.UTC).date

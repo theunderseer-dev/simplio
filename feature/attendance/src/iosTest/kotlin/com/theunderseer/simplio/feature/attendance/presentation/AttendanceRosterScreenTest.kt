@@ -8,6 +8,8 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
@@ -18,11 +20,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceRoster
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
@@ -93,6 +97,38 @@ class AttendanceRosterScreenTest {
             )
         }
         onNodeWithText("No students yet").assertIsDisplayed()
+    }
+
+    @Test
+    fun `roster preserves group and student order and omits empty groups`() = runComposeUiTest {
+        val firstGroup = StudentGroup(1, "Tuesday class")
+        val emptyGroup = StudentGroup(2, "Empty class")
+        val secondGroup = StudentGroup(3, "Monday class")
+        val student = AttendanceTestData.student
+        val students = listOf(
+            student.copy(id = 2, fullName = "Ben", groupId = secondGroup.id),
+            student.copy(id = 3, fullName = "Zoe", groupId = firstGroup.id),
+            student.copy(id = 4, fullName = "Ana", groupId = firstGroup.id),
+        )
+        val roster = AttendanceRoster(
+            attendance = Attendance(students.flatMap { testStudentAttendanceUiState(student = it).attendance.entries }),
+            groupSchedules = emptyMap(),
+            studentGroups = listOf(firstGroup, emptyGroup, secondGroup),
+        )
+        setContent {
+            AttendanceRosterScreen(
+                state = AttendanceRosterState.Content(roster),
+                now = Instant.parse("2026-10-02T10:00:00Z"),
+                onRefresh = {},
+                onSignOut = {},
+                onEdit = { null },
+            )
+        }
+
+        val labels = listOf(firstGroup.name, "Zoe", "Ana", secondGroup.name, "Ben")
+        val positions = labels.map { onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot().top }
+        assertTrue(positions.zipWithNext().all { (above, below) -> above < below })
+        onNodeWithText(emptyGroup.name).assertDoesNotExist()
     }
 
     @Test
@@ -213,7 +249,9 @@ class AttendanceRosterScreenTest {
         addActions.performClick()
         onNodeWithText("Add package").performClick()
         onNode(dialog and hasText("Create package")).assertIsDisplayed()
-        onNodeWithTag("create-package-name").performScrollTo().performTextReplacement("Private package")
+        val packageName = onNodeWithTag("create-package-name").performScrollTo()
+        packageName.performTouchInput { click() }
+        packageName.assertIsFocused().performTextReplacement("Private package")
         onNodeWithTag("create-package-classes").performScrollTo().performTextReplacement("8")
         onNodeWithTag("create-package-price").performScrollTo().performTextReplacement("1200")
         onNodeWithTag("create-package-weeks").performScrollTo().performTextReplacement("4")

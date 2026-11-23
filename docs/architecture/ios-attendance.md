@@ -3,6 +3,7 @@
 The iOS app opens the attendance list after Firebase email/password sign-in with a verified
 account. Each student appears once with their latest purchase. The list shows the student or
 pair name, used and total visits, expiration, and the Check, Checked, or Renew action.
+The list uses the same student group and row order as Desktop. Empty groups are hidden.
 The iOS roster reuses the Desktop action icons and highlights renewal rows in the same green.
 Check opens the same schedule-aware calendar as Desktop. Checked opens the removal confirmation.
 Renew uses the shared purchase form with an existing package template, an optional first
@@ -12,6 +13,7 @@ keyboard-input option. Room changes update the list after each save.
 The round add button shows Add student, Add package, and Add schedule from top to bottom.
 Schedule appears first, closest to the trigger, followed by Package and Student as the menu
 expands upward. With Reduce Motion enabled the actions fade in together without moving.
+The buttons use a thin outline that fades in with the button surface.
 The roster keeps its usual appearance while the menu is open. Tapping outside or on the
 trigger closes it.
 
@@ -20,6 +22,12 @@ new or existing weekly schedule. Add package creates a reusable package template
 registers a student, saves the purchase, and optionally records the first attendance. A
 successful save updates the roster and selections from Room. The first student in a new group
 uses the group's schedule and venue time zone. Failed saves keep the form open.
+Date and time pickers replace the form while open. Confirming or cancelling a picker
+returns to the same form draft.
+
+The iOS Compose host paints the theme to the screen edges. Attendance content observes
+the status bar and cutout, and the last row and add button clear the Home indicator.
+The keyboard changes the layout of the active form while the underlying roster stays fixed.
 
 ## Boundaries
 
@@ -118,6 +126,10 @@ Open the add menu on a populated and empty roster. Verify that the buttons fit a
 indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
 Create a schedule and a package on iOS, then use both to add the first student in the new group.
 Verify that the roster updates locally and Desktop sees the new records after sync.
+While registering a student, tap Full name, enter a name, select a group, and open
+Registration date with the keyboard still visible. Cancel and reopen the picker, then choose
+a date and verify the form still has the entered name and selected group. Watch that the
+roster behind the form remains fixed. Repeat for schedule date and time pickers.
 
 See [Apple lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),
