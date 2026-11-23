@@ -10,6 +10,11 @@ Renew uses the shared purchase form with an existing package template, an option
 attendance, and an optional note. The compact Purchase date field opens a calendar with a
 keyboard-input option. Room changes update the list after each save.
 
+Swipe a student row left to reveal a square Delete button. Only one row stays open.
+Tapping elsewhere or swiping the row back closes it. The swipe reveals the action and
+deletion requires confirmation in the shared student dialog. VoiceOver exposes the
+same action. Confirmed deletes use the shared Room transaction and sync outbox.
+
 The round add button shows Add student, Add package, and Add schedule from top to bottom.
 Schedule appears first, closest to the trigger, followed by Package and Student as the menu
 expands upward. With Reduce Motion enabled the actions fade in together without moving.
@@ -124,6 +129,9 @@ Renew with and without first attendance and verify the purchase, note, and visit
 after sync. Check both appearance modes and an empty account.
 Open the add menu on a populated and empty roster. Verify that the buttons fit above the home
 indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
+Swipe left on students in two different groups in succession and verify that only the
+latest action stays open. Confirm that a full swipe only reveals the button, a tap outside
+closes it, and the same confirmation is available through VoiceOver.
 Create a schedule and a package on iOS, then use both to add the first student in the new group.
 Verify that the roster updates locally and Desktop sees the new records after sync.
 While registering a student, tap Full name, enter a name, select a group, and open

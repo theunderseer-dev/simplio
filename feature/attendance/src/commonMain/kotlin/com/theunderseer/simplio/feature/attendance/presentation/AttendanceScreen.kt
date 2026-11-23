@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +48,7 @@ import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTyp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.RegisteredStudent
+import com.theunderseer.simplio.feature.attendance.domain.model.Student
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.domain.schedule.latestClassDate
 import com.theunderseer.simplio.feature.attendance.resources.Res
@@ -67,7 +67,6 @@ import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioOutlinedButton
-import com.theunderseer.simplio.shared.presentation.components.SimplioTextButton
 import com.theunderseer.simplio.shared.presentation.components.collectIsKeyboardFocusedAsState
 import com.theunderseer.simplio.shared.presentation.components.simplioClickable
 import com.theunderseer.simplio.shared.presentation.components.simplioHoverSurface
@@ -119,7 +118,7 @@ fun AttendanceScreen(
     }
 
     var deleteStudentDialog by remember {
-        mutableStateOf<Int?>(null)
+        mutableStateOf<Student?>(null)
     }
 
     var attendanceDatePickerStudentId by remember {
@@ -275,8 +274,8 @@ fun AttendanceScreen(
                     onAddStudentClick = {
                         showRegistrationDialog = true
                     },
-                    onDeleteStudentClick = { studentId ->
-                        deleteStudentDialog = studentId
+                    onDeleteStudentClick = { student ->
+                        deleteStudentDialog = student
                     },
                     onCopyAttendanceClick = { groupId ->
                         val groupAttendance = state.attendance.copy(
@@ -502,49 +501,14 @@ fun AttendanceScreen(
                 )
             }
 
-            deleteStudentDialog?.let { studentId ->
-                val student =
-                    state.attendance.entries
-                        .first { it.student.id == studentId }
-                        .student
-
-                AlertDialog(
-                    onDismissRequest = {
+            deleteStudentDialog?.let { student ->
+                StudentDeletionDialog(
+                    studentName = student.fullName,
+                    onConfirm = {
+                        onDeleteStudent(student.id)
                         deleteStudentDialog = null
                     },
-                    title = {
-                        Text(
-                            text = "Delete student?",
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "Delete \"${student.fullName}\"?",
-                        )
-                    },
-                    confirmButton = {
-                        SimplioButton(
-                            onClick = {
-                                onDeleteStudent(studentId)
-                                deleteStudentDialog = null
-                            },
-                        ) {
-                            Text(
-                                text = "Delete",
-                            )
-                        }
-                    },
-                    dismissButton = {
-                        SimplioTextButton(
-                            onClick = {
-                                deleteStudentDialog = null
-                            },
-                        ) {
-                            Text(
-                                text = "Cancel",
-                            )
-                        }
-                    },
+                    onDismiss = { deleteStudentDialog = null },
                 )
             }
         }
@@ -579,7 +543,7 @@ private fun AttendanceContent(
     onManagePackagesClick: () -> Unit,
     additionalOptions: (@Composable (dismiss: () -> Unit) -> Unit)?,
     onAddPackageClick: () -> Unit,
-    onDeleteStudentClick: (Int) -> Unit,
+    onDeleteStudentClick: (Student) -> Unit,
     onCopyAttendanceClick: (Int) -> Unit,
     onCheckStudentClick: (StudentAttendanceUiState) -> Unit,
     onRemoveStudentAttendanceClick: (StudentAttendanceUiState, LocalDate) -> Unit,
@@ -685,7 +649,7 @@ private fun AttendanceContent(
                                 onCheckStudentClick(row)
                             },
                             onDeleteClick = {
-                                onDeleteStudentClick(row.registeredStudent.student.id)
+                                onDeleteStudentClick(row.registeredStudent.student)
                             },
                             onRemoveAttendanceClick = { date ->
                                 onRemoveStudentAttendanceClick(row, date)

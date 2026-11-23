@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -82,19 +83,21 @@ internal fun AttendanceRosterScreen(
     onSignOut: () -> Unit,
     onEdit: suspend (AttendanceRosterEdit) -> String?,
     creation: IosAttendanceCreation? = null,
+    onDeleteStudent: (suspend (Int) -> String?)? = null,
     syncNotice: @Composable () -> Unit = {},
 ) {
     var dialog by remember { mutableStateOf<StudentAttendanceUiState?>(null) }
     var creationDialog by remember(creation) { mutableStateOf<IosAttendanceQuickAction?>(null) }
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val deletion = remember(onDeleteStudent, scope) { onDeleteStudent?.let { IosRosterDeletion(scope, it) } }
     val loaded = state is AttendanceRosterState.Content
     val showTrigger = loaded && creation != null
     var showQuickActions by remember(showTrigger) { mutableStateOf(false) }
     val reduceMotion = rememberIosReduceMotion()
     val contentSemantics = if (showQuickActions) Modifier.clearAndSetSemantics {} else Modifier
     val systemBars = WindowInsets.systemBars
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().closeRosterRevealOnTap(deletion)) {
         Column(
             Modifier.fillMaxSize()
                 .windowInsetsPadding(systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
@@ -103,13 +106,12 @@ internal fun AttendanceRosterScreen(
             syncNotice()
             AttendanceRosterHeader(loaded, onRefresh, onSignOut)
             HorizontalDivider()
-            AttendanceRosterContent(state, now, reduceMotion, onRefresh) { row -> dialog = row }
+            AttendanceRosterContent(state, now, reduceMotion, onRefresh, deletion) { row -> dialog = row }
         }
-        val bottomBars = systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)
         SnackbarHost(
             snackbarHost,
             Modifier.align(Alignment.BottomCenter)
-                .windowInsetsPadding(bottomBars)
+                .windowInsetsPadding(systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
                 .padding(bottom = quickActionListClearance),
         )
         if (showTrigger) {
@@ -123,6 +125,7 @@ internal fun AttendanceRosterScreen(
         }
     }
     if (state is AttendanceRosterState.Content) {
+        if (deletion != null) IosRosterDeletionDialog(deletion)
         dialog?.let { selected ->
             AttendanceRosterActionDialog(selected, state.roster, now, onEdit) { dialog = null }
         }
@@ -169,6 +172,7 @@ private fun AttendanceRosterContent(
     now: Instant,
     reduceMotion: Boolean,
     onRefresh: () -> Unit,
+    deletion: IosRosterDeletion?,
     onAction: (StudentAttendanceUiState) -> Unit,
 ) {
     when (state) {
@@ -180,7 +184,7 @@ private fun AttendanceRosterContent(
             Text(stringResource(state.message))
             TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
         }
-        is AttendanceRosterState.Content -> AttendanceRosterRows(state.roster, now, reduceMotion, onAction)
+        is AttendanceRosterState.Content -> AttendanceRosterRows(state.roster, now, reduceMotion, deletion, onAction)
     }
 }
 
@@ -190,6 +194,7 @@ private fun AttendanceRosterRows(
     roster: AttendanceRoster,
     now: Instant,
     reduceMotion: Boolean,
+    deletion: IosRosterDeletion?,
     onAction: (StudentAttendanceUiState) -> Unit,
 ) {
     val rows = remember(roster, now) { roster.toRows(now) }
@@ -216,10 +221,10 @@ private fun AttendanceRosterRows(
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    attendanceRosterItems(groupRows, reduceMotion, onAction)
+                    attendanceRosterItems(groupRows, reduceMotion, deletion, onAction)
                 }
             }
-            attendanceRosterItems(ungroupedRows, reduceMotion, onAction)
+            attendanceRosterItems(ungroupedRows, reduceMotion, deletion, onAction)
         }
     }
 }
@@ -227,10 +232,30 @@ private fun AttendanceRosterRows(
 private fun LazyListScope.attendanceRosterItems(
     rows: List<StudentAttendanceUiState>,
     reduceMotion: Boolean,
+    deletion: IosRosterDeletion?,
     onAction: (StudentAttendanceUiState) -> Unit,
 ) {
     items(rows, key = { it.registeredStudent.student.id }, contentType = { "student-row" }) { row ->
-        AttendanceRosterRow(row, reduceMotion, onAction = { onAction(row) })
+        val student = row.registeredStudent.student
+        val content: @Composable () -> Unit = {
+            AttendanceRosterRow(row, reduceMotion) {
+                deletion?.closeReveal()
+                onAction(row)
+            }
+        }
+        if (deletion == null) {
+            content()
+        } else {
+            IosStudentSwipeRow(
+                studentName = student.fullName,
+                expanded = deletion.revealedStudentId == student.id,
+                onExpandedChange = { deletion.setRevealed(student.id, it) },
+                onRequestDelete = { deletion.request(student) },
+                modifier = Modifier.testTag("ios-student-row-${student.id}"),
+                reduceMotion = reduceMotion,
+                content = content,
+            )
+        }
         HorizontalDivider()
     }
 }

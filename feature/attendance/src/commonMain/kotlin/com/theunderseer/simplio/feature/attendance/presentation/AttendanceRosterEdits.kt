@@ -13,11 +13,13 @@ import com.theunderseer.simplio.feature.attendance.domain.result.RemoveStudentAt
 import com.theunderseer.simplio.feature.attendance.domain.result.RenewStudentPackageResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.isAttendanceDateSelectable
 import com.theunderseer.simplio.feature.attendance.domain.transaction.TransactionRunner
+import com.theunderseer.simplio.feature.attendance.domain.usecase.DeleteStudentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.MarkStudentPresentUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RemoveStudentAttendanceUseCase
 import com.theunderseer.simplio.feature.attendance.domain.usecase.RenewStudentPackageUseCase
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.class_cancelled_error
+import com.theunderseer.simplio.feature.attendance.resources.student_delete_failed
 import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.getString
@@ -53,6 +55,16 @@ internal class AttendanceRosterEdits(
     private val mark = MarkStudentPresentUseCase(packages, transactions)
     private val remove = RemoveStudentAttendanceUseCase(packages, transactions)
     private val renew = RenewStudentPackageUseCase(packages, students, transactions)
+    private val deleteStudent = DeleteStudentUseCase(students)
+
+    suspend fun delete(studentId: Int): String? = try {
+        deleteStudent(studentId)
+        null
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        getString(Res.string.student_delete_failed)
+    }
 
     /** Returns a message for a rejected edit. Successful writes are published by Room. */
     suspend fun apply(edit: AttendanceRosterEdit): String? = try {
