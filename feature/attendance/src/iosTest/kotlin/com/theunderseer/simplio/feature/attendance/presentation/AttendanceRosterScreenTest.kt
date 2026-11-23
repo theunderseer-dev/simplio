@@ -22,6 +22,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
 import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceRoster
+import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeRequest
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.testStudentAttendanceUiState
 import com.theunderseer.simplio.shared.presentation.theme.SimplioTheme
@@ -135,6 +136,7 @@ class AttendanceRosterScreenTest {
                         onRefresh = {},
                         onSignOut = {},
                         onEdit = { null },
+                        creation = creationForTest(),
                     )
                 }
             }
@@ -154,9 +156,9 @@ class AttendanceRosterScreenTest {
         val width = studentBounds.right - studentBounds.left
         assertEquals(width, packageBounds.right - packageBounds.left)
         assertEquals(width, scheduleBounds.right - scheduleBounds.left)
-        assertTrue(packageBounds.bottom < studentBounds.top)
-        assertTrue(scheduleBounds.bottom < packageBounds.top)
-        assertTrue(studentBounds.bottom < plusBounds.top)
+        assertTrue(studentBounds.bottom < packageBounds.top)
+        assertTrue(packageBounds.bottom < scheduleBounds.top)
+        assertTrue(scheduleBounds.bottom < plusBounds.top)
 
         onNodeWithContentDescription("Dismiss add actions").performClick()
         student.assertDoesNotExist()
@@ -167,6 +169,9 @@ class AttendanceRosterScreenTest {
         expand.performClick()
         schedule.performClick()
         schedule.assertDoesNotExist()
+        val dialog = hasAnyAncestor(isDialog())
+        onNode(dialog and hasText("Add Schedule")).assertIsDisplayed()
+        onNode(dialog and hasText("Cancel")).performClick()
 
         runOnIdle { darkTheme = true }
         expand.performClick()
@@ -175,6 +180,51 @@ class AttendanceRosterScreenTest {
         schedule.assertIsDisplayed()
         collapse.performClick()
         schedule.assertDoesNotExist()
+    }
+
+    @Test
+    fun `quick actions open shared forms and a failed package save can be retried`() = runComposeUiTest {
+        val requests = mutableListOf<CreatePackageTypeRequest>()
+        val creation = creationForTest { request ->
+            requests += request
+            if (requests.size == 1) {
+                CreatePackageTypeUiState.SaveFailed
+            } else {
+                CreatePackageTypeUiState.Success(request.name)
+            }
+        }
+        setContent {
+            AttendanceRosterScreen(
+                state = AttendanceRosterState.Content(AttendanceRoster(Attendance(emptyList()), emptyMap())),
+                now = Instant.parse("2026-10-02T10:00:00Z"),
+                onRefresh = {},
+                onSignOut = {},
+                onEdit = { null },
+                creation = creation,
+            )
+        }
+        val addActions = onNodeWithContentDescription("Add actions")
+        val dialog = hasAnyAncestor(isDialog())
+        addActions.performClick()
+        onNodeWithText("Add student").performClick()
+        onNode(dialog and hasText("Add Student")).assertIsDisplayed()
+        onNode(dialog and hasText("Cancel")).performClick()
+
+        addActions.performClick()
+        onNodeWithText("Add package").performClick()
+        onNode(dialog and hasText("Create package")).assertIsDisplayed()
+        onNodeWithTag("create-package-name").performScrollTo().performTextReplacement("Private package")
+        onNodeWithTag("create-package-classes").performScrollTo().performTextReplacement("8")
+        onNodeWithTag("create-package-price").performScrollTo().performTextReplacement("1200")
+        onNodeWithTag("create-package-weeks").performScrollTo().performTextReplacement("4")
+        val confirm = onNodeWithTag("create-package-confirm")
+        confirm.assertIsEnabled().performClick()
+        onNodeWithTag("create-package-error").assertExists()
+        confirm.assertIsEnabled().performClick()
+        onNode(dialog and hasText("Create package")).assertDoesNotExist()
+        runOnIdle {
+            assertEquals(List(2) { CreatePackageTypeRequest("Private package", 8, 1200, 4, 1) }, requests)
+        }
     }
 
     @Test
@@ -204,4 +254,12 @@ class AttendanceRosterScreenTest {
         }
         onNode(dialog and hasText("Select attendance date")).assertDoesNotExist()
     }
+
+    private fun creationForTest(
+        addPackage: suspend (CreatePackageTypeRequest) -> CreatePackageTypeUiState = { error("Unexpected save") },
+    ) = IosAttendanceCreation(
+        addStudent = { error("Unexpected registration") },
+        addPackage = addPackage,
+        addSchedule = { error("Unexpected schedule save") },
+    )
 }

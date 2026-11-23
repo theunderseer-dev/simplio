@@ -46,14 +46,16 @@ internal fun attendanceDatesForGroups(
 
 internal fun AttendanceRoster.toRows(now: Instant): List<StudentAttendanceUiState> {
     val groupIds = attendance.entries.map { it.student.groupId }.toSet()
-    val defaultDate = now.toLocalDateTime(TimeZone.of(DefaultClassSchedule.schedule.timeZoneId)).date
     return attendanceRowsUiState(
         attendance,
-        defaultDate,
+        defaultAttendanceDate(now),
         groupSchedules,
         attendanceDatesForGroups(groupIds, groupSchedules, now),
     )
 }
+
+internal fun defaultAttendanceDate(now: Instant): LocalDate =
+    now.toLocalDateTime(TimeZone.of(DefaultClassSchedule.schedule.timeZoneId)).date
 
 internal fun attendanceRowsUiState(
     attendance: Attendance,

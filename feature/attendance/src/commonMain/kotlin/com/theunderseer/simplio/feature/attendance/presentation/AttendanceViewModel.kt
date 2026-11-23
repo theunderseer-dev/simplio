@@ -10,7 +10,6 @@ import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTyp
 import com.theunderseer.simplio.feature.attendance.domain.model.CreatePackageTypeResult
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
 import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
-import com.theunderseer.simplio.feature.attendance.domain.model.InvalidStudentName
 import com.theunderseer.simplio.feature.attendance.domain.model.PackageType
 import com.theunderseer.simplio.feature.attendance.domain.model.StudentGroup
 import com.theunderseer.simplio.feature.attendance.domain.repository.ClassAttendanceRepository
@@ -487,7 +486,8 @@ class AttendanceViewModel(
         packageCreationState.value = CreatePackageTypeUiState.Saving
         viewModelScope.launch {
             try {
-                when (val result = createPackageTypeUseCase(request)) {
+                val result = createPackageTypeUseCase(request)
+                when (result) {
                     is CreatePackageTypeResult.Success -> {
                         refreshAttendance()
                         val classContent = classAttendanceState.value as? ClassAttendanceUiState.Content
@@ -500,15 +500,11 @@ class AttendanceViewModel(
                                 ),
                             )
                         }
-                        packageCreationState.value = CreatePackageTypeUiState.Success(result.packageType.name)
                     }
-                    CreatePackageTypeResult.DuplicateName -> {
-                        refreshAttendance()
-                        packageCreationState.value = CreatePackageTypeUiState.DuplicateName
-                    }
-                    is CreatePackageTypeResult.Invalid ->
-                        packageCreationState.value = CreatePackageTypeUiState.Invalid(result.reason)
+                    CreatePackageTypeResult.DuplicateName -> refreshAttendance()
+                    is CreatePackageTypeResult.Invalid -> Unit
                 }
+                packageCreationState.value = result.toUiState()
             } catch (error: CancellationException) {
                 packageCreationState.value = CreatePackageTypeUiState.Idle
                 throw error
@@ -529,28 +525,17 @@ class AttendanceViewModel(
         groupCreationState.value = CreateStudentGroupUiState.Saving
         viewModelScope.launch {
             try {
-                when (val result = checkNotNull(createStudentGroupUseCase)(request)) {
+                val result = checkNotNull(createStudentGroupUseCase)(request)
+                when (result) {
                     is CreateStudentGroupResult.Success -> {
                         refreshAttendance()
                         loadClassHistory()
-                        groupCreationState.value = CreateStudentGroupUiState.Success(result.group.name)
                     }
-                    CreateStudentGroupResult.DuplicateName -> {
+                    CreateStudentGroupResult.DuplicateName, is CreateStudentGroupResult.ScheduleOverlap ->
                         refreshAttendance()
-                        groupCreationState.value = CreateStudentGroupUiState.DuplicateName
-                    }
-                    CreateStudentGroupResult.InvalidName ->
-                        groupCreationState.value = CreateStudentGroupUiState.InvalidName
-                    CreateStudentGroupResult.InvalidSchedule ->
-                        groupCreationState.value = CreateStudentGroupUiState.Error("Choose a valid weekly schedule")
-                    is CreateStudentGroupResult.ScheduleOverlap -> {
-                        refreshAttendance()
-                        groupCreationState.value = CreateStudentGroupUiState.Error(
-                            "Schedule overlaps with \"${result.existingScheduleName}\". " +
-                                "Use the existing schedule or change the time or days",
-                        )
-                    }
+                    CreateStudentGroupResult.InvalidName, CreateStudentGroupResult.InvalidSchedule -> Unit
                 }
+                groupCreationState.value = result.toUiState()
             } catch (error: CancellationException) {
                 groupCreationState.value = CreateStudentGroupUiState.Idle
                 throw error
@@ -592,11 +577,7 @@ class AttendanceViewModel(
                 registrationState.value = RegisterStudentUiState.Idle
                 throw error
             } catch (error: Exception) {
-                registrationState.value = when (error) {
-                    is InvalidStudentName -> RegisterStudentUiState.Error.INVALID_NAME
-                    is ClassAttendanceFailure -> RegisterStudentUiState.Error.CLASS_CANCELLED
-                    else -> RegisterStudentUiState.Error.SAVE_FAILED
-                }
+                registrationState.value = error.toRegistrationError()
                 return@launch
             }
 

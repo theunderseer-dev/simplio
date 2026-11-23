@@ -12,14 +12,10 @@ import androidx.room.Room
 import com.theunderseer.simplio.feature.attendance.data.local.database.AttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.database.configureAttendanceDatabase
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomAttendanceRoster
-import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomClassScheduleRepository
-import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomPackageTypeRepository
-import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
-import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentRepository
-import com.theunderseer.simplio.feature.attendance.data.local.transaction.RoomTransactionRunner
 import com.theunderseer.simplio.feature.attendance.data.remote.createFirestoreAttendanceSync
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
+import com.theunderseer.simplio.feature.attendance.di.attendanceModule
 import com.theunderseer.simplio.feature.attendance.presentation.sync.AttendanceSyncNotice
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.roster_error
@@ -33,6 +29,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 import kotlin.time.Clock
 
 @Suppress("FunctionNaming") // Compose UI functions use PascalCase.
@@ -42,6 +40,7 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
     var attempt by remember(client) { mutableIntStateOf(0) }
     var state by remember(client) { mutableStateOf<AttendanceRosterState>(AttendanceRosterState.Loading) }
     var session by remember(client) { mutableStateOf<IosRosterSession?>(null) }
+    var rosterShown by remember(client, attempt) { mutableStateOf(false) }
 
     LaunchedEffect(client, attempt) {
         state = AttendanceRosterState.Loading
@@ -59,10 +58,14 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
     val current = session
     val syncStatus = current?.sync?.status?.collectAsState()?.value
     val empty = (state as? AttendanceRosterState.Content)?.roster?.attendance?.entries?.isEmpty() == true
-    val screenState = if (empty && syncStatus == AttendanceSyncStatus.Syncing) {
+    val screenState = if (!rosterShown && empty && syncStatus == AttendanceSyncStatus.Syncing) {
         AttendanceRosterState.Loading
     } else {
         state
+    }
+    val showRoster = screenState is AttendanceRosterState.Content
+    LaunchedEffect(client, attempt, showRoster) {
+        if (showRoster) rosterShown = true
     }
     AttendanceRosterScreen(
         state = screenState,
@@ -72,6 +75,7 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
         onEdit = { edit ->
             if (current == null) "Attendance isn't ready. Try again." else current.apply(edit)
         },
+        creation = current?.creation,
         syncNotice = { if (current != null) AttendanceSyncNotice(current.sync) },
     )
 }
@@ -79,6 +83,7 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
 private class IosRosterSession(
     val sync: AttendanceSyncCoordinator,
     val apply: suspend (AttendanceRosterEdit) -> String?,
+    val creation: IosAttendanceCreation,
 )
 
 private suspend fun runRosterSession(
@@ -92,19 +97,34 @@ private suspend fun runRosterSession(
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
     try {
-        coroutineScope {
-            val sync = createFirestoreAttendanceSync(database, client)
-            val roster = RoomAttendanceRoster(database)
-            val edits = AttendanceRosterEdits(
-                RoomTransactionRunner(database),
-                RoomStudentPackageRepository(database),
-                RoomPackageTypeRepository(database.packageTypeDao()),
-                RoomClassScheduleRepository(database),
-                RoomStudentRepository(database),
-            )
-            launch(start = CoroutineStart.UNDISPATCHED) { sync.run() }
-            onOpen(IosRosterSession(sync) { edit -> async { edits.apply(edit) }.await() })
-            roster.observe().collect { onState(AttendanceRosterState.Content(it)) }
+        val application = koinApplication {
+            modules(module { single { database } }, attendanceModule())
+        }
+        try {
+            coroutineScope {
+                val dependencies = application.koin
+                val sync = createFirestoreAttendanceSync(database, client)
+                val roster = RoomAttendanceRoster(database)
+                val edits = AttendanceRosterEdits(
+                    dependencies.get(),
+                    dependencies.get(),
+                    dependencies.get(),
+                    dependencies.get(),
+                    dependencies.get(),
+                )
+                val creation = iosAttendanceCreation(dependencies.get(), dependencies.get(), dependencies.get())
+                launch(start = CoroutineStart.UNDISPATCHED) { sync.run() }
+                onOpen(
+                    IosRosterSession(
+                        sync = sync,
+                        apply = { edit -> async { edits.apply(edit) }.await() },
+                        creation = creation,
+                    ),
+                )
+                roster.observe().collect { onState(AttendanceRosterState.Content(it)) }
+            }
+        } finally {
+            application.close()
         }
     } finally {
         withContext(NonCancellable + Dispatchers.IO) { database.close() }

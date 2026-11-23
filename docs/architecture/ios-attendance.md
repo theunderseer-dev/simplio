@@ -9,10 +9,17 @@ Renew uses the shared purchase form with an existing package template, an option
 attendance, and an optional note. The compact Purchase date field opens a calendar with a
 keyboard-input option. Room changes update the list after each save.
 
-The round add button opens three equal-width actions in order from bottom to top. Add student
-appears first, followed by Add package and Add schedule. The actions fade in with a short stagger
-and upward movement. With Reduce Motion enabled they fade in together without moving. Tapping
-outside, the round button, or an action closes the menu.
+The round add button shows Add student, Add package, and Add schedule from top to bottom.
+Schedule appears first, closest to the trigger, followed by Package and Student as the menu
+expands upward. With Reduce Motion enabled the actions fade in together without moving.
+The roster keeps its usual appearance while the menu is open. Tapping outside or on the
+trigger closes it.
+
+Each action opens the same form used on Desktop. Add schedule creates a student group from a
+new or existing weekly schedule. Add package creates a reusable package template. Add student
+registers a student, saves the purchase, and optionally records the first attendance. A
+successful save updates the roster and selections from Room. The first student in a new group
+uses the group's schedule and venue time zone. Failed saves keep the form open.
 
 ## Boundaries
 
@@ -21,8 +28,8 @@ outside, the round button, or an action closes the menu.
 - `:shared` owns the Firebase sign-in screen, session manager, storage contract, and REST clients.
   The iOS HTTP engine uses Ktor Darwin.
 - `:feature:attendance` owns the session, Room import and queries, roster, and screen state.
-  Desktop and iOS share the latest-purchase use case, date rules, icons, dialogs, and use cases
-  for attendance, removal, and renewal. The mobile roster and quick actions use Compose in `iosMain`.
+  Desktop and iOS share the dependency graph, date rules, dialogs, and use cases for creation
+  and attendance. The mobile roster and quick actions use Compose in `iosMain`.
 
 The shared coordinator checks the Firestore head at sign-in, on Refresh, and while the device is
 idle. It uses the same bounded snapshot import and durable outbox as Desktop. A save checks the
@@ -109,6 +116,8 @@ Renew with and without first attendance and verify the purchase, note, and visit
 after sync. Check both appearance modes and an empty account.
 Open the add menu on a populated and empty roster. Verify that the buttons fit above the home
 indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
+Create a schedule and a package on iOS, then use both to add the first student in the new group.
+Verify that the roster updates locally and Desktop sees the new records after sync.
 
 See [Apple lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),

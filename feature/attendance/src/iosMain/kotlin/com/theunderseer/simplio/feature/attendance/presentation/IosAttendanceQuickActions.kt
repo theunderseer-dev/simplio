@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,10 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.resources.Res
-import com.theunderseer.simplio.feature.attendance.resources.class_add_package
-import com.theunderseer.simplio.feature.attendance.resources.class_add_student
 import com.theunderseer.simplio.feature.attendance.resources.ios_add_actions
-import com.theunderseer.simplio.feature.attendance.resources.ios_add_schedule
 import com.theunderseer.simplio.feature.attendance.resources.ios_close_add_actions
 import com.theunderseer.simplio.feature.attendance.resources.ios_dismiss_add_actions
 import org.jetbrains.compose.resources.stringResource
@@ -52,19 +48,13 @@ private val quickActionTriggerSize = 56.dp
 private val quickActionMargin = 16.dp
 internal val quickActionListClearance = quickActionTriggerSize + quickActionMargin * 2
 
-// The column is laid out top to bottom, with the first action closest to the plus button.
-private val quickActionLabels = listOf(
-    Res.string.ios_add_schedule,
-    Res.string.class_add_package,
-    Res.string.class_add_student,
-)
-
 @Suppress("FunctionNaming") // Compose UI functions use PascalCase.
 @Composable
 internal fun IosAttendanceQuickActions(
     expanded: Boolean,
     reduceMotion: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    onAction: (IosAttendanceQuickAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier) {
@@ -73,7 +63,6 @@ internal fun IosAttendanceQuickActions(
             Box(
                 Modifier
                     .matchParentSize()
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f))
                     .clickable(interactionSource = null, indication = null, role = Role.Button) {
                         onExpandedChange(false)
                     }
@@ -90,8 +79,10 @@ internal fun IosAttendanceQuickActions(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            quickActionLabels.forEachIndexed { index, label ->
-                val delay = if (reduceMotion) 0 else (quickActionLabels.lastIndex - index) * 55
+            val actions = IosAttendanceQuickAction.entries
+            actions.forEachIndexed { index, action ->
+                // Reveal the action nearest the plus button first.
+                val delay = if (reduceMotion) 0 else (actions.lastIndex - index) * 55
                 val slide = if (reduceMotion) {
                     EnterTransition.None
                 } else {
@@ -103,7 +94,10 @@ internal fun IosAttendanceQuickActions(
                     exit = fadeOut(tween(durationMillis = 110)),
                 ) {
                     Button(
-                        onClick = { onExpandedChange(false) },
+                        onClick = {
+                            onExpandedChange(false)
+                            onAction(action)
+                        },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                         enabled = expanded,
                         shape = CircleShape,
@@ -112,7 +106,7 @@ internal fun IosAttendanceQuickActions(
                             contentColor = MaterialTheme.colorScheme.onSurface,
                         ),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp),
-                    ) { Text(stringResource(label)) }
+                    ) { Text(stringResource(action.label)) }
                 }
             }
             QuickActionTrigger(expanded, reduceMotion, onClick = { onExpandedChange(!expanded) })

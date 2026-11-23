@@ -55,7 +55,6 @@ import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.add_package
 import com.theunderseer.simplio.feature.attendance.resources.attendance_add_group
 import com.theunderseer.simplio.feature.attendance.resources.attendance_add_student
-import com.theunderseer.simplio.feature.attendance.resources.class_cancelled_error
 import com.theunderseer.simplio.feature.attendance.resources.ic_check
 import com.theunderseer.simplio.feature.attendance.resources.ic_close
 import com.theunderseer.simplio.feature.attendance.resources.ic_content_copy
@@ -63,9 +62,7 @@ import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import com.theunderseer.simplio.feature.attendance.resources.package_added
 import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
 import com.theunderseer.simplio.feature.attendance.resources.schedule_entry_added
-import com.theunderseer.simplio.feature.attendance.resources.student_name_invalid
 import com.theunderseer.simplio.feature.attendance.resources.student_registered
-import com.theunderseer.simplio.feature.attendance.resources.student_registration_failed
 import com.theunderseer.simplio.shared.presentation.components.SimplioActionTone
 import com.theunderseer.simplio.shared.presentation.components.SimplioButton
 import com.theunderseer.simplio.shared.presentation.components.SimplioIconButton
@@ -387,14 +384,7 @@ fun AttendanceScreen(
                     packageTypes = state.packageTypes,
                     initialDate = state.currentDate,
                     isSaving = registrationState == RegisterStudentUiState.Saving,
-                    errorMessage = when (registrationState) {
-                        RegisterStudentUiState.Error.INVALID_NAME -> stringResource(Res.string.student_name_invalid)
-                        RegisterStudentUiState.Error.CLASS_CANCELLED -> stringResource(Res.string.class_cancelled_error)
-                        RegisterStudentUiState.Error.SAVE_FAILED -> stringResource(
-                            Res.string.student_registration_failed,
-                        )
-                        else -> null
-                    },
+                    errorMessage = registrationState.errorMessage(),
                     onRegister = {
                             fullName,
                             groupId,

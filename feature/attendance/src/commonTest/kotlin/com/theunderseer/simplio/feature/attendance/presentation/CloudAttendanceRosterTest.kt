@@ -1,18 +1,23 @@
 package com.theunderseer.simplio.feature.attendance.presentation
 
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomAttendanceRoster
+import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentGroupCreationRepository
 import com.theunderseer.simplio.feature.attendance.data.local.repository.RoomStudentPackageRepository
 import com.theunderseer.simplio.feature.attendance.data.local.sync.RoomPullStore
+import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupRequest
+import com.theunderseer.simplio.feature.attendance.domain.model.CreateStudentGroupResult
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.fake.FakeAttendanceCloud
 import com.theunderseer.simplio.feature.attendance.fixtures.AttendanceTestData
 import com.theunderseer.simplio.feature.attendance.fixtures.registerSyncStudent
+import com.theunderseer.simplio.feature.attendance.fixtures.testClassSchedule
 import com.theunderseer.simplio.feature.attendance.fixtures.withSyncDatabases
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -65,6 +70,24 @@ class CloudAttendanceRosterTest {
             RoomPullStore(mobile, cloud.target).refreshFrom(cloud)
             val roster = RoomAttendanceRoster(mobile)
             assertTrue(roster.getAll().attendance.entries.isEmpty())
+        }
+    }
+
+    @Test
+    fun `empty custom group has its schedule before the first registration`() = runTest {
+        withSyncDatabases { _, mobile ->
+            val schedule = testClassSchedule(timeZoneId = "America/Los_Angeles")
+            val group = assertIs<CreateStudentGroupResult.Success>(
+                RoomStudentGroupCreationRepository(mobile).create(
+                    CreateStudentGroupRequest("Friday group", newSchedule = schedule),
+                ),
+            ).group
+
+            val roster = RoomAttendanceRoster(mobile).getAll()
+
+            assertTrue(roster.attendance.entries.isEmpty())
+            assertEquals(listOf(group), roster.studentGroups)
+            assertEquals(listOf(schedule), roster.groupSchedules[group.id])
         }
     }
 }

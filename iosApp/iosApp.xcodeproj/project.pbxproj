@@ -7,6 +7,7 @@
 
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* SimplioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* SimplioApp.swift */; };
+		A10000000000000000000014 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000015 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -14,6 +15,7 @@
 		A10000000000000000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000004 /* Configuration.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration.xcconfig; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Simplio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Simplio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000015 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -22,7 +24,7 @@
 
 /* Begin PBXGroup section */
 		A10000000000000000000007 = {isa = PBXGroup; children = (A10000000000000000000008 /* Simplio */, A10000000000000000000004 /* Configuration.xcconfig */, A10000000000000000000009 /* Products */); sourceTree = "<group>"; };
-		A10000000000000000000008 /* Simplio */ = {isa = PBXGroup; children = (A10000000000000000000002 /* SimplioApp.swift */, A10000000000000000000003 /* Info.plist */); path = Simplio; sourceTree = "<group>"; };
+		A10000000000000000000008 /* Simplio */ = {isa = PBXGroup; children = (A10000000000000000000002 /* SimplioApp.swift */, A10000000000000000000003 /* Info.plist */, A10000000000000000000015 /* Assets.xcassets */); path = Simplio; sourceTree = "<group>"; };
 		A10000000000000000000009 /* Products */ = {isa = PBXGroup; children = (A10000000000000000000005 /* Simplio.app */); name = Products; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -34,6 +36,7 @@
 				A1000000000000000000000C /* Build Kotlin Framework */,
 				A1000000000000000000000D /* Sources */,
 				A10000000000000000000006 /* Frameworks */,
+				A10000000000000000000016 /* Resources */,
 			);
 			buildRules = ();
 			dependencies = ();
@@ -60,6 +63,17 @@
 			targets = (A1000000000000000000000A /* Simplio */);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000016 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000014 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
 		A1000000000000000000000C /* Build Kotlin Framework */ = {

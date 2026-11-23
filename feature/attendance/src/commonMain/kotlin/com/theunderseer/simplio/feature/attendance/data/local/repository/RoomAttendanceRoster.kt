@@ -19,8 +19,15 @@ internal class RoomAttendanceRoster(private val database: AttendanceDatabase) {
 
     suspend fun getAll(): AttendanceRoster = transactions.run {
         val attendance = getAttendance()
-        val groupIds = attendance.entries.map { it.student.groupId }.toSet()
-        AttendanceRoster(attendance, schedules.attendanceSchedulesByGroup(groupIds), packages.getAll(), groups.getAll())
+        val studentGroups = groups.getAll()
+        val groupIds = (studentGroups.map { it.id } + attendance.entries.map { it.student.groupId }).toSet()
+        AttendanceRoster(
+            attendance = attendance,
+            groupSchedules = schedules.attendanceSchedulesByGroup(groupIds),
+            packageTypes = packages.getAll(),
+            studentGroups = studentGroups,
+            classSchedules = schedules.getAll().filter { it.archivedAt == null },
+        )
     }
 
     fun observe() = database.invalidationTracker.createFlow(
