@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.Attendance
@@ -41,7 +42,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTestApi::class)
 class AttendanceRosterScreenTest {
     @Test
-    fun `roster shows only mobile columns and offers renewal`() = runComposeUiTest {
+    fun `roster shows expiration below the name and note below the visits and offers renewal`() = runComposeUiTest {
         val student = AttendanceTestData.student.copy(
             fullName = AttendanceTestData.studentWithCompanionName,
             note = AttendanceTestData.studentNote,
@@ -62,14 +63,20 @@ class AttendanceRosterScreenTest {
             )
         }
 
-        onNodeWithText(student.fullName).assertIsDisplayed()
-        onNodeWithContentDescription("1 of 8 visits used").assertIsDisplayed()
-        onNodeWithText("Expires Oct 30").assertIsDisplayed()
+        val name = onNodeWithText(student.fullName).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val expiration = onNodeWithText("Expires Oct 30").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val visits = onNodeWithContentDescription("1 of 8 visits used").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val note = onNodeWithText(student.note).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertEquals(name.left, expiration.left)
+        assertTrue(name.bottom < expiration.top)
+        assertTrue(visits.left > name.right)
+        val visitCenter = (visits.top + visits.bottom) / 2f
+        assertTrue(visitCenter in ((name.top + name.bottom) / 2f)..((expiration.top + expiration.bottom) / 2f))
+        assertTrue(note.top > maxOf(expiration.bottom, visits.bottom))
         val renew = onNodeWithContentDescription("Renew package for ${student.fullName}")
         renew.assertIsEnabled().assertHeightIsAtLeast(44.dp)
         onNodeWithText("Oct 2").assertDoesNotExist()
         onNodeWithText(packageType.name).assertDoesNotExist()
-        onNodeWithText(student.note).assertDoesNotExist()
         renew.performClick()
         val dialog = hasAnyAncestor(isDialog())
         onNode(dialog and hasText("Purchase date")).assertExists()
@@ -128,7 +135,62 @@ class AttendanceRosterScreenTest {
         val labels = listOf(firstGroup.name, "Zoe", "Ana", secondGroup.name, "Ben")
         val positions = labels.map { onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot().top }
         assertTrue(positions.zipWithNext().all { (above, below) -> above < below })
+        val separator = onNodeWithTag("ios-group-divider-${firstGroup.id}").getUnclippedBoundsInRoot()
+        assertTrue(separator.top > positions[0] && separator.bottom < positions[1])
         onNodeWithText(emptyGroup.name).assertDoesNotExist()
+    }
+
+    @Test
+    fun `attendance options expose sign out in the overflow menu`() = runComposeUiTest {
+        var signOuts = 0
+        setContent {
+            AttendanceRosterScreen(
+                state = AttendanceRosterState.Content(AttendanceRoster(Attendance(emptyList()), emptyMap())),
+                now = Instant.parse("2026-10-02T10:00:00Z"),
+                onRefresh = {},
+                onSignOut = { signOuts++ },
+                onEdit = { null },
+            )
+        }
+
+        onNodeWithText("Refresh").assertDoesNotExist()
+        onNodeWithText("Sign out").assertDoesNotExist()
+        onNodeWithContentDescription("More options").assertHeightIsAtLeast(44.dp).performClick()
+        onNodeWithText("Sign out").assertIsDisplayed().performClick()
+        onNodeWithText("Sign out").assertDoesNotExist()
+        runOnIdle { assertEquals(1, signOuts) }
+    }
+
+    @Test
+    fun `pulling on an empty roster refreshes once and shows progress below the title`() = runComposeUiTest {
+        var refreshes = 0
+        var refreshing by mutableStateOf(false)
+        setContent {
+            AttendanceRosterScreen(
+                state = AttendanceRosterState.Content(AttendanceRoster(Attendance(emptyList()), emptyMap())),
+                now = Instant.parse("2026-10-02T10:00:00Z"),
+                onRefresh = {
+                    refreshes++
+                    refreshing = true
+                },
+                onSignOut = {},
+                onEdit = { null },
+                isRefreshing = refreshing,
+            )
+        }
+
+        val list = onNodeWithTag("ios-attendance-list")
+        list.performTouchInput { swipeDown() }
+        val progress = onNodeWithContentDescription("Refreshing attendance")
+        val progressTop = progress.assertIsDisplayed().getUnclippedBoundsInRoot().top
+        assertTrue(progressTop > onNodeWithText("Attendance").getUnclippedBoundsInRoot().bottom)
+        assertTrue(progressTop < onNodeWithText("No students yet").getUnclippedBoundsInRoot().top)
+        list.performTouchInput { swipeDown() }
+        runOnIdle {
+            assertEquals(1, refreshes)
+            refreshing = false
+        }
+        progress.assertDoesNotExist()
     }
 
     @Test

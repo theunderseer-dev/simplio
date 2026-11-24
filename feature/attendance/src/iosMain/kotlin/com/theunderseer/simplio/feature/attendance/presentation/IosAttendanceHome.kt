@@ -78,6 +78,7 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
         creation = current?.creation,
         onDeleteStudent = current?.deleteStudent,
         syncNotice = { if (current != null) AttendanceSyncNotice(current.sync) },
+        isRefreshing = showRoster && syncStatus == AttendanceSyncStatus.Syncing,
     )
 }
 

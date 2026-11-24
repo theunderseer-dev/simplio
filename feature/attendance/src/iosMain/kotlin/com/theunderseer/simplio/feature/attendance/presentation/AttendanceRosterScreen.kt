@@ -21,12 +21,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,23 +40,31 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.theunderseer.simplio.feature.attendance.domain.model.AttendanceRoster
 import com.theunderseer.simplio.feature.attendance.domain.schedule.AttendanceCheckState
 import com.theunderseer.simplio.feature.attendance.resources.Res
 import com.theunderseer.simplio.feature.attendance.resources.ic_check
+import com.theunderseer.simplio.feature.attendance.resources.ic_more_vert
 import com.theunderseer.simplio.feature.attendance.resources.ic_refresh
 import com.theunderseer.simplio.feature.attendance.resources.ios_mark_student_present
 import com.theunderseer.simplio.feature.attendance.resources.ios_remove_student_attendance
 import com.theunderseer.simplio.feature.attendance.resources.ios_renew_student_package
+import com.theunderseer.simplio.feature.attendance.resources.ios_roster_options
+import com.theunderseer.simplio.feature.attendance.resources.ios_roster_refreshing
 import com.theunderseer.simplio.feature.attendance.resources.package_no_expiration
 import com.theunderseer.simplio.feature.attendance.resources.roster_check
 import com.theunderseer.simplio.feature.attendance.resources.roster_checked
@@ -74,6 +87,8 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 
+private const val HORIZONTAL_ELLIPSIS_ROTATION = 90f
+
 @Suppress("FunctionNaming") // Compose UI functions use PascalCase.
 @Composable
 internal fun AttendanceRosterScreen(
@@ -85,28 +100,29 @@ internal fun AttendanceRosterScreen(
     creation: IosAttendanceCreation? = null,
     onDeleteStudent: (suspend (Int) -> String?)? = null,
     syncNotice: @Composable () -> Unit = {},
+    isRefreshing: Boolean = false,
 ) {
     var dialog by remember { mutableStateOf<StudentAttendanceUiState?>(null) }
     var creationDialog by remember(creation) { mutableStateOf<IosAttendanceQuickAction?>(null) }
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val deletion = remember(onDeleteStudent, scope) { onDeleteStudent?.let { IosRosterDeletion(scope, it) } }
-    val loaded = state is AttendanceRosterState.Content
-    val showTrigger = loaded && creation != null
+    val showTrigger = state is AttendanceRosterState.Content && creation != null
     var showQuickActions by remember(showTrigger) { mutableStateOf(false) }
     val reduceMotion = rememberIosReduceMotion()
-    val contentSemantics = if (showQuickActions) Modifier.clearAndSetSemantics {} else Modifier
     val systemBars = WindowInsets.systemBars
+    val refresh = {
+        deletion?.closeReveal()
+        onRefresh()
+    }
     Box(Modifier.fillMaxSize().closeRosterRevealOnTap(deletion)) {
-        Column(
-            Modifier.fillMaxSize()
-                .windowInsetsPadding(systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-                .then(contentSemantics),
+        AttendanceRosterFrame(
+            hideSemantics = showQuickActions,
+            onRefresh = refresh.takeIf { state != AttendanceRosterState.Loading && !isRefreshing },
+            onSignOut = onSignOut,
         ) {
             syncNotice()
-            AttendanceRosterHeader(loaded, onRefresh, onSignOut)
-            HorizontalDivider()
-            AttendanceRosterContent(state, now, reduceMotion, onRefresh, deletion) { row -> dialog = row }
+            AttendanceRosterContent(state, now, reduceMotion, isRefreshing, refresh, deletion) { row -> dialog = row }
         }
         SnackbarHost(
             snackbarHost,
@@ -148,20 +164,71 @@ internal fun AttendanceRosterScreen(
 
 @Suppress("FunctionNaming")
 @Composable
-private fun AttendanceRosterHeader(canRefresh: Boolean, onRefresh: () -> Unit, onSignOut: () -> Unit) {
+private fun AttendanceRosterFrame(
+    hideSemantics: Boolean,
+    onRefresh: (() -> Unit)?,
+    onSignOut: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val contentSemantics = if (hideSemantics) Modifier.clearAndSetSemantics {} else Modifier
+    Column(
+        Modifier.fillMaxSize()
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .then(contentSemantics),
+    ) {
+        AttendanceRosterHeader(onRefresh, onSignOut)
+        HorizontalDivider()
+        content()
+    }
+}
+
+@Suppress("FunctionNaming")
+@Composable
+private fun AttendanceRosterHeader(onRefresh: (() -> Unit)?, onSignOut: () -> Unit) {
+    val refreshLabel = stringResource(Res.string.roster_refresh)
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(Res.string.roster_title),
-            modifier = Modifier.weight(1f).semantics { heading() },
+            modifier = Modifier.weight(1f).semantics {
+                heading()
+                if (onRefresh != null) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(refreshLabel) {
+                            onRefresh()
+                            true
+                        },
+                    )
+                }
+            },
             style = MaterialTheme.typography.headlineSmall,
         )
-        TextButton(onClick = onRefresh, enabled = canRefresh) {
-            Text(stringResource(Res.string.roster_refresh))
+        AttendanceRosterOptions(onSignOut)
+    }
+}
+
+@Suppress("FunctionNaming")
+@Composable
+private fun AttendanceRosterOptions(onSignOut: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        SimplioIconButton(
+            painter = painterResource(Res.drawable.ic_more_vert),
+            contentDescription = stringResource(Res.string.ios_roster_options),
+            onClick = { expanded = true },
+            modifier = Modifier.rotate(HORIZONTAL_ELLIPSIS_ROTATION),
+        )
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.roster_sign_out)) },
+                onClick = {
+                    expanded = false
+                    onSignOut()
+                },
+            )
         }
-        TextButton(onClick = onSignOut) { Text(stringResource(Res.string.roster_sign_out)) }
     }
 }
 
@@ -171,61 +238,83 @@ private fun AttendanceRosterContent(
     state: AttendanceRosterState,
     now: Instant,
     reduceMotion: Boolean,
+    isRefreshing: Boolean,
     onRefresh: () -> Unit,
     deletion: IosRosterDeletion?,
     onAction: (StudentAttendanceUiState) -> Unit,
 ) {
-    when (state) {
-        AttendanceRosterState.Loading -> RosterStatus {
-            val loading = stringResource(Res.string.roster_loading)
-            CircularProgressIndicator(Modifier.semantics { contentDescription = loading })
+    val roster = (state as? AttendanceRosterState.Content)?.roster
+    val rows = remember(roster, now) { roster?.toRows(now).orEmpty() }
+    val pullState = rememberPullToRefreshState()
+    val refreshLabel = stringResource(Res.string.ios_roster_refreshing)
+    val bottomInset = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize().clipToBounds(),
+        state = pullState,
+        enabled = state != AttendanceRosterState.Loading,
+        indicator = {
+            if (isRefreshing || pullState.distanceFraction > 0f) {
+                val progress = if (isRefreshing) Modifier.semantics { contentDescription = refreshLabel } else Modifier
+                PullToRefreshDefaults.Indicator(
+                    state = pullState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter).then(progress),
+                )
+            }
+        },
+    ) {
+        LazyColumn(
+            Modifier.fillMaxSize().testTag("ios-attendance-list"),
+            contentPadding = PaddingValues(
+                top = PullToRefreshDefaults.IndicatorMaxDistance * pullState.distanceFraction.coerceIn(0f, 1f),
+                bottom = quickActionListClearance + bottomInset,
+            ),
+        ) {
+            if (roster != null && rows.isNotEmpty()) {
+                groupedRosterItems(roster, rows, reduceMotion, deletion, onAction)
+            } else {
+                item(key = "roster-status") { RosterStatus(state, onRefresh, Modifier.fillParentMaxSize()) }
+            }
         }
-        is AttendanceRosterState.Error -> RosterStatus {
-            Text(stringResource(state.message))
-            TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
-        }
-        is AttendanceRosterState.Content -> AttendanceRosterRows(state.roster, now, reduceMotion, deletion, onAction)
     }
 }
 
-@Suppress("FunctionNaming")
-@Composable
-private fun AttendanceRosterRows(
+private fun LazyListScope.groupedRosterItems(
     roster: AttendanceRoster,
-    now: Instant,
+    rows: List<StudentAttendanceUiState>,
     reduceMotion: Boolean,
     deletion: IosRosterDeletion?,
     onAction: (StudentAttendanceUiState) -> Unit,
 ) {
-    val rows = remember(roster, now) { roster.toRows(now) }
-    if (rows.isEmpty()) {
-        RosterStatus { Text(stringResource(Res.string.roster_empty)) }
-    } else {
-        val rowsByGroup = rows.groupBy { it.registeredStudent.student.groupId }
-        val namedGroupIds = roster.studentGroups.mapTo(mutableSetOf()) { it.id }
-        val ungroupedRows = rows.filterNot { it.registeredStudent.student.groupId in namedGroupIds }
-        val bottomInset = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-        LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = quickActionListClearance + bottomInset),
-        ) {
-            roster.studentGroups.forEach { group ->
-                val groupRows = rowsByGroup[group.id].orEmpty()
-                if (groupRows.isNotEmpty()) {
-                    item(key = "student-group-${group.id}", contentType = "student-group-header") {
-                        Text(
-                            text = group.name,
-                            modifier = Modifier.fillMaxWidth()
-                                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 6.dp)
-                                .semantics { heading() },
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                    attendanceRosterItems(groupRows, reduceMotion, deletion, onAction)
-                }
+    val rowsByGroup = rows.groupBy { it.registeredStudent.student.groupId }
+    val namedGroupIds = roster.studentGroups.mapTo(mutableSetOf()) { it.id }
+    roster.studentGroups.forEach { group ->
+        val groupRows = rowsByGroup[group.id].orEmpty()
+        if (groupRows.isNotEmpty()) {
+            item(key = "student-group-${group.id}", contentType = "student-group-header") {
+                RosterGroupHeader(group.name, group.id)
             }
-            attendanceRosterItems(ungroupedRows, reduceMotion, deletion, onAction)
+            attendanceRosterItems(groupRows, reduceMotion, deletion, onAction)
         }
+    }
+    val ungroupedRows = rows.filterNot { it.registeredStudent.student.groupId in namedGroupIds }
+    attendanceRosterItems(ungroupedRows, reduceMotion, deletion, onAction)
+}
+
+@Suppress("FunctionNaming")
+@Composable
+private fun RosterGroupHeader(name: String, groupId: Int) {
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, top = 18.dp, end = 16.dp)) {
+        Text(
+            text = name,
+            modifier = Modifier.padding(bottom = 6.dp).semantics { heading() },
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        HorizontalDivider(Modifier.testTag("ios-group-divider-$groupId"))
     }
 }
 
@@ -262,9 +351,21 @@ private fun LazyListScope.attendanceRosterItems(
 
 @Suppress("FunctionNaming")
 @Composable
-private fun RosterStatus(content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) { content() }
+private fun RosterStatus(state: AttendanceRosterState, onRefresh: () -> Unit, modifier: Modifier) {
+    Box(modifier.padding(20.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            when (state) {
+                AttendanceRosterState.Loading -> {
+                    val loading = stringResource(Res.string.roster_loading)
+                    CircularProgressIndicator(Modifier.semantics { contentDescription = loading })
+                }
+                is AttendanceRosterState.Error -> {
+                    Text(stringResource(state.message))
+                    TextButton(onClick = onRefresh) { Text(stringResource(Res.string.roster_retry)) }
+                }
+                is AttendanceRosterState.Content -> Text(stringResource(Res.string.roster_empty))
+            }
+        }
     }
 }
 
@@ -283,22 +384,33 @@ private fun AttendanceRosterRow(row: StudentAttendanceUiState, reduceMotion: Boo
         else -> stringResource(Res.string.roster_expires_on, expiryDate.toDisplayDate())
     }
     val textColor = if (row.requiresRenewal) MaterialTheme.colorScheme.positive else Color.Unspecified
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(student.fullName, color = textColor, style = MaterialTheme.typography.titleMedium)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(student.fullName, color = textColor, style = MaterialTheme.typography.titleMedium)
+                Text(expiration, color = textColor, style = MaterialTheme.typography.bodySmall)
+            }
             Text(
                 text = "$used/$total",
                 modifier = Modifier.clearAndSetSemantics { contentDescription = visits },
                 color = textColor,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
             )
-            Text(expiration, color = textColor, style = MaterialTheme.typography.bodySmall)
+            AttendanceRosterAction(row, reduceMotion, onAction)
         }
-        AttendanceRosterAction(row, reduceMotion, onAction)
+        if (student.note.isNotBlank()) {
+            Text(
+                text = student.note,
+                modifier = Modifier.padding(top = 6.dp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

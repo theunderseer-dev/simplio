@@ -1,9 +1,10 @@
 # iOS attendance
 
 The iOS app opens the attendance list after Firebase email/password sign-in with a verified
-account. Each student appears once with their latest purchase. The list shows the student or
-pair name, used and total visits, expiration, and the Check, Checked, or Renew action.
-The list uses the same student group and row order as Desktop. Empty groups are hidden.
+account. Each student appears once with their latest purchase. The list shows expiration
+under the student or pair name, used and total visits beside it, and the Check, Checked, or
+Renew action. A nonblank note appears below. The list uses the same student group and row
+order as Desktop. A divider separates each group heading from its first student. Empty groups are hidden.
 The iOS roster reuses the Desktop action icons and highlights renewal rows in the same green.
 Check opens the same schedule-aware calendar as Desktop. Checked opens the removal confirmation.
 Renew uses the shared purchase form with an existing package template, an optional first
@@ -44,8 +45,11 @@ The keyboard changes the layout of the active form while the underlying roster s
   Desktop and iOS share the dependency graph, date rules, dialogs, and use cases for creation
   and attendance. The mobile roster and quick actions use Compose in `iosMain`.
 
-The shared coordinator checks the Firestore head at sign-in, on Refresh, and while the device is
-idle. It uses the same bounded snapshot import and durable outbox as Desktop. A save checks the
+Pull down from the top of Attendance to request a sync. The indicator appears below the
+title while sync is running, and VoiceOver offers Refresh as an action on the title.
+Sign out is in the More options menu. The shared coordinator checks the Firestore head at
+sign-in, on refresh, and while the device is idle. It uses the same bounded snapshot import
+and durable outbox as Desktop. A save checks the
 reviewed purchase in a Room transaction. The use case updates the visit or purchase and journal
 together. Sync retries and conflict review use the shared status UI. See [Firestore pull](firestore-pull.md)
 and [Student package renewal](package-renewal.md).
@@ -136,6 +140,9 @@ Run the signed-in screen with a verified test account containing active, expired
 purchases. Check a class, confirm that the counter updates, and remove the visit with Checked.
 Renew with and without first attendance and verify the purchase, note, and visit count on Desktop
 after sync. Check both appearance modes and an empty account.
+Pull to refresh from the top of a populated and an empty roster. Verify the indicator appears
+below Attendance while syncing and any connection issue is reported in the sync notice.
+Open More options and verify Sign out is available there.
 Open the add menu on a populated and empty roster. Verify that the buttons fit above the home
 indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
 Swipe left on students in two different groups in succession and verify that only the
@@ -149,6 +156,9 @@ a date and verify the form still has the entered name and selected group. Watch 
 roster behind the form remains fixed. Repeat for schedule date and time pickers.
 
 See [Apple lists and tables](https://developer.apple.com/design/human-interface-guidelines/lists-and-tables),
+[Apple typography guidance](https://developer.apple.com/design/human-interface-guidelines/typography),
+[Apple menus](https://developer.apple.com/design/human-interface-guidelines/menus),
+[Apple refresh interaction](https://developer.apple.com/documentation/swiftui/view/refreshable(action:)),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),
 [Apple motion guidance](https://developer.apple.com/design/human-interface-guidelines/motion),
 [Apple date picker guidance](https://developer.apple.com/design/human-interface-guidelines/pickers),

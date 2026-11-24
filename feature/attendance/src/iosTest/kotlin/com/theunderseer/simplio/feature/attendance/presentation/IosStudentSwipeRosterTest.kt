@@ -37,12 +37,11 @@ import kotlin.time.Instant
 class IosStudentSwipeRosterTest {
     @Test
     fun `left swipe reveals one square and tapping the list closes it`() = runComposeUiTest {
-        var refreshes = 0
         setContent {
             AttendanceRosterScreen(
                 state = AttendanceRosterState.Content(studentSwipeRoster()),
                 now = Instant.parse("2026-10-02T10:00:00Z"),
-                onRefresh = { refreshes++ },
+                onRefresh = {},
                 onSignOut = {},
                 onEdit = { null },
                 onDeleteStudent = { null },
@@ -76,9 +75,8 @@ class IosStudentSwipeRosterTest {
         firstDelete.assertDoesNotExist()
 
         first.performTouchInput { swipeLeft() }
-        onNodeWithText("Refresh").performTouchInput { click() }
+        onNodeWithText("Attendance").performTouchInput { click() }
         firstDelete.assertDoesNotExist()
-        runOnIdle { assertEquals(1, refreshes) }
     }
 
     @Test

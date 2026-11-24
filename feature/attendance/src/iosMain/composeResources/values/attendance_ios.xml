@@ -6,4 +6,6 @@
     <string name="ios_mark_student_present">Mark %1$s present</string>
     <string name="ios_remove_student_attendance">Remove attendance for %1$s</string>
     <string name="ios_renew_student_package">Renew package for %1$s</string>
+    <string name="ios_roster_options">More options</string>
+    <string name="ios_roster_refreshing">Refreshing attendance</string>
 </resources>
