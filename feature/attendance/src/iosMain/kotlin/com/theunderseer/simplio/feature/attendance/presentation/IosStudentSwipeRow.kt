@@ -60,6 +60,7 @@ internal fun IosStudentSwipeRow(
     onRequestDelete: () -> Unit,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = false,
+    foregroundModifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     val animation = if (reduceMotion) reducedMotionSwipeAnimation else studentSwipeAnimation
@@ -98,6 +99,7 @@ internal fun IosStudentSwipeRow(
                     IntOffset(x, 0)
                 }
                 .background(MaterialTheme.colorScheme.surface)
+                .then(foregroundModifier)
                 .semantics(mergeDescendants = true) {
                     customActions = listOf(
                         CustomAccessibilityAction(deleteDescription) {

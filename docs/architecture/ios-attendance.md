@@ -4,16 +4,28 @@ The iOS app opens the attendance list after Firebase email/password sign-in with
 account. Each student appears once with their latest purchase. The list shows expiration
 under the student or pair name, used and total visits beside it, and the Check, Checked, or
 Renew action. A nonblank note appears below. The list uses the same student group and row
-order as Desktop. A divider separates each group heading from its first student. Empty groups are hidden.
+order as Desktop. A divider separates each group heading from its first student. Empty
+groups are hidden.
 The iOS roster reuses the Desktop action icons and highlights renewal rows in the same green.
 Check opens the same schedule-aware calendar as Desktop. Checked opens the removal confirmation.
 Renew uses the shared purchase form with an existing package template, an optional first
 attendance, and an optional note. The compact Purchase date field opens a calendar with a
 keyboard-input option. Room changes update the list after each save.
 
+Tap a student to open Student details. The current purchase shows visits used and a
+chronological list of class dates. Duo packages also show how many people attended each class.
+Purchase date, first attendance, expiration, and package name come from the same Room roster.
+The back button returns to the same list position.
+
+The note is editable. It saves when focus leaves the field or when the back button is pressed.
+The screen waits for the local save before navigating back. A failed save keeps the draft
+available for retry. The shared note use case writes the note and sync outbox together. The
+Room observer updates the roster preview, and the sync coordinator uploads the change.
+
 Swipe a student row left to reveal a square Delete button. Only one row stays open.
-Tapping elsewhere or swiping the row back closes it. The swipe reveals the action and
-deletion requires confirmation in the shared student dialog. VoiceOver exposes the
+Tapping a row while a Delete action is revealed closes the action. Tapping elsewhere or
+swiping the row back also closes it. Deletion requires confirmation in the shared student
+dialog. VoiceOver exposes the
 same action. Confirmed deletes use the shared Room transaction and sync outbox.
 
 The round add button shows Add student, Add package, and Add schedule from top to bottom.
@@ -42,15 +54,15 @@ The keyboard changes the layout of the active form while the underlying roster s
 - `:shared` owns the Firebase sign-in screen, session manager, storage contract, and REST clients.
   The iOS HTTP engine uses Ktor Darwin.
 - `:feature:attendance` owns the session, Room import and queries, roster, and screen state.
-  Desktop and iOS share the dependency graph, date rules, dialogs, and use cases for creation
-  and attendance. The mobile roster and quick actions use Compose in `iosMain`.
+  Desktop and iOS share the dependency graph, date rules, dialogs, and use cases for creation,
+  attendance, and notes. The mobile roster, quick actions, and student details use Compose in `iosMain`.
 
 Pull down from the top of Attendance to request a sync. The indicator appears below the
 title while sync is running, and VoiceOver offers Refresh as an action on the title.
 Sign out is in the More options menu. The shared coordinator checks the Firestore head at
 sign-in, on refresh, and while the device is idle. It uses the same bounded snapshot import
-and durable outbox as Desktop. A save checks the
-reviewed purchase in a Room transaction. The use case updates the visit or purchase and journal
+and durable outbox as Desktop. A save checks the reviewed purchase in a Room transaction.
+The use case updates the visit or purchase and journal
 together. Sync retries and conflict review use the shared status UI. See [Firestore pull](firestore-pull.md)
 and [Student package renewal](package-renewal.md).
 
@@ -108,8 +120,8 @@ The [iOS Build & Tests job](../../.github/workflows/ci.yml) runs alongside the U
 checks on macOS ARM64. It uses JDK 21 and Xcode 26.4, the Xcode version listed for this
 project's Kotlin release in the [Kotlin compatibility guide](https://kotlinlang.org/docs/multiplatform/multiplatform-compatibility-guide.html#version-compatibility).
 The job boots an iPhone simulator for the selected SDK and builds the `Simplio` scheme without
-signing. Gradle runs the Keychain, roster, quick actions, date picker, and swipe tests with
-local fixtures. Detekt checks Attendance's `iosMain` and `iosTest` source sets.
+signing. Gradle runs the Keychain, roster, student details, quick actions, date picker, and
+swipe tests with local fixtures. Detekt checks Attendance's `iosMain` and `iosTest` source sets.
 
 ## Local verification
 
@@ -143,6 +155,11 @@ after sync. Check both appearance modes and an empty account.
 Pull to refresh from the top of a populated and an empty roster. Verify the indicator appears
 below Attendance while syncing and any connection issue is reported in the sync notice.
 Open More options and verify Sign out is available there.
+Open Student details for a Solo student, a Duo student, and a prepaid package. Verify that
+class dates match the current purchase, Duo rows include the number of people, and a prepaid
+package shows its purchase date while waiting for activation. Edit a note, tap outside the
+field, and return to the roster. Verify that the preview updates. Reopen the student, clear
+the note, and use Back while the field is focused. Verify that the preview disappears.
 Open the add menu on a populated and empty roster. Verify that the buttons fit above the home
 indicator, that tapping outside closes the menu, and that Reduce Motion disables the slide.
 Swipe left on students in two different groups in succession and verify that only the
@@ -159,6 +176,7 @@ See [Apple lists and tables](https://developer.apple.com/design/human-interface-
 [Apple typography guidance](https://developer.apple.com/design/human-interface-guidelines/typography),
 [Apple menus](https://developer.apple.com/design/human-interface-guidelines/menus),
 [Apple refresh interaction](https://developer.apple.com/documentation/swiftui/view/refreshable(action:)),
+[Apple navigation guidance](https://developer.apple.com/documentation/swiftui/navigationstack),
 [Apple accessibility guidance](https://developer.apple.com/design/human-interface-guidelines/accessibility),
 [Apple motion guidance](https://developer.apple.com/design/human-interface-guidelines/motion),
 [Apple date picker guidance](https://developer.apple.com/design/human-interface-guidelines/pickers),

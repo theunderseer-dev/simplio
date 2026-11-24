@@ -63,10 +63,13 @@ class AttendanceRosterScreenTest {
             )
         }
 
-        val name = onNodeWithText(student.fullName).assertIsDisplayed().getUnclippedBoundsInRoot()
-        val expiration = onNodeWithText("Expires Oct 30").assertIsDisplayed().getUnclippedBoundsInRoot()
-        val visits = onNodeWithContentDescription("1 of 8 visits used").assertIsDisplayed().getUnclippedBoundsInRoot()
-        val note = onNodeWithText(student.note).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val name = onNodeWithText(student.fullName, useUnmergedTree = true)
+            .assertIsDisplayed().getUnclippedBoundsInRoot()
+        val expiration = onNodeWithText("Expires Oct 30", useUnmergedTree = true)
+            .assertIsDisplayed().getUnclippedBoundsInRoot()
+        val visits = onNodeWithContentDescription("1 of 8 visits used", useUnmergedTree = true)
+            .assertIsDisplayed().getUnclippedBoundsInRoot()
+        val note = onNodeWithText(student.note, useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
         assertEquals(name.left, expiration.left)
         assertTrue(name.bottom < expiration.top)
         assertTrue(visits.left > name.right)
@@ -133,7 +136,9 @@ class AttendanceRosterScreenTest {
         }
 
         val labels = listOf(firstGroup.name, "Zoe", "Ana", secondGroup.name, "Ben")
-        val positions = labels.map { onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot().top }
+        val positions = labels.map {
+            onNodeWithText(it, useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot().top
+        }
         assertTrue(positions.zipWithNext().all { (above, below) -> above < below })
         val separator = onNodeWithTag("ios-group-divider-${firstGroup.id}").getUnclippedBoundsInRoot()
         assertTrue(separator.top > positions[0] && separator.bottom < positions[1])
