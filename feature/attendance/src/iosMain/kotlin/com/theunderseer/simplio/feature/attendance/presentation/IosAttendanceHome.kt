@@ -16,8 +16,11 @@ import com.theunderseer.simplio.feature.attendance.data.remote.createFirestoreAt
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncCoordinator
 import com.theunderseer.simplio.feature.attendance.data.sync.AttendanceSyncStatus
 import com.theunderseer.simplio.feature.attendance.di.attendanceModule
+import com.theunderseer.simplio.feature.attendance.domain.usecase.UpdateStudentNoteUseCase
 import com.theunderseer.simplio.feature.attendance.presentation.sync.AttendanceSyncNotice
 import com.theunderseer.simplio.feature.attendance.resources.Res
+import com.theunderseer.simplio.feature.attendance.resources.ios_note_save_failed
+import com.theunderseer.simplio.feature.attendance.resources.ios_student_unavailable
 import com.theunderseer.simplio.feature.attendance.resources.roster_error
 import com.theunderseer.simplio.shared.firebase.FirestoreRestClient
 import kotlinx.coroutines.CancellationException
@@ -29,6 +32,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.getString
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import kotlin.time.Clock
@@ -78,6 +82,8 @@ fun IosAttendanceHome(client: FirestoreRestClient, databasePath: () -> String?, 
         creation = current?.creation,
         onDeleteStudent = current?.deleteStudent,
         syncNotice = { if (current != null) AttendanceSyncNotice(current.sync) },
+        isRefreshing = showRoster && syncStatus == AttendanceSyncStatus.Syncing,
+        onUpdateStudentNote = current?.updateNote,
     )
 }
 
@@ -86,6 +92,7 @@ private class IosRosterSession(
     val apply: suspend (AttendanceRosterEdit) -> String?,
     val creation: IosAttendanceCreation,
     val deleteStudent: suspend (Int) -> String?,
+    val updateNote: suspend (Int, String) -> String?,
 )
 
 private suspend fun runRosterSession(
@@ -115,6 +122,7 @@ private suspend fun runRosterSession(
                     dependencies.get(),
                 )
                 val creation = iosAttendanceCreation(dependencies.get(), dependencies.get(), dependencies.get())
+                val updateNote = dependencies.get<UpdateStudentNoteUseCase>()
                 launch(start = CoroutineStart.UNDISPATCHED) { sync.run() }
                 onOpen(
                     IosRosterSession(
@@ -122,6 +130,7 @@ private suspend fun runRosterSession(
                         apply = { edit -> async { edits.apply(edit) }.await() },
                         creation = creation,
                         deleteStudent = { studentId -> async { edits.delete(studentId) }.await() },
+                        updateNote = { studentId, note -> async { saveNote(updateNote, studentId, note) }.await() },
                     ),
                 )
                 roster.observe().collect { onState(AttendanceRosterState.Content(it)) }
@@ -132,4 +141,12 @@ private suspend fun runRosterSession(
     } finally {
         withContext(NonCancellable + Dispatchers.IO) { database.close() }
     }
+}
+
+private suspend fun saveNote(updateNote: UpdateStudentNoteUseCase, studentId: Int, note: String): String? = try {
+    if (updateNote(studentId, note)) null else getString(Res.string.ios_student_unavailable)
+} catch (error: CancellationException) {
+    throw error
+} catch (_: Exception) {
+    getString(Res.string.ios_note_save_failed)
 }

@@ -6,4 +6,20 @@
     <string name="ios_mark_student_present">Mark %1$s present</string>
     <string name="ios_remove_student_attendance">Remove attendance for %1$s</string>
     <string name="ios_renew_student_package">Renew package for %1$s</string>
+    <string name="ios_roster_options">More options</string>
+    <string name="ios_roster_refreshing">Refreshing attendance</string>
+    <string name="ios_view_student_details">View student details</string>
+    <string name="ios_student_details">Student details</string>
+    <string name="ios_back_to_attendance">Back to Attendance</string>
+    <string name="ios_no_attendance_recorded">No attendance recorded</string>
+    <string name="ios_attendance_entry">Class %1$d, %2$s</string>
+    <string name="ios_attendance_entry_with_people">Class %1$d, %2$s. People attending: %3$d</string>
+    <string name="ios_purchase_date">Purchase date</string>
+    <string name="ios_first_attendance">First attendance</string>
+    <string name="ios_expiration_date">Expiration date</string>
+    <string name="ios_note">Note</string>
+    <string name="ios_note_placeholder">Add note</string>
+    <string name="ios_note_saving">Saving note…</string>
+    <string name="ios_note_save_failed">Couldn't save the note. Try again.</string>
+    <string name="ios_student_unavailable">This student is no longer available.</string>
 </resources>
